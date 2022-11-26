@@ -3,7 +3,6 @@ import socket
 from message import *
 from secrets import token_urlsafe
 from multiprocessing import Process
-
 from abc import abstractmethod
 
 
