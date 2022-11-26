@@ -17,10 +17,9 @@ class auction_component:
         self.BUFFER_SIZE = 4096
         self.ENCODING = 'utf-8'
         self.TOKEN_LENGTH = 16
-        self.PORT = 1000 # TODO: they should have different port number
+        self.PORT = 1000  # TODO: they should have different port number
         self.hold_back_queue = hold_back_queue()
         self.delivery_queue = delivery_queue()
-        self.is_member = False
         self.id = token_urlsafe(self.TOKEN_LENGTH)
 
     @staticmethod
@@ -89,23 +88,23 @@ class auction_component:
                 message['SENDER_ADDRESS'] = address
                 self.receive(message)
 
-    def udp_send(self, address, port, message: dict):
+    @staticmethod
+    def udp_send(address, message: dict):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp_socket.sendto(str.encode(json.dumps(message)), (address, port))
-        return udp_socket.recvfrom(self.BUFFER_SIZE)
+        udp_socket.sendto(str.encode(json.dumps(message)), address)
+        # return udp_socket.recvfrom(self.BUFFER_SIZE)
 
-    def udp_listen(self):
+    def udp_listen(self, UDP_PORT):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        server_socket.bind((self.MY_IP, self.PORT))
+        server_socket.bind((self.MY_IP, UDP_PORT))
         while True:
             data, address = server_socket.recvfrom(self.BUFFER_SIZE)
             if data:
                 message = json.loads(data.decode())
                 message['SENDER_ADDRESS'] = address
+                print(message)
                 self.receive(message)
 
 
 if __name__ == '__main__':
     test_component = auction_component()
-    mess = test_component.create_message('asd', 'asd')
-    print(mess)
