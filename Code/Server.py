@@ -1,4 +1,5 @@
 import time
+import click
 from auction_component import auction_component
 
 
@@ -56,8 +57,11 @@ class Server(auction_component):
         super().udp_listen(self.UDP_PORT)
 
 
-if __name__ == '__main__':
-    test_component = Server(10001)
+@click.command()
+@click.option('--port', required=True, type=int, help='The port that the server connect to')
+@click.option('--opt', required=True, default=0, type=int, help='whether the server is entry point of the system')
+def main(port, opt):
+    test_component = Server(port, opt == 1)
     test_component.report()
     while True:
         print('*' * 50)
@@ -70,3 +74,7 @@ if __name__ == '__main__':
             test_component.find_others()
         else:
             print('Invalid input!')
+
+
+if __name__ == '__main__':
+    main()

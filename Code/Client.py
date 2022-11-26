@@ -37,7 +37,7 @@ class Client(auction_component):
             self.udp_send(response['CONTENT']['ADDRESS'], message)
 
 
-if __name__ == '__main__':
+def main():
     test_component = Client()
     test_component.report()
     while True:
@@ -52,3 +52,6 @@ if __name__ == '__main__':
         else:
             print('Invalid input!')
 
+
+if __name__ == '__main__':
+    main()
