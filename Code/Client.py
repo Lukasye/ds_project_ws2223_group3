@@ -1,3 +1,5 @@
+import socket
+import json
 from auction_component import auction_component
 
 
@@ -19,6 +21,7 @@ class Client(auction_component):
 
     def logic(self, response: dict):
         method = response['METHOD']
+        # print(response)
         if method == 'DISCOVERY':
             if not self.is_member:
                 message = self.create_message('DISCOVERY', {'type': self.TYPE})
@@ -28,6 +31,11 @@ class Client(auction_component):
                 message = self.create_message('REDIRECT', {'type': 'DISCOVERY',
                                                            'ADDRESS': self.leader})
                 self.udp_send(response['SENDER_ADDRESS'], message)
+        elif method == 'SET':
+            tmp = response['CONTENT']
+            for key in tmp:
+                print('self.{} = {}'.format(key, tmp[key]))
+                exec('self.{} = {}'.format(key, tmp[key]))
         elif method == 'ACCEPT':
             self.is_member = True
             self.leader = response['CONTENT']['ADDRESS']
@@ -35,6 +43,8 @@ class Client(auction_component):
             message = self.create_message(response['CONTENT']['type'],
                                           {'type': self.TYPE})
             self.udp_send(response['CONTENT']['ADDRESS'], message)
+        else:
+            print(response)
 
 
 def main():
@@ -49,6 +59,8 @@ def main():
             test_component.report()
         elif user_input == 'listen':
             test_component.broadcast_listen()
+        elif user_input == 'join':
+            test_component.join(('172.17.16.1', 10001))
         else:
             print('Invalid input!')
 

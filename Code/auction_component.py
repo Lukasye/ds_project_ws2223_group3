@@ -21,11 +21,6 @@ class auction_component:
         self.delivery_queue = delivery_queue()
         self.id = token_urlsafe(self.TOKEN_LENGTH)
 
-    @staticmethod
-    def multi_processing(func, args=None):
-        # TODO: method refine, There is still BUG!
-        return Process(target=func, args=args)
-
     def create_message(self, METHOD: str, CONTENT, SEQUENCE: int = 0):
         """
         HELPER FUNCTION:
@@ -41,13 +36,27 @@ class auction_component:
                 'CONTENT': CONTENT}
 
     @abstractmethod
-    def logic(self, request: dict):
+    def logic(self, request: dict) -> None:
         """
         handle the request that has been DELIVERED to the object
         :param request: dictionary includes the request
-        :return:
+        :return: whether the function get a positive result
         """
         pass
+
+    @staticmethod
+    def udp_send_without_response(address, message: dict):
+        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp_socket.sendto(str.encode(json.dumps(message)), address)
+
+    def udp_send(self, address, message: dict) -> None:
+        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp_socket.sendto(str.encode(json.dumps(message)), address)
+        data, addr = udp_socket.recvfrom(self.BUFFER_SIZE)
+        if data:
+            message = json.loads(data.decode())
+            message['SENDER_ADDRESS'] = address
+            self.receive(message)
 
     def receive(self, message: dict):
         # TODO: function requirement
@@ -56,8 +65,11 @@ class auction_component:
         else:
             self.deliver(message)
 
-    def deliver(self, request: dict) -> None:
-        self.logic(request)
+    def deliver(self, message: dict) -> None:
+        # p = Process(target=self.logic, args=message)
+        # p.start()
+        # p.join()
+        self.logic(message)
 
     def broadcast_send(self, message: dict) -> None:
         """
@@ -87,12 +99,6 @@ class auction_component:
                 message['SENDER_ADDRESS'] = address
                 self.receive(message)
 
-    @staticmethod
-    def udp_send(address, message: dict):
-        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp_socket.sendto(str.encode(json.dumps(message)), address)
-        # return udp_socket.recvfrom(self.BUFFER_SIZE)
-
     def udp_listen(self, UDP_PORT):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         server_socket.bind((self.MY_IP, UDP_PORT))
@@ -101,8 +107,17 @@ class auction_component:
             if data:
                 message = json.loads(data.decode())
                 message['SENDER_ADDRESS'] = address
-                print(message)
                 self.receive(message)
+
+    def join(self, address) -> None:
+        """
+        HELPER FUNCTION:
+        ask to join a server group
+        :param address: the address of the main server
+        :return: None
+        """
+        message = self.create_message('JOIN', {})
+        self.udp_send(address, message)
 
 
 if __name__ == '__main__':
