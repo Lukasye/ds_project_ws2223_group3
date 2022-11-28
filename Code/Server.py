@@ -1,6 +1,4 @@
 import click
-import json
-import socket
 import time
 from auction_component import auction_component
 
@@ -9,10 +7,8 @@ class Server(auction_component):
     def __init__(self,
                  UDP_PORT,
                  is_main: bool = False):
-        super().__init__()
+        super().__init__('SERVER', UDP_PORT)
         self.HEARTBEAT_RATE = 5
-        self.TYPE = 'SERVER'
-        self.UDP_PORT = UDP_PORT
         self.server_list = []
         self.client_list = []
         self.is_main = is_main
@@ -27,7 +23,10 @@ class Server(auction_component):
     def report(self):
         message = '{} activate on\n' \
                   'Address: \t{}:{} \n' \
-                  'Main Server: \t{}'.format(self.TYPE, self.MY_IP, self.UDP_PORT, self.MAIN_SERVER)
+                  'Broadcast: \t{}:{}\n' \
+                  'Main Server: \t{}'.format(self.TYPE, self.MY_IP,
+                                             self.UDP_PORT, self.BROADCAST_IP,
+                                             self.BROADCAST_PORT, self.MAIN_SERVER)
         print(message)
 
     def find_others(self) -> None:
@@ -37,19 +36,24 @@ class Server(auction_component):
 
     def logic(self, request: dict):
         method = request['METHOD']
-        print(request)
+        self.print_message(request)
         if method == 'DISCOVERY':
             if not self.is_member:
-                message = self.create_message('DISCOVERY', {'type': self.TYPE})
-                self.udp_send(request['SENDER_ADDRESS'], message)
+                self.join(tuple(request['CONTENT']['ADDRESS']))
             else:
                 # TODO: send the contact information
                 pass
         elif method == 'JOIN':
             # join request can only be handled by the main server
             if self.is_main:
-                message = self.create_message('SET', {'MAIN_SERVER': (self.MY_IP, self.UDP_PORT)})
-                print(message)
+                # append the article to the server or client list
+                if request['CONTENT']['TYPE'] == 'SERVER':
+                    self.server_list.append({request['ID']: request['CONTENT']['UDP_ADDRESS']})
+                else:
+                    self.client_list.append({request['ID']: request['CONTENT']['UDP_ADDRESS']})
+                # inform the remote member the right sates: is_member = True & MAIN_SERVER
+                message = self.create_message('SET', {'MAIN_SERVER': (self.MY_IP, self.UDP_PORT),
+                                                      'is_member': True})
                 self.udp_send_without_response(request['SENDER_ADDRESS'], message)
             else:
                 pass
@@ -58,7 +62,6 @@ class Server(auction_component):
         elif method == 'SET':
             tmp = request['CONTENT']
             for key in tmp:
-                print('self.{} = {}'.format(key, tmp[key]))
                 exec('self.{} = {}'.format(key, tmp[key]))
         elif method == 'HEARTBEAT':
             pass
@@ -72,13 +75,10 @@ class Server(auction_component):
             # TODO: implement heartbeat
             time.sleep(self.HEARTBEAT_RATE)
 
-    def udp_listen_(self):
-        super().udp_listen(self.UDP_PORT)
-
 
 @click.command()
 @click.option('--port', required=True, default=10001, type=int, help='The port that the server connect to')
-@click.option('--opt', required=True, default=0, type=int, help='whether the server is entry point of the system')
+@click.option('--opt', required=True, default=1, type=int, help='whether the server is entry point of the system')
 def main(port, opt):
     test_component = Server(port, opt == 1)
     test_component.report()
@@ -91,13 +91,17 @@ def main(port, opt):
             test_component.report()
         elif user_input == 'find':
             test_component.find_others()
+            print('Broadcast sent out on address: {}:{}'.format(test_component.BROADCAST_IP,
+                                                                test_component.BROADCAST_PORT))
+            test_component.udp_listen()
         elif user_input == 'server':
             print(test_component.server_list)
         elif user_input == 'client':
             print(test_component.client_list)
+        elif user_input == 'listen':
+            test_component.broadcast_listen()
         elif user_input == 'udp_listen':
-            print('UDP listening on port {}'.format(test_component.UDP_PORT))
-            test_component.udp_listen_()
+            test_component.udp_listen()
         elif user_input == 'join':
             test_component.join(('172.17.16.1', 10001))
         else:

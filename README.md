@@ -5,6 +5,7 @@ Group members: Sena Tarpan, Peter Hoesch, Yun Ye <br>
 Following additional package will be needed:
 1. click
 2. secrets
+3. tqdm
 ### Running<br>
 Run the client with a single command:
 ```
@@ -16,7 +17,7 @@ python Server.py --port 10001 --opt 1
 ```
 the parameter `port` identify the port Server connected to. (for UDP) <br>
 with `opt` you can define whether the Server is the entry point of this system <br>
-![terminal](img/terminal.jpg)
+![terminal](img/terminal.jpg) <br>
 The command supported currently:
 1. report: get the info of server
 2. find: broadcasting

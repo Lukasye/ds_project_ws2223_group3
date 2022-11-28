@@ -7,7 +7,7 @@ from abc import abstractmethod
 
 
 class auction_component:
-    def __init__(self):
+    def __init__(self, TYPE, UDP_PORT):
         # User interface and logic
         self.BROADCAST_IP = "172.17.31.255"
         self.BROADCAST_PORT = 5972
@@ -16,10 +16,40 @@ class auction_component:
         self.BUFFER_SIZE = 4096
         self.ENCODING = 'utf-8'
         self.TOKEN_LENGTH = 16
-        self.PORT = 1000  # TODO: they should have different port number
+        self.UDP_PORT = UDP_PORT
+        self.TYPE = TYPE
         self.hold_back_queue = hold_back_queue()
         self.delivery_queue = delivery_queue()
         self.id = token_urlsafe(self.TOKEN_LENGTH)
+
+    @abstractmethod
+    def logic(self, request: dict) -> None:
+        """
+        handle the request that has been DELIVERED to the object
+        :param request: dictionary includes the request
+        :return: whether the function get a positive result
+        """
+        pass
+
+    @abstractmethod
+    def report(self) -> None:
+        """
+        print the informant information of the class
+        :return: None
+        """
+        pass
+
+    @staticmethod
+    def udp_send_without_response(address, message: dict):
+        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp_socket.sendto(str.encode(json.dumps(message)), address)
+
+    @staticmethod
+    def print_message(message: dict) -> None:
+        if message['SENDER_ADDRESS'] is not None:
+            print('Message sent from {}'. format(message['SENDER_ADDRESS']))
+        print('ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['ID'], message['METHOD'],
+                                                          message['SEQUENCE'], message['CONTENT']))
 
     def create_message(self, METHOD: str, CONTENT, SEQUENCE: int = 0):
         """
@@ -34,20 +64,6 @@ class auction_component:
                 'METHOD': METHOD,
                 'SEQUENCE': SEQUENCE,
                 'CONTENT': CONTENT}
-
-    @abstractmethod
-    def logic(self, request: dict) -> None:
-        """
-        handle the request that has been DELIVERED to the object
-        :param request: dictionary includes the request
-        :return: whether the function get a positive result
-        """
-        pass
-
-    @staticmethod
-    def udp_send_without_response(address, message: dict):
-        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp_socket.sendto(str.encode(json.dumps(message)), address)
 
     def udp_send(self, address, message: dict) -> None:
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -98,10 +114,12 @@ class auction_component:
                 message = json.loads(data.decode())
                 message['SENDER_ADDRESS'] = address
                 self.receive(message)
+                break
 
-    def udp_listen(self, UDP_PORT):
+    def udp_listen(self):
+        print('UDP listening on port {}'.format(self.UDP_PORT))
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        server_socket.bind((self.MY_IP, UDP_PORT))
+        server_socket.bind((self.MY_IP, self.UDP_PORT))
         while True:
             data, address = server_socket.recvfrom(self.BUFFER_SIZE)
             if data:
@@ -116,9 +134,9 @@ class auction_component:
         :param address: the address of the main server
         :return: None
         """
-        message = self.create_message('JOIN', {})
+        message = self.create_message('JOIN', {'TYPE': self.TYPE, 'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT)})
         self.udp_send(address, message)
 
 
 if __name__ == '__main__':
-    test_component = auction_component()
+    test_component = auction_component('SERVER', 12345)

@@ -1,44 +1,37 @@
-import socket
-import json
+import click
 from auction_component import auction_component
 
 
 class Client(auction_component):
-    def __init__(self):
-        super().__init__()
-        self.TYPE = 'CLIENT'
+    def __init__(self,
+                 UDP_PORT):
+        super().__init__('CLIENT', UDP_PORT)
         self.leader = None
         self.current_bid = 0
         self.highest_bid = 0
         self.is_member = False
         self.MAIN_SERVER = None
+        self.CONTACT_SERVER = None
 
     def report(self):
         message = '{} activate on\n' \
                   'Address: \t{}:{} \n' \
-                  'Main Server: \t{}'.format(self.TYPE, self.MY_IP, self.BROADCAST_PORT, self.MAIN_SERVER)
+                  'Is member: \t{}\n' \
+                  'Main Server: \t{}'.format(self.TYPE, self.MY_IP, self.UDP_PORT, self.is_member, self.MAIN_SERVER)
         print(message)
 
     def logic(self, response: dict):
         method = response['METHOD']
-        # print(response)
+        self.print_message(response)
         if method == 'DISCOVERY':
             if not self.is_member:
-                message = self.create_message('DISCOVERY', {'type': self.TYPE})
-                print('Sent to', response['CONTENT']['ADDRESS'])
-                self.udp_send(tuple(response['CONTENT']['ADDRESS']), message)
+                self.join(tuple(response['CONTENT']['ADDRESS']))
             else:
-                message = self.create_message('REDIRECT', {'type': 'DISCOVERY',
-                                                           'ADDRESS': self.leader})
-                self.udp_send(response['SENDER_ADDRESS'], message)
+                pass
         elif method == 'SET':
             tmp = response['CONTENT']
             for key in tmp:
-                print('self.{} = {}'.format(key, tmp[key]))
                 exec('self.{} = {}'.format(key, tmp[key]))
-        elif method == 'ACCEPT':
-            self.is_member = True
-            self.leader = response['CONTENT']['ADDRESS']
         elif method == 'REDIRECT':
             message = self.create_message(response['CONTENT']['type'],
                                           {'type': self.TYPE})
@@ -47,8 +40,10 @@ class Client(auction_component):
             print(response)
 
 
-def main():
-    test_component = Client()
+@click.command()
+@click.option('--port', required=True, default=5700, type=int, help='The port that the server connect to')
+def main(port):
+    test_component = Client(port)
     test_component.report()
     while True:
         print('*' * 50)
@@ -61,6 +56,8 @@ def main():
             test_component.broadcast_listen()
         elif user_input == 'join':
             test_component.join(('172.17.16.1', 10001))
+        elif user_input == 'udp_listen':
+            test_component.udp_listen()
         else:
             print('Invalid input!')
 
