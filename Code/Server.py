@@ -1,5 +1,6 @@
 import click
 import time
+# from multiprocessing import Process
 from auction_component import auction_component
 
 
@@ -7,7 +8,7 @@ class Server(auction_component):
     def __init__(self,
                  UDP_PORT,
                  is_main: bool = False):
-        super().__init__('SERVER', UDP_PORT)
+        super(Server, self).__init__('SERVER', UDP_PORT)
         self.HEARTBEAT_RATE = 5
         self.server_list = []
         self.client_list = []
@@ -76,6 +77,15 @@ class Server(auction_component):
             time.sleep(self.HEARTBEAT_RATE)
 
 
+# class event_handler(Process, Server):
+#     def __init__(self, request: dict):
+#         super().__init__()
+#         self.request = request
+#
+#     def run(self) -> None:
+#         self.logic(self.request)
+
+
 @click.command()
 @click.option('--port', required=True, default=10001, type=int, help='The port that the server connect to')
 @click.option('--opt', required=True, default=1, type=int, help='whether the server is entry point of the system')
@@ -91,8 +101,6 @@ def main(port, opt):
             test_component.report()
         elif user_input == 'find':
             test_component.find_others()
-            print('Broadcast sent out on address: {}:{}'.format(test_component.BROADCAST_IP,
-                                                                test_component.BROADCAST_PORT))
             test_component.udp_listen()
         elif user_input == 'server':
             print(test_component.server_list)

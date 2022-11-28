@@ -2,7 +2,8 @@ import json
 import socket
 from message import *
 from secrets import token_urlsafe
-from multiprocessing import Process
+# from multiprocessing import Process
+import threading
 from abc import abstractmethod
 
 
@@ -94,6 +95,8 @@ class auction_component:
         :param message: dictionary of request
         :return: None
         """
+        print('Broadcast sent out on address: {}:{}'.format(self.BROADCAST_IP,
+                                                            self.BROADCAST_PORT))
         broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         broadcast_socket.sendto(str.encode(json.dumps(message), encoding=self.ENCODING),
                                 (self.BROADCAST_IP, self.BROADCAST_PORT))
@@ -125,7 +128,10 @@ class auction_component:
             if data:
                 message = json.loads(data.decode())
                 message['SENDER_ADDRESS'] = address
-                self.receive(message)
+                # self.receive(message)
+                t = threading.Thread(target=self.receive, args=(message,))
+                t.start()
+                # p.join()
 
     def join(self, address) -> None:
         """
