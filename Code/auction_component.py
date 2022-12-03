@@ -2,7 +2,6 @@ import json
 import socket
 from message import *
 from secrets import token_urlsafe
-# from multiprocessing import Process
 import threading
 from abc import abstractmethod
 
@@ -10,7 +9,7 @@ from abc import abstractmethod
 class auction_component:
     def __init__(self, TYPE, UDP_PORT):
         # User interface and logic
-        self.BROADCAST_IP = "172.17.31.255"
+        self.BROADCAST_IP = "172.17.127.255"
         self.BROADCAST_PORT = 5972
         self.MY_HOST = socket.gethostname()
         self.MY_IP = socket.gethostbyname(self.MY_HOST)
@@ -22,6 +21,8 @@ class auction_component:
         self.hold_back_queue = hold_back_queue()
         self.delivery_queue = delivery_queue()
         self.id = token_urlsafe(self.TOKEN_LENGTH)
+        self.threads = []
+        self.TERMINATE = False
 
     @abstractmethod
     def logic(self, request: dict) -> None:
@@ -40,6 +41,23 @@ class auction_component:
         """
         pass
 
+    @abstractmethod
+    def interface(self) -> None:
+        """
+        provide an interface to interact with the user
+        :return: None
+        """
+        pass
+
+    @abstractmethod
+    def state_update(self) -> None:
+        """
+        HELPER FUNCTION:
+        part of SET request to regularly update states
+        :return: None
+        """
+        pass
+
     @staticmethod
     def udp_send_without_response(address, message: dict):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -51,6 +69,21 @@ class auction_component:
             print('Message sent from {}'. format(message['SENDER_ADDRESS']))
         print('ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['ID'], message['METHOD'],
                                                           message['SEQUENCE'], message['CONTENT']))
+
+    def warm_up(self, ts) -> None:
+        """
+        HELPER FUNCTION:
+        for initializing all the process and save them into a thread manager
+        :param ts: all the function you need to run
+        :return: None
+        """
+        for th in ts:
+            t = threading.Thread(target=th, daemon=True)
+            t.start()
+            # t.join()
+            self.threads.append(t)
+        t = threading.Thread(target=self.interface)
+        t.start()
 
     def create_message(self, METHOD: str, CONTENT, SEQUENCE: int = 0):
         """
@@ -77,7 +110,10 @@ class auction_component:
 
     def receive(self, message: dict):
         # TODO: function requirement
-        if message['SEQUENCE'] != 0:
+        if message['ID'] == self.id:
+            # I don't want to listen to myself
+            pass
+        elif message['SEQUENCE'] != 0:
             self.hold_back_queue.push(message)
         else:
             self.deliver(message)
@@ -86,7 +122,9 @@ class auction_component:
         # p = Process(target=self.logic, args=message)
         # p.start()
         # p.join()
-        self.logic(message)
+        t = threading.Thread(target=self.logic, args=(message,))
+        t.start()
+        # self.logic(message)
 
     def broadcast_send(self, message: dict) -> None:
         """
@@ -110,8 +148,8 @@ class auction_component:
         listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         listen_socket.bind((self.MY_IP, self.BROADCAST_PORT))
-        print("Listening to broadcast messages")
-        while True:
+        # print("Listening to broadcast messages")
+        while not self.TERMINATE:
             data, address = listen_socket.recvfrom(self.BUFFER_SIZE)
             if data:
                 message = json.loads(data.decode())
@@ -120,28 +158,53 @@ class auction_component:
                 break
 
     def udp_listen(self):
-        print('UDP listening on port {}'.format(self.UDP_PORT))
+        # print('UDP listening on port {}'.format(self.UDP_PORT))
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         server_socket.bind((self.MY_IP, self.UDP_PORT))
-        while True:
+        while not self.TERMINATE:
             data, address = server_socket.recvfrom(self.BUFFER_SIZE)
             if data:
                 message = json.loads(data.decode())
                 message['SENDER_ADDRESS'] = address
-                # self.receive(message)
-                t = threading.Thread(target=self.receive, args=(message,))
-                t.start()
+                self.receive(message)
+                # t = threading.Thread(target=self.receive, args=(message,))
+                # t.start()
                 # p.join()
 
-    def join(self, address) -> None:
+    def find_others(self) -> None:
+        """
+        HELPER FUNCTION:
+        send the broadcast message to the  other object
+        :return: None
+        """
+        message = self.create_message('DISCOVERY', {'ADDRESS': (self.MY_IP, self.UDP_PORT)})
+        self.broadcast_send(message)
+
+    def join(self, address, inform_all: bool = False) -> None:
         """
         HELPER FUNCTION:
         ask to join a server group
+        :param inform_all: boolean variable whether use broadcast
         :param address: the address of the main server
         :return: None
         """
         message = self.create_message('JOIN', {'TYPE': self.TYPE, 'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT)})
-        self.udp_send(address, message)
+        if inform_all:
+            self.broadcast_send(message)
+        else:
+            self.udp_send(address, message)
+
+    def forward(self, address, request) -> None:
+        """
+        redirect the message to new address. The information will contain
+        the address and content of the original sender
+        :param address: original sender
+        :param request: the request that you've received
+        :return:
+        """
+        message = self.create_message('REDIRECT', {'TARGET': request['SENDER_ADDRESS'],
+                                                   'MESSAGE': request})
+        self.udp_send_without_response(address, message)
 
 
 if __name__ == '__main__':

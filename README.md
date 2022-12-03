@@ -1,7 +1,10 @@
 # ds_project_ws2223
 Group members: Sena Tarpan, Peter Hoesch, Yun Ye <br>
 
-### Install<br>
+### Introduction
+![model](img/System%20Architecture.png)
+Our goal in this project is to build a fully functioning, distributed system for Auction.
+### Requirements<br>
 Following additional package will be needed:
 1. click
 2. secrets
@@ -26,16 +29,21 @@ The command supported currently:
 3. server: (server only feature) print the servers group list
 4. client: (server only feature) print the clients group list
 5. join: send request to the main server to join the group
-6. udp_listen: accept request at the udp port
+6. ~~udp_listen: accept request at the udp port~~
 7. exit
 
 ### Progress<br>
 ![broadcast](img/broadcast.jpg) <br>
 27.11.2022: tune the broadcast function. Gonna watch the Worldcup! `:smiley:`<br>
 28.11.2022: multithread tested and added so that the system can handle multi-request.<br>
+03.12.2022: realizing the multithread function. Now the model can automatically set up the udp_listen function. Optimize the structure of codes. New abstract function for auction component:`interface()`, `state_update()`
+and some small gadgets. Broadcast logic finished! unused user function deleted! Now we have a fully functioning broadcast system!<br>
+
 
 ### TODO<br>
-1. Run multi-threads test
-2. broadcast logic
-3. code refine
-4. comment
+1. ~~broadcast logic~~
+2. heartbeat
+3. ip mask for broadcast
+4. Debug mode
+5. comment!!!!
+6. make code more beautiful
