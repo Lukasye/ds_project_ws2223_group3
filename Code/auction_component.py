@@ -61,10 +61,16 @@ class auction_component:
     @staticmethod
     def udp_send_without_response(address, message: dict):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp_socket.sendto(str.encode(json.dumps(message)), address)
+        udp_socket.sendto(str.encode(json.dumps(message)), tuple(address))
 
     @staticmethod
     def print_message(message: dict) -> None:
+        """
+        HELPER FUNCTION:
+        print the massage on the interface screen
+        :param message: dict, standard message format
+        :return:
+        """
         if message['SENDER_ADDRESS'] is not None:
             print('Message sent from {}'. format(message['SENDER_ADDRESS']))
         print('ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['ID'], message['METHOD'],
@@ -155,7 +161,6 @@ class auction_component:
                 message = json.loads(data.decode())
                 message['SENDER_ADDRESS'] = address
                 self.receive(message)
-                break
 
     def udp_listen(self):
         # print('UDP listening on port {}'.format(self.UDP_PORT))
@@ -177,7 +182,7 @@ class auction_component:
         send the broadcast message to the  other object
         :return: None
         """
-        message = self.create_message('DISCOVERY', {'ADDRESS': (self.MY_IP, self.UDP_PORT)})
+        message = self.create_message('DISCOVERY', {'TYPE': self.TYPE, 'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT)})
         self.broadcast_send(message)
 
     def join(self, address, inform_all: bool = False) -> None:
@@ -206,6 +211,10 @@ class auction_component:
                                                    'MESSAGE': request})
         self.udp_send_without_response(address, message)
 
+    def remote_methode_invocation(self, address: tuple, methode: str):
+        message = self.create_message('RMI', {'METHODE': methode})
+        self.udp_send_without_response(address, message)
+
 
 if __name__ == '__main__':
-    test_component = auction_component('SERVER', 12345)
+    auction_component('SERVER', 12345)

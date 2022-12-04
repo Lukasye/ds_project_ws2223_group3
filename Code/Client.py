@@ -18,9 +18,12 @@ class Client(auction_component):
 
     def report(self):
         message = '{} activate on\n' \
-                  'Address: \t{}:{} \n' \
-                  'Is member: \t{}\n' \
-                  'Main Server: \t{}'.format(self.TYPE, self.MY_IP, self.UDP_PORT, self.is_member, self.MAIN_SERVER)
+                  'ID: \t\t\t{}\n' \
+                  'Address: \t\t{}:{} \n' \
+                  'Is member: \t\t{}\n' \
+                  'Main Server: \t\t{}\n' \
+                  'Contact Server: \t{}'.format(self.TYPE,self.id, self.MY_IP, self.UDP_PORT,
+                                                self.is_member, self.MAIN_SERVER, self.CONTACT_SERVER)
         print(message)
 
     def logic(self, response: dict):
@@ -29,7 +32,7 @@ class Client(auction_component):
         # ********************** METHOD DISCOVERY **********************************
         if method == 'DISCOVERY':
             if not self.is_member:
-                self.join(tuple(response['CONTENT']['ADDRESS']))
+                self.join(tuple(response['CONTENT']['UDP_ADDRESS']))
             elif self.MAIN_SERVER is not None:
                 self.forward(self.MAIN_SERVER, response)
         # **********************    METHOD SET     **********************************
@@ -38,11 +41,18 @@ class Client(auction_component):
             for key in tmp:
                 exec('self.{} = {}'.format(key, tmp[key]))
             self.state_update()
+        # **********************  METHOD HEARTBEAT **********************************
+        elif method == 'HEARTBEAT':
+            # TODO: response to the heartbeat
+            pass
         # # ********************** METHOD REDIRECT **********************************
         # elif method == 'REDIRECT':
         #     message = self.create_message(response['CONTENT']['type'],
         #                                   {'type': self.TYPE})
         #     self.udp_send(response['CONTENT']['ADDRESS'], message)
+        # **********************  METHOD HEARTBEAT **********************************
+        elif method == 'RMI':
+            exec('self.{}()'.format(response['CONTENT']['METHODE']))
         else:
             print(response)
 
@@ -55,13 +65,17 @@ class Client(auction_component):
                 quit()
             elif user_input == 'report':
                 self.report()
-            elif user_input == 'join':
-                self.join(None, True)
+            elif user_input == 'find':
+                self.find_others()
             else:
                 print('Invalid input!')
 
     def state_update(self) -> None:
         pass
+
+    def foo(self):
+        print("I'm working...")
+        return 0
 
 
 @click.command()

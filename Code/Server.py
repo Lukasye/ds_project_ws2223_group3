@@ -9,7 +9,10 @@ class Server(auction_component):
                  is_main: bool = False):
         super(Server, self).__init__('SERVER', UDP_PORT)
         self.HEARTBEAT_RATE = 5
-        self.server_list = []
+        self.bid_history = []
+        self.num_servers = 0
+        self.num_clients = 0
+        self.server_list = [{'ID': self.id, 'ADDRESS': (self.MY_IP, self.UDP_PORT), 'NUMBER': 0}]
         self.client_list = []
         self.is_main = is_main
         # initialize depends on whether this is the main server
@@ -25,9 +28,10 @@ class Server(auction_component):
 
     def report(self):
         message = '{} activate on\n' \
+                  'ID: \t\t{}\n' \
                   'Address: \t{}:{} \n' \
                   'Broadcast: \t{}:{}\n' \
-                  'Main Server: \t{}'.format(self.TYPE, self.MY_IP,
+                  'Main Server: \t{}'.format(self.TYPE, self.id, self.MY_IP,
                                              self.UDP_PORT, self.BROADCAST_IP,
                                              self.BROADCAST_PORT, self.MAIN_SERVER)
         print(message)
@@ -39,7 +43,7 @@ class Server(auction_component):
         if method == 'DISCOVERY':
             # if the server is still not a member or a main server
             if not self.is_member:
-                self.join(tuple(request['CONTENT']['ADDRESS']))
+                self.join(tuple(request['CONTENT']['UDP_ADDRESS']))
             else:
                 if self.is_main:
                     self.accept(request)
@@ -48,10 +52,10 @@ class Server(auction_component):
         # ********************** METHOD JOIN **********************************
         elif method == 'JOIN':
             # join request can only be handled by the main server
-            if self.is_main:
-                self.accept(request)
-            elif self.MAIN_SERVER is not None:
-                self.forward(self.MAIN_SERVER, request)
+            # if self.is_main:
+            self.accept(request)
+            # elif self.MAIN_SERVER is not None:
+            #     self.forward(self.MAIN_SERVER, request)
         # **********************    METHOD SET     **********************************
         elif method == 'SET':
             tmp = request['CONTENT']
@@ -60,23 +64,41 @@ class Server(auction_component):
             self.state_update()
         # **********************  METHOD REDIRECT **********************************
         elif method == 'REDIRECT':
-            self.receive(request)
+            if self.is_main:
+                self.receive(request['CONTENT']['MESSAGE'])
         # **********************  METHOD HEARTBEAT **********************************
         elif method == 'HEARTBEAT':
-            pass
             # TODO: implementation heartbeat
+            if self.is_main:
+                pass
+            else:
+                pass
+        # **********************  METHOD HEARTBEAT **********************************
+        elif method == 'RMI':
+            exec('self.{}()'.format(request['CONTENT']['METHODE']))
         else:
             print(request)
 
     def accept(self, request: dict) -> None:
+        """
+        HELPER FUNCTION:
+        Add the sender to the list(server or client) and reset the state of the sender
+        :param request:
+        :return:
+        """
         # append the article to the server or client list
+        content = {'MAIN_SERVER': (self.MY_IP, self.UDP_PORT), 'is_member': True}
         if request['CONTENT']['TYPE'] == 'SERVER':
-            self.server_list.append({request['ID']: request['CONTENT']['UDP_ADDRESS']})
+            self.server_list.append({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS']),
+                                     'NUMBER': 0})
+            content['server_list'] = self.server_list
+            self.num_servers += 1
         else:
-            self.client_list.append({request['ID']: request['CONTENT']['UDP_ADDRESS']})
+            self.client_list.append({request['ID']: tuple(request['CONTENT']['UDP_ADDRESS'])})
+            # TODO: remote method invocation: let client join server
+            self.num_clients += 1
         # inform the remote member the right sates: is_member = True & MAIN_SERVER
-        message = self.create_message('SET', {'MAIN_SERVER': (self.MY_IP, self.UDP_PORT),
-                                              'is_member': True})
+        message = self.create_message('SET', content)
         self.udp_send_without_response(tuple(request['CONTENT']['UDP_ADDRESS']), message)
 
     def heartbeat_sender(self):
@@ -86,6 +108,18 @@ class Server(auction_component):
             print('Heart beating...')
             # TODO: implement heartbeat
             time.sleep(self.HEARTBEAT_RATE)
+
+    def assign_clients(self) -> tuple:
+        """
+        HELPER FUNCTION:
+        assign the new client to the server which has the least number of clients
+        :return: tuple, address of the contact server
+        """
+        candidate = self.server_list[0]
+        for server in self.server_list:
+            if server['NUMBER'] < candidate['NUMBER']:
+                candidate = server
+        return candidate['ADDRESS']
 
     def interface(self) -> None:
         while True:
@@ -102,23 +136,16 @@ class Server(auction_component):
                 print(self.server_list)
             elif user_input == 'client':
                 print(self.client_list)
-            elif user_input == 'listen':
-                self.broadcast_listen()
             elif user_input == 'join':
-                self.join(('172.17.16.1', 10001))
+                self.join(None, True)
+            elif user_input.startswith('rmi'):
+                info = user_input.split(' ')
+                self.remote_methode_invocation(('172.17.112.1', int(info[1])), info[2])
             else:
                 print('Invalid input!')
 
     def state_update(self) -> None:
         pass
-
-# class event_handler(Process, Server):
-#     def __init__(self, request: dict):
-#         super().__init__()
-#         self.request = request
-#
-#     def run(self) -> None:
-#         self.logic(self.request)
 
 
 @click.command()

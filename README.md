@@ -22,27 +22,29 @@ python Server.py --port 10001 --opt 1
 ```
 the parameter `port` identify the port Server connected to. (for UDP) <br>
 with `opt` you can define whether the Server is the entry point of this system. The default setting in this case will be `port 10001` and `opt 1` <br><br>
-![terminal](img/terminal.jpg) <br>
+![terminal](img/broadcast.jpg ) <br>
 The command supported currently:
 1. report: get the info of server
 2. find: broadcasting and turn on udp listening after that
 3. server: (server only feature) print the servers group list
 4. client: (server only feature) print the clients group list
-5. join: send request to the main server to join the group
+5. ~~join: send request to the main server to join the group~~
 6. ~~udp_listen: accept request at the udp port~~
-7. exit
+7. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
+8. exit
 
 ### Progress<br>
-![broadcast](img/broadcast.jpg) <br>
+![broadcast](img/rmi.png) <br>
 27.11.2022: tune the broadcast function. Gonna watch the Worldcup! `:smiley:`<br>
 28.11.2022: multithread tested and added so that the system can handle multi-request.<br>
 03.12.2022: realizing the multithread function. Now the model can automatically set up the udp_listen function. Optimize the structure of codes. New abstract function for auction component:`interface()`, `state_update()`
 and some small gadgets. Broadcast logic finished! unused user function deleted! Now we have a fully functioning broadcast system!<br>
+04.12.2022: Tiny bugs fixed. Now the clients can also use the `find` method to join a group via redirect. Implemented remote methode invocation with no returned value.<br>
 
 
 ### TODO<br>
 1. ~~broadcast logic~~
-2. forwarding test
+2. ~~forwarding test~~
 3. heartbeat
 4. ip mask for broadcast
 5. Debug mode
