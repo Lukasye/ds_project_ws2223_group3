@@ -40,14 +40,15 @@ The command supported currently:
 03.12.2022: realizing the multithread function. Now the model can automatically set up the udp_listen function. Optimize the structure of codes. New abstract function for auction component:`interface()`, `state_update()`
 and some small gadgets. Broadcast logic finished! unused user function deleted! Now we have a fully functioning broadcast system!<br>
 04.12.2022: Tiny bugs fixed. Now the clients can also use the `find` method to join a group via redirect. Implemented remote methode invocation with no returned value.<br>
-
+05.12.2022: Dealt with the redundant request problem and optimize the structure. New function `assign()` to separate the main server logic with the servers.<br>
 
 ### TODO<br>
 1. ~~broadcast logic~~
 2. ~~forwarding test~~
-3. heartbeat
-4. ip mask for broadcast
-5. Debug mode
-6. comment!!!!
-7. make code more beautiful
-8. BIG PROBLEM: I don't know how to add emoji in markdown!!
+3. number of clients update function
+4. heartbeat
+5. ip mask for broadcast
+6. Debug mode
+7. comment!!!!
+8. make code more beautiful
+9. BIG PROBLEM: I don't know how to add emoji in markdown!!

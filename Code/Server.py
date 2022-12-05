@@ -46,16 +46,16 @@ class Server(auction_component):
                 self.join(tuple(request['CONTENT']['UDP_ADDRESS']))
             else:
                 if self.is_main:
-                    self.accept(request)
+                    self.assign(request)
                 elif self.MAIN_SERVER is not None:
                     self.forward(self.MAIN_SERVER, request)
         # ********************** METHOD JOIN **********************************
         elif method == 'JOIN':
-            # join request can only be handled by the main server
-            # if self.is_main:
-            self.accept(request)
-            # elif self.MAIN_SERVER is not None:
-            #     self.forward(self.MAIN_SERVER, request)
+            # if the server is not main, it can only accept
+            if not self.is_main:
+                self.accept(request)
+            else:
+                self.assign(request)
         # **********************    METHOD SET     **********************************
         elif method == 'SET':
             tmp = request['CONTENT']
@@ -79,27 +79,61 @@ class Server(auction_component):
         else:
             print(request)
 
-    def accept(self, request: dict) -> None:
+    def assign(self, request: dict) -> None:
         """
         HELPER FUNCTION:
-        Add the sender to the list(server or client) and reset the state of the sender
-        :param request:
+        assign the join request to the right server to balance the performance
+        :param request: dict, request receipted from the client or server
         :return:
         """
-        # append the article to the server or client list
         content = {'MAIN_SERVER': (self.MY_IP, self.UDP_PORT), 'is_member': True}
         if request['CONTENT']['TYPE'] == 'SERVER':
+            if self.already_in(request['ID'], self.server_list):
+                return
             self.server_list.append({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS']),
                                      'NUMBER': 0})
             content['server_list'] = self.server_list
             self.num_servers += 1
         else:
-            self.client_list.append({request['ID']: tuple(request['CONTENT']['UDP_ADDRESS'])})
-            # TODO: remote method invocation: let client join server
-            self.num_clients += 1
+            if self.already_in(request['ID'], self.client_list):
+                return
+            iD, addr = self.assign_clients()
+            if iD == self.id:
+                self.accept(request)
+                self.num_clients += 1
+                self.state_update()
+            content['CONTACT_SERVER'] = addr
         # inform the remote member the right sates: is_member = True & MAIN_SERVER
         message = self.create_message('SET', content)
         self.udp_send_without_response(tuple(request['CONTENT']['UDP_ADDRESS']), message)
+
+    @staticmethod
+    def already_in(iD, table: list) -> bool:
+        """
+        HELPER FUNCTION:
+        To determine whether the id appears in the server/client list
+        :param iD:
+        :param table:
+        :return:
+        """
+        for ele in table:
+            if ele['ID'] == iD:
+                return True
+        return False
+
+    def accept(self, request: dict) -> None:
+        """
+        HELPER FUNCTION:
+        this function can only handle the client arrangement!!!
+        :param request:
+        :return:
+        """
+        # content = {'CONTACT_SERVER': (self.MY_IP, self.UDP_PORT), 'is_member': True}
+        # if request['CONTENT']['TYPE'] == 'CLIENT':
+        if self.already_in(request['ID'], self.client_list):
+            return
+        self.client_list.append({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS'])})
+        self.num_clients += 1
 
     def heartbeat_sender(self):
         while True:
@@ -109,17 +143,17 @@ class Server(auction_component):
             # TODO: implement heartbeat
             time.sleep(self.HEARTBEAT_RATE)
 
-    def assign_clients(self) -> tuple:
+    def assign_clients(self):
         """
         HELPER FUNCTION:
         assign the new client to the server which has the least number of clients
-        :return: tuple, address of the contact server
+        :return: the id of the server to be assigned
         """
         candidate = self.server_list[0]
         for server in self.server_list:
             if server['NUMBER'] < candidate['NUMBER']:
                 candidate = server
-        return candidate['ADDRESS']
+        return candidate['ID'], candidate['ADDRESS']
 
     def interface(self) -> None:
         while True:
@@ -145,7 +179,8 @@ class Server(auction_component):
                 print('Invalid input!')
 
     def state_update(self) -> None:
-        pass
+        result = list(filter(lambda person: person['ID'] == self.id, self.server_list))
+        print(result)
 
 
 @click.command()

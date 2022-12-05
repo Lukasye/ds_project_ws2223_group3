@@ -1,5 +1,5 @@
 import click
-from auction_component import auction_component
+from auction_component import auction_component, bcolors
 
 
 class Client(auction_component):
