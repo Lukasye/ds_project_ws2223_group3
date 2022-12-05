@@ -67,6 +67,12 @@ class Client(auction_component):
                 self.report()
             elif user_input == 'find':
                 self.find_others()
+            elif user_input == 'leave':
+                self.is_member = False
+                self.MAIN_SERVER = None
+                self.CONTACT_SERVER = None
+                print('Dis-attached with Main-server!')
+                self.report()
             else:
                 print('Invalid input!')
 

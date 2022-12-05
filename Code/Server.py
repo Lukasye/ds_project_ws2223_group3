@@ -28,12 +28,13 @@ class Server(auction_component):
 
     def report(self):
         message = '{} activate on\n' \
-                  'ID: \t\t{}\n' \
-                  'Address: \t{}:{} \n' \
-                  'Broadcast: \t{}:{}\n' \
-                  'Main Server: \t{}'.format(self.TYPE, self.id, self.MY_IP,
+                  'ID: \t\t\t{}\n' \
+                  'Address: \t\t{}:{} \n' \
+                  'Broadcast: \t\t{}:{}\n' \
+                  'Main Server: \t\t{}\n' \
+                  'Number of Clients: \t{}'.format(self.TYPE, self.id, self.MY_IP,
                                              self.UDP_PORT, self.BROADCAST_IP,
-                                             self.BROADCAST_PORT, self.MAIN_SERVER)
+                                             self.BROADCAST_PORT, self.MAIN_SERVER, self.num_clients)
         print(message)
 
     def logic(self, request: dict):
@@ -100,7 +101,6 @@ class Server(auction_component):
             iD, addr = self.assign_clients()
             if iD == self.id:
                 self.accept(request)
-                self.num_clients += 1
                 self.state_update()
             content['CONTACT_SERVER'] = addr
         # inform the remote member the right sates: is_member = True & MAIN_SERVER
@@ -175,12 +175,21 @@ class Server(auction_component):
             elif user_input.startswith('rmi'):
                 info = user_input.split(' ')
                 self.remote_methode_invocation(('172.17.112.1', int(info[1])), info[2])
+            elif user_input == 'leave':
+                if self.is_main:
+                    print('Main Server cannot leave!')
+                    # TODO: when election then yes
+                else:
+                    self.is_member = False
+                    self.MAIN_SERVER = None
+                    print('Dis-attached with Main-server!')
+                self.report()
             else:
                 print('Invalid input!')
 
     def state_update(self) -> None:
-        result = list(filter(lambda person: person['ID'] == self.id, self.server_list))
-        print(result)
+        result = next((ser for ser in self.server_list if ser['ID'] == self.id), None)
+        result['NUMBER'] = self.num_clients
 
 
 @click.command()

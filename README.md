@@ -28,10 +28,11 @@ The command supported currently:
 2. find: broadcasting and turn on udp listening after that
 3. server: (server only feature) print the servers group list
 4. client: (server only feature) print the clients group list
-5. ~~join: send request to the main server to join the group~~
-6. ~~udp_listen: accept request at the udp port~~
-7. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
-8. exit
+5. leave: (not available for main server) clear the memory.
+6. ~~join: send request to the main server to join the group~~
+7. ~~udp_listen: accept request at the udp port~~
+8. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
+9. exit
 
 ### Progress<br>
 ![broadcast](img/rmi.png) <br>
