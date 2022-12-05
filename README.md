@@ -29,10 +29,11 @@ The command supported currently:
 3. server: (server only feature) print the servers group list
 4. client: (server only feature) print the clients group list
 5. leave: (not available for main server) clear the memory.
-6. ~~join: send request to the main server to join the group~~
-7. ~~udp_listen: accept request at the udp port~~
-8. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
-9. exit
+6. clear: clear screen to make the terminal more clean
+7. ~~join: send request to the main server to join the group~~
+8. ~~udp_listen: accept request at the udp port~~
+9. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
+10. exit
 
 ### Progress<br>
 ![broadcast](img/rmi.png) <br>
@@ -41,7 +42,7 @@ The command supported currently:
 03.12.2022: realizing the multithread function. Now the model can automatically set up the udp_listen function. Optimize the structure of codes. New abstract function for auction component:`interface()`, `state_update()`
 and some small gadgets. Broadcast logic finished! unused user function deleted! Now we have a fully functioning broadcast system!<br>
 04.12.2022: Tiny bugs fixed. Now the clients can also use the `find` method to join a group via redirect. Implemented remote methode invocation with no returned value.<br>
-05.12.2022: Dealt with the redundant request problem and optimize the structure. New function `assign()` to separate the main server logic with the servers.<br>
+05.12.2022: Dealt with the redundant request problem and optimize the structure. New function `assign()` to separate the main server logic with the servers. Finally! rmi works! Now the broadcast function is over and go into Bug test!<br>
 
 ### TODO<br>
 1. ~~broadcast logic~~

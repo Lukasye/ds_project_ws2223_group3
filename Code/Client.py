@@ -56,6 +56,9 @@ class Client(auction_component):
         else:
             print(response)
 
+    def join_contact(self):
+        self.join(tuple(self.CONTACT_SERVER))
+
     def interface(self) -> None:
         while True:
             print('*' * 50)
@@ -73,6 +76,8 @@ class Client(auction_component):
                 self.CONTACT_SERVER = None
                 print('Dis-attached with Main-server!')
                 self.report()
+            elif user_input == 'clear':
+                self.clear_screen()
             else:
                 print('Invalid input!')
 

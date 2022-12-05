@@ -1,5 +1,6 @@
 import json
 import socket
+import os
 from message import *
 from secrets import token_urlsafe
 import threading
@@ -62,6 +63,10 @@ class auction_component:
     def udp_send_without_response(address, message: dict):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.sendto(str.encode(json.dumps(message)), tuple(address))
+
+    @staticmethod
+    def clear_screen():
+        os.system('cls' if os.name == 'nt' else 'clear')
 
     @staticmethod
     def print_message(message: dict) -> None:

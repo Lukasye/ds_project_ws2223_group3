@@ -32,9 +32,9 @@ class Server(auction_component):
                   'Address: \t\t{}:{} \n' \
                   'Broadcast: \t\t{}:{}\n' \
                   'Main Server: \t\t{}\n' \
-                  'Number of Clients: \t{}'.format(self.TYPE, self.id, self.MY_IP,
-                                             self.UDP_PORT, self.BROADCAST_IP,
-                                             self.BROADCAST_PORT, self.MAIN_SERVER, self.num_clients)
+                  'Number of Clients: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
+                                                   self.BROADCAST_IP, self.BROADCAST_PORT,
+                                                   self.MAIN_SERVER, self.num_clients)
         print(message)
 
     def logic(self, request: dict):
@@ -95,17 +95,23 @@ class Server(auction_component):
                                      'NUMBER': 0})
             content['server_list'] = self.server_list
             self.num_servers += 1
+            # inform the remote member the right sates: is_member = True & MAIN_SERVER
+            message = self.create_message('SET', content)
+            self.udp_send_without_response(tuple(request['CONTENT']['UDP_ADDRESS']), message)
         else:
             if self.already_in(request['ID'], self.client_list):
                 return
             iD, addr = self.assign_clients()
+            # if the client is assigned to the main server
             if iD == self.id:
                 self.accept(request)
                 self.state_update()
             content['CONTACT_SERVER'] = addr
-        # inform the remote member the right sates: is_member = True & MAIN_SERVER
-        message = self.create_message('SET', content)
-        self.udp_send_without_response(tuple(request['CONTENT']['UDP_ADDRESS']), message)
+            # inform the remote member the right sates: is_member = True & MAIN_SERVER
+            message = self.create_message('SET', content)
+            self.udp_send_without_response(tuple(request['CONTENT']['UDP_ADDRESS']), message)
+            if iD != self.id:
+                self.remote_methode_invocation(tuple(request['CONTENT']['UDP_ADDRESS']), 'join_contact')
 
     @staticmethod
     def already_in(iD, table: list) -> bool:
@@ -184,6 +190,8 @@ class Server(auction_component):
                     self.MAIN_SERVER = None
                     print('Dis-attached with Main-server!')
                 self.report()
+            elif user_input == 'clear':
+                self.clear_screen()
             else:
                 print('Invalid input!')
 
