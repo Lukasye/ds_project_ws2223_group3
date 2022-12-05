@@ -2,7 +2,7 @@
 Group members: Sena Tarpan, Peter Hoesch, Yun Ye <br>
 
 ### Introduction
-![model](img/System%20Architecture.png)
+![](img/mems.jpg)
 Our goal in this project is to build a fully functioning, distributed system for Auction.The system will be implemented as a many servers-many clients design. The servers are the seller who functions as the main server as well as supplemental servers that provide fault tolerance and scalability. The clients on the other hand works like a thin client machine that provide merely an interface with a very restricted logic and data functionality. The supplemental servers exist to take bids, aggregate them and transfer that data to the main server. For this purpose, each server will be connected to a number of clients. The clients only communicate with this server, not directly with the main server or with each other. Bids will be placed by using TCP connections from a client to a server to ensure that the bid will be reliably transported.
 ### Requirements<br>
 Following additional package will be needed:
@@ -47,10 +47,11 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 ### TODO<br>
 1. ~~broadcast logic~~
 2. ~~forwarding test~~
-3. number of clients update function
-4. heartbeat
-5. ip mask for broadcast
-6. Debug mode
-7. comment!!!!
-8. make code more beautiful
-9. BIG PROBLEM: I don't know how to add emoji in markdown!!
+3. ~~RMI test~~
+4. number of clients update function
+5. heartbeat
+6. ip mask for broadcast
+7. Debug mode
+8. comment!!!!
+9. make code more beautiful
+10. BIG PROBLEM: I don't know how to add emoji in markdown!!
