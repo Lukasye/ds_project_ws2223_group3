@@ -1,6 +1,8 @@
 import click
 from colorama import Fore, Style
 from auction_component import auction_component
+import time
+from auction_component import auction_component, bcolors
 
 
 class Client(auction_component):
@@ -25,7 +27,7 @@ class Client(auction_component):
                   'Main Server: \t\t{}\n' \
                   'Contact Server: \t{}'.format(self.TYPE,self.id, self.MY_IP, self.UDP_PORT,
                                                 self.is_member, self.MAIN_SERVER, self.CONTACT_SERVER)
-        print(Fore.LIGHTYELLOW_EX + message + Style.RESET_ALL)
+        print(message)
 
     def logic(self, response: dict):
         method = response['METHOD']
@@ -62,7 +64,7 @@ class Client(auction_component):
 
     def interface(self) -> None:
         while True:
-            print(Fore.LIGHTBLUE_EX + '*' * 60 + Style.RESET_ALL)
+            print('*' * 50)
             user_input = input('Please enter your command:')
             if user_input == 'exit':
                 self.TERMINATE = True
@@ -75,15 +77,19 @@ class Client(auction_component):
                 self.is_member = False
                 self.MAIN_SERVER = None
                 self.CONTACT_SERVER = None
-                print(Fore.RED + 'Dis-attached with Main-server!' + Style.RESET_ALL)
+                print('Dis-attached with Main-server!')
                 self.report()
             elif user_input == 'clear':
                 self.clear_screen()
             else:
-                print(Fore.RED + 'Invalid input!' + Style.RESET_ALL)
+                print('Invalid input!')
 
     def state_update(self) -> None:
         pass
+
+    def foo(self):
+        print("I'm working...")
+        return 0
 
 
 @click.command()
