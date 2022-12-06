@@ -8,7 +8,6 @@ class Server(auction_component):
                  UDP_PORT,
                  is_main: bool = False):
         super(Server, self).__init__('SERVER', UDP_PORT)
-        self.HEARTBEAT_RATE = 5
         self.bid_history = []
         self.num_servers = 0
         self.num_clients = 0
@@ -24,7 +23,7 @@ class Server(auction_component):
             self.MAIN_SERVER = None
         self.report()
         # open multiple thread to do different jobs
-        self.warm_up([self.udp_listen, self.broadcast_listen])
+        self.warm_up([self.udp_listen, self.broadcast_listen, self.heartbeat_sender])
 
     def report(self):
         message = '{} activate on\n' \
@@ -146,7 +145,17 @@ class Server(auction_component):
             if self.TERMINATE:
                 break
             print('Heart beating...')
-            # TODO: implement heartbeat
+            message = self.create_message('HEARTBEAT', {'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT)})
+            # a server sends it's heartbeat to all his connected clients
+            for client in self.client_list:
+                self.udp_send_without_response(client['ADDRESS'], message)
+            # the main server sends his heartbeat to all other servers, the other servers only to the main server
+            if self.is_main:
+                for server in self.server_list:
+                    if server['ID'] is not self.id:
+                        self.udp_send_without_response(server['ADDRESS'], message)
+            else:
+                self.udp_send(MAIN_SERVER, message)
             time.sleep(self.HEARTBEAT_RATE)
 
     def assign_clients(self):

@@ -1,4 +1,5 @@
 import click
+import time
 from auction_component import auction_component, bcolors
 
 
@@ -14,7 +15,7 @@ class Client(auction_component):
         self.CONTACT_SERVER = None
         self.report()
         # open multiple thread to do different jobs
-        self.warm_up([self.broadcast_listen, self.udp_listen])
+        self.warm_up([self.broadcast_listen, self.udp_listen, self.heartbeat_sender])
 
     def report(self):
         message = '{} activate on\n' \
@@ -80,6 +81,17 @@ class Client(auction_component):
                 self.clear_screen()
             else:
                 print('Invalid input!')
+
+    def heartbeat_sender(self):
+        while True:
+            if self.TERMINATE:
+                break
+            print('Heart beating...')
+            message = self.create_message('HEARTBEAT', {'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT)})
+            # a client only sends his heartbeat to his contact server, and to nobody else
+            if self.CONTACT_SERVER is not None:
+                self.udp_send_without_response(tuple(self.CONTACT_SERVER), message)
+            time.sleep(self.HEARTBEAT_RATE)
 
     def state_update(self) -> None:
         pass

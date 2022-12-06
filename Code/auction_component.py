@@ -23,6 +23,7 @@ class auction_component:
         self.delivery_queue = delivery_queue()
         self.id = token_urlsafe(self.TOKEN_LENGTH)
         self.threads = []
+        self.HEARTBEAT_RATE = 5
         self.TERMINATE = False
 
     @abstractmethod
