@@ -1,6 +1,7 @@
 import click
 import time
 from auction_component import auction_component
+from colorama import Fore, Style
 
 
 class Server(auction_component):
@@ -35,7 +36,7 @@ class Server(auction_component):
                   'Number of Clients: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
                                                    self.BROADCAST_IP, self.BROADCAST_PORT,
                                                    self.MAIN_SERVER, self.num_clients)
-        print(message)
+        print(Fore.LIGHTYELLOW_EX + message + Style.RESET_ALL)
 
     def logic(self, request: dict):
         method = request['METHOD']
@@ -163,7 +164,7 @@ class Server(auction_component):
 
     def interface(self) -> None:
         while True:
-            print('*' * 50)
+            print(Fore.LIGHTBLUE_EX + '*' * 60 + Style.RESET_ALL)
             user_input = input('Please enter your command:')
             if user_input == 'exit':
                 self.TERMINATE = True
@@ -183,7 +184,7 @@ class Server(auction_component):
                 self.remote_methode_invocation(('172.17.112.1', int(info[1])), info[2])
             elif user_input == 'leave':
                 if self.is_main:
-                    print('Main Server cannot leave!')
+                    print(Fore.RED + 'Main Server cannot leave!' + Style.RESET_ALL)
                     # TODO: when election then yes
                 else:
                     self.is_member = False
@@ -193,7 +194,7 @@ class Server(auction_component):
             elif user_input == 'clear':
                 self.clear_screen()
             else:
-                print('Invalid input!')
+                print(Fore.RED + 'Invalid input!' + Style.RESET_ALL)
 
     def state_update(self) -> None:
         result = next((ser for ser in self.server_list if ser['ID'] == self.id), None)

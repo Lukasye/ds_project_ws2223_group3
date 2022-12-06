@@ -2,14 +2,15 @@
 Group members: Sena Tarpan, Peter Hoesch, Yun Ye <br>
 
 ### Introduction
-![](img/mems.jpg)
+<img src="img/mems.jpg" width="300" height="300"><br>
 Our goal in this project is to build a fully functioning, distributed system for Auction.The system will be implemented as a many servers-many clients design. The servers are the seller who functions as the main server as well as supplemental servers that provide fault tolerance and scalability. The clients on the other hand works like a thin client machine that provide merely an interface with a very restricted logic and data functionality. The supplemental servers exist to take bids, aggregate them and transfer that data to the main server. For this purpose, each server will be connected to a number of clients. The clients only communicate with this server, not directly with the main server or with each other. Bids will be placed by using TCP connections from a client to a server to ensure that the bid will be reliably transported.
 ### Requirements<br>
 Following additional package will be needed:
 1. click
 2. secrets
 3. tqdm
-4. threading
+4. colorama
+5. threading
 ### Running<br>
 Run the client with a single command:
 ```
@@ -43,6 +44,7 @@ The command supported currently:
 and some small gadgets. Broadcast logic finished! unused user function deleted! Now we have a fully functioning broadcast system!<br>
 04.12.2022: Tiny bugs fixed. Now the clients can also use the `find` method to join a group via redirect. Implemented remote methode invocation with no returned value.<br>
 05.12.2022: Dealt with the redundant request problem and optimize the structure. New function `assign()` to separate the main server logic with the servers. Finally! rmi works! Now the broadcast function is over and go into Bug test!<br>
+06.12.2022: Make the terminal more beautiful<br>
 
 ### TODO<br>
 1. ~~broadcast logic~~

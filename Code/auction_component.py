@@ -5,11 +5,13 @@ from message import *
 from secrets import token_urlsafe
 import threading
 from abc import abstractmethod
+from colorama import init, Fore, Style
 
 
 class auction_component:
     def __init__(self, TYPE, UDP_PORT):
         # User interface and logic
+        init()
         self.BROADCAST_IP = "172.17.127.255"
         self.BROADCAST_PORT = 5972
         self.MY_HOST = socket.gethostname()
@@ -76,10 +78,11 @@ class auction_component:
         :param message: dict, standard message format
         :return:
         """
+        print()
         if message['SENDER_ADDRESS'] is not None:
-            print('Message sent from {}'. format(message['SENDER_ADDRESS']))
+            print(Fore.LIGHTGREEN_EX + 'Message sent from {}'. format(message['SENDER_ADDRESS']))
         print('ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['ID'], message['METHOD'],
-                                                          message['SEQUENCE'], message['CONTENT']))
+                                                          message['SEQUENCE'], message['CONTENT']) + Style.RESET_ALL)
 
     def warm_up(self, ts) -> None:
         """
