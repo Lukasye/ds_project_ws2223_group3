@@ -12,7 +12,7 @@ class auction_component:
     def __init__(self, TYPE, UDP_PORT):
         # User interface and logic
         init()
-        self.BROADCAST_IP = "172.17.127.255"
+        self.BROADCAST_IP = self.get_broadcast_address("172.17.112.1", "255.255.240.0") # "172.17.127.255"
         self.BROADCAST_PORT = 5972
         self.MY_HOST = socket.gethostname()
         self.MY_IP = socket.gethostbyname(self.MY_HOST)
@@ -84,6 +84,17 @@ class auction_component:
             print(Fore.LIGHTGREEN_EX + 'Message sent from {}'. format(message['SENDER_ADDRESS']))
         print('ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['ID'], message['METHOD'],
                                                           message['SEQUENCE'], message['CONTENT']) + Style.RESET_ALL)
+
+    # calculate broadcast address
+    def get_broadcast_address(self, ip, netmask):
+        ip = ip.split('.')
+        netmask = netmask.split('.')
+        broadcast = []
+        for i in range(3):
+            broadcast.append(str(int(ip[i]) | (255 - int(netmask[i]))))
+        broadcast.append("255")
+        
+        return '.'.join(broadcast)
 
     def warm_up(self, ts) -> None:
         """
@@ -162,7 +173,8 @@ class auction_component:
         listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        listen_socket.bind((self.MY_IP, self.BROADCAST_PORT))
+        # listen_socket.bind((self.MY_IP, self.BROADCAST_PORT))
+        listen_socket.bind(('127.0.0.1', self.BROADCAST_PORT))
         # print("Listening to broadcast messages")
         while not self.TERMINATE:
             data, address = listen_socket.recvfrom(self.BUFFER_SIZE)
