@@ -173,8 +173,7 @@ class auction_component:
         listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # listen_socket.bind((self.MY_IP, self.BROADCAST_PORT))
-        listen_socket.bind(('127.0.0.1', self.BROADCAST_PORT))
+        listen_socket.bind((self.MY_IP, self.BROADCAST_PORT))
         # print("Listening to broadcast messages")
         while not self.TERMINATE:
             data, address = listen_socket.recvfrom(self.BUFFER_SIZE)
