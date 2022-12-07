@@ -23,7 +23,7 @@ python Server.py --port 10001 --opt 1
 ```
 the parameter `port` identify the port Server connected to. (for UDP) <br>
 with `opt` you can define whether the Server is the entry point of this system. The default setting in this case will be `port 10001` and `opt 1` <br><br>
-![terminal](img/broadcast.jpg ) <br>
+![terminal](img/broadcast.png) <br>
 The command supported currently:
 1. report: get the info of server
 2. find: broadcasting and turn on udp listening after that
@@ -50,10 +50,11 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 1. ~~broadcast logic~~
 2. ~~forwarding test~~
 3. ~~RMI test~~
-4. number of clients update function
-5. heartbeat
-6. ip mask for broadcast
-7. Debug mode
-8. comment!!!!
-9. make code more beautiful
-10. BIG PROBLEM: I don't know how to add emoji in markdown!!
+4. color issue caused by multi-threading
+5. number of clients update function
+6. heartbeat
+7. ip mask for broadcast
+8. Debug mode
+9. comment!!!!
+10. make code more beautiful
+11. BIG PROBLEM: I don't know how to add emoji in markdown!!

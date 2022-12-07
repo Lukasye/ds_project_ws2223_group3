@@ -24,7 +24,7 @@ class Server(auction_component):
             self.MAIN_SERVER = None
         self.report()
         # open multiple thread to do different jobs
-        self.warm_up([self.udp_listen, self.broadcast_listen, self.heartbeat_sender])
+        self.warm_up([self.udp_listen, self.broadcast_listen])
 
     def report(self):
         message = '{} activate on\n' \
