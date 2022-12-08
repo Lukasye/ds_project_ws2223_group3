@@ -1,5 +1,7 @@
 import json
 import socket
+import pickle
+import pandas
 import os
 from message import *
 from secrets import token_urlsafe
@@ -220,8 +222,16 @@ class auction_component:
                                                    'MESSAGE': request})
         self.udp_send_without_response(address, message)
 
+    def multicast(self, group, message):
+        pass
+        #TODO: multicast
+
     def remote_methode_invocation(self, address: tuple, methode: str):
         message = self.create_message('RMI', {'METHODE': methode})
+        self.udp_send_without_response(address, message)
+
+    def remote_para_set(self, address, **kwargs):
+        message = self.create_message('SET', kwargs)
         self.udp_send_without_response(address, message)
 
 

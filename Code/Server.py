@@ -1,5 +1,7 @@
 import click
 import time
+import pickle
+import pandas as pd
 from auction_component import auction_component
 from colorama import Fore, Style
 
@@ -87,17 +89,21 @@ class Server(auction_component):
         :param request: dict, request receipted from the client or server
         :return:
         """
-        content = {'MAIN_SERVER': (self.MY_IP, self.UDP_PORT), 'is_member': True}
+        # content = {'MAIN_SERVER': (self.MY_IP, self.UDP_PORT), 'is_member': True}
         if request['CONTENT']['TYPE'] == 'SERVER':
             if self.already_in(request['ID'], self.server_list):
                 return
             self.server_list.append({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS']),
                                      'NUMBER': 0})
-            content['server_list'] = self.server_list
+            # content['server_list'] = self.server_list
             self.num_servers += 1
             # inform the remote member the right sates: is_member = True & MAIN_SERVER
-            message = self.create_message('SET', content)
-            self.udp_send_without_response(tuple(request['CONTENT']['UDP_ADDRESS']), message)
+            # message = self.create_message('SET', content)
+            # self.udp_send_without_response(tuple(request['CONTENT']['UDP_ADDRESS']), message)
+            self.remote_para_set(tuple(request['CONTENT']['UDP_ADDRESS']),
+                                 MAINSERVER=(self.MY_IP, self.UDP_PORT),
+                                 is_member=True,
+                                 server_list=self.server_list)
         else:
             if self.already_in(request['ID'], self.client_list):
                 return
@@ -106,10 +112,14 @@ class Server(auction_component):
             if iD == self.id:
                 self.accept(request)
                 self.state_update()
-            content['CONTACT_SERVER'] = addr
+            # content['CONTACT_SERVER'] = addr
             # inform the remote member the right sates: is_member = True & MAIN_SERVER
-            message = self.create_message('SET', content)
-            self.udp_send_without_response(tuple(request['CONTENT']['UDP_ADDRESS']), message)
+            # message = self.create_message('SET', content)
+            # self.udp_send_without_response(tuple(request['CONTENT']['UDP_ADDRESS']), message)
+            self.remote_para_set(tuple(request['CONTENT']['UDP_ADDRESS']),
+                                 MAINSERVER=(self.MY_IP, self.UDP_PORT),
+                                 is_member=True,
+                                 CONTACT_SERVER=addr)
             if iD != self.id:
                 self.remote_methode_invocation(tuple(request['CONTENT']['UDP_ADDRESS']), 'join_contact')
 

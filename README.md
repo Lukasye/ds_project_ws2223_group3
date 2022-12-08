@@ -8,9 +8,11 @@ Our goal in this project is to build a fully functioning, distributed system for
 Following additional package will be needed:
 1. click
 2. secrets
-3. tqdm
-4. colorama
-5. threading
+3. pickle
+4. pandas
+5. tqdm
+6. colorama
+7. threading
 ### Running<br>
 Run the client with a single command:
 ```
@@ -50,11 +52,12 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 1. ~~broadcast logic~~
 2. ~~forwarding test~~
 3. ~~RMI test~~
-4. color issue caused by multi-threading
-5. number of clients update function
-6. heartbeat
-7. ip mask for broadcast
-8. Debug mode
-9. comment!!!!
-10. make code more beautiful
-11. BIG PROBLEM: I don't know how to add emoji in markdown!!
+4. remote object instantiation: python object serialization
+5. color issue caused by multi-threading
+6. error handling
+7. number of clients update function
+8. heartbeat
+9. ip mask for broadcast
+10. comment!!!!
+11. ~~make code more beautiful~~
+12. BIG PROBLEM: I don't know how to add emoji in markdown!!
