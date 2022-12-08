@@ -1,6 +1,5 @@
 import click
 import time
-import pickle
 import pandas as pd
 from auction_component import auction_component
 from colorama import Fore, Style
@@ -14,7 +13,7 @@ class Server(auction_component):
         self.bid_history = []
         self.num_servers = 0
         self.num_clients = 0
-        self.server_list = [{'ID': self.id, 'ADDRESS': (self.MY_IP, self.UDP_PORT), 'NUMBER': 0}]
+        self.server_list = pd.DataFrame([{'ID': self.id, 'ADDRESS': (self.MY_IP, self.UDP_PORT), 'NUMBER': 0}])
         self.client_list = []
         self.is_main = is_main
         # initialize depends on whether this is the main server
@@ -64,7 +63,7 @@ class Server(auction_component):
             tmp = request['CONTENT']
             for key in tmp:
                 exec('self.{} = {}'.format(key, tmp[key]))
-            self.state_update()
+            # self.state_update()
         # **********************  METHOD REDIRECT **********************************
         elif method == 'REDIRECT':
             if self.is_main:
@@ -91,31 +90,28 @@ class Server(auction_component):
         """
         # content = {'MAIN_SERVER': (self.MY_IP, self.UDP_PORT), 'is_member': True}
         if request['CONTENT']['TYPE'] == 'SERVER':
-            if self.already_in(request['ID'], self.server_list):
+            # if self.already_in(request['ID'], self.server_list):
+            if request['ID'] in list(self.server_list['ID']):
                 return
-            self.server_list.append({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS']),
-                                     'NUMBER': 0})
-            # content['server_list'] = self.server_list
+            # self.server_list.append({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS']),
+            #                          'NUMBER': 0})
+            new_row = pd.Series({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS']),
+                                 'NUMBER': 0})
+            self.server_list = pd.concat([self.server_list, new_row.to_frame().T])
             self.num_servers += 1
-            # inform the remote member the right sates: is_member = True & MAIN_SERVER
-            # message = self.create_message('SET', content)
-            # self.udp_send_without_response(tuple(request['CONTENT']['UDP_ADDRESS']), message)
             self.remote_para_set(tuple(request['CONTENT']['UDP_ADDRESS']),
                                  MAINSERVER=(self.MY_IP, self.UDP_PORT),
                                  is_member=True,
-                                 server_list=self.server_list)
+                                 server_list=self.server_list.to_dict())
+            self.remote_methode_invocation(tuple(request['CONTENT']['UDP_ADDRESS']), 'to_df')
+
         else:
             if self.already_in(request['ID'], self.client_list):
                 return
             iD, addr = self.assign_clients()
-            # if the client is assigned to the main server
             if iD == self.id:
                 self.accept(request)
                 self.state_update()
-            # content['CONTACT_SERVER'] = addr
-            # inform the remote member the right sates: is_member = True & MAIN_SERVER
-            # message = self.create_message('SET', content)
-            # self.udp_send_without_response(tuple(request['CONTENT']['UDP_ADDRESS']), message)
             self.remote_para_set(tuple(request['CONTENT']['UDP_ADDRESS']),
                                  MAINSERVER=(self.MY_IP, self.UDP_PORT),
                                  is_member=True,
@@ -136,6 +132,10 @@ class Server(auction_component):
             if ele['ID'] == iD:
                 return True
         return False
+
+    def to_df(self):
+        if isinstance(self.server_list, dict):
+            self.server_list = pd.DataFrame(self.server_list)
 
     def accept(self, request: dict) -> None:
         """
@@ -175,11 +175,13 @@ class Server(auction_component):
         assign the new client to the server which has the least number of clients
         :return: the id of the server to be assigned
         """
-        candidate = self.server_list[0]
-        for server in self.server_list:
-            if server['NUMBER'] < candidate['NUMBER']:
-                candidate = server
-        return candidate['ID'], candidate['ADDRESS']
+        # candidate = self.server_list['ID']
+        # for server in self.server_list:
+        #     if server['NUMBER'] < candidate['NUMBER']:
+        #         candidate = server
+        # return candidate['ID'], candidate['ADDRESS']
+        result = self.server_list[self.server_list['NUMBER'] == self.server_list['NUMBER'].max()].iloc[0]
+        return result['ID'], result['ADDRESS']
 
     def interface(self) -> None:
         while True:
@@ -216,8 +218,10 @@ class Server(auction_component):
                 print(Fore.RED + 'Invalid input!' + Style.RESET_ALL)
 
     def state_update(self) -> None:
-        result = next((ser for ser in self.server_list if ser['ID'] == self.id), None)
-        result['NUMBER'] = self.num_clients
+        self.to_df()
+        # result = next((ser for ser in self.server_list if ser['ID'] == self.id), None)
+        # result['NUMBER'] = self.num_clients
+        self.server_list.loc[self.server_list['ID'] == self.id, 'NUMBER'] = self.num_clients
 
 
 @click.command()

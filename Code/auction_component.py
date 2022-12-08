@@ -1,7 +1,6 @@
 import json
 import socket
 import pickle
-import pandas
 import os
 from message import *
 from secrets import token_urlsafe
@@ -10,18 +9,25 @@ from abc import abstractmethod
 from colorama import init, Fore, Style
 
 
+# if len(a) > MAX_UDP_SIZE:
+#     raise ValueError('Message too large')
+
+
 class auction_component:
     def __init__(self, TYPE, UDP_PORT):
         # User interface and logic
         init()
-        self.BROADCAST_IP = self.get_broadcast_address("172.17.112.1", "255.255.240.0") # "172.17.127.255"
         self.BROADCAST_PORT = 5972
         self.MY_HOST = socket.gethostname()
         self.MY_IP = socket.gethostbyname(self.MY_HOST)
+        self.BROADCAST_IP = self.get_broadcast_address(self.MY_IP, "255.255.240.0")  # "172.17.127.255"
         self.BUFFER_SIZE = 4096
         self.ENCODING = 'utf-8'
         self.TOKEN_LENGTH = 16
         self.UDP_PORT = UDP_PORT
+        self.BRO_PORT = UDP_PORT + 1
+        self.ELE_PORT = UDP_PORT + 2
+        self.HEA_PORT = UDP_PORT + 3
         self.TYPE = TYPE
         self.hold_back_queue = hold_back_queue()
         self.delivery_queue = delivery_queue()
@@ -67,7 +73,8 @@ class auction_component:
     @staticmethod
     def udp_send_without_response(address, message: dict):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp_socket.sendto(str.encode(json.dumps(message)), tuple(address))
+        # udp_socket.sendto(str.encode(json.dumps(message)), tuple(address))
+        udp_socket.sendto(pickle.dumps(message), tuple(address))
 
     @staticmethod
     def clear_screen():
@@ -83,19 +90,25 @@ class auction_component:
         """
         print()
         if message['SENDER_ADDRESS'] is not None:
-            print(Fore.LIGHTGREEN_EX + 'Message sent from {}'. format(message['SENDER_ADDRESS']))
+            print(Fore.LIGHTGREEN_EX + 'Message sent from {}'.format(message['SENDER_ADDRESS']))
         print('ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['ID'], message['METHOD'],
                                                           message['SEQUENCE'], message['CONTENT']) + Style.RESET_ALL)
 
-    # calculate broadcast address
-    def get_broadcast_address(self, ip, netmask):
+    @staticmethod
+    def get_broadcast_address(ip, netmask):
+        """
+        calculate broadcast address
+        :param ip:
+        :param netmask:
+        :return:
+        """
         ip = ip.split('.')
         netmask = netmask.split('.')
         broadcast = []
         for i in range(3):
             broadcast.append(str(int(ip[i]) | (255 - int(netmask[i]))))
         broadcast.append("255")
-        
+
         return '.'.join(broadcast)
 
     def warm_up(self, ts) -> None:
@@ -129,10 +142,12 @@ class auction_component:
 
     def udp_send(self, address, message: dict) -> None:
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp_socket.sendto(str.encode(json.dumps(message)), address)
+        # udp_socket.sendto(str.encode(json.dumps(message)), address)
+        udp_socket.sendto(pickle.dumps(message), address)
         data, addr = udp_socket.recvfrom(self.BUFFER_SIZE)
         if data:
-            message = json.loads(data.decode())
+            # message = json.loads(data.decode())
+            message = pickle.loads(data)
             message['SENDER_ADDRESS'] = address
             self.receive(message)
 
@@ -164,7 +179,9 @@ class auction_component:
         print('Broadcast sent out on address: {}:{}'.format(self.BROADCAST_IP,
                                                             self.BROADCAST_PORT))
         broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        broadcast_socket.sendto(str.encode(json.dumps(message), encoding=self.ENCODING),
+        # broadcast_socket.sendto(str.encode(json.dumps(message), encoding=self.ENCODING),
+        #                         (self.BROADCAST_IP, self.BROADCAST_PORT))
+        broadcast_socket.sendto(pickle.dumps(message),
                                 (self.BROADCAST_IP, self.BROADCAST_PORT))
 
     def broadcast_listen(self) -> None:
@@ -180,7 +197,8 @@ class auction_component:
         while not self.TERMINATE:
             data, address = listen_socket.recvfrom(self.BUFFER_SIZE)
             if data:
-                message = json.loads(data.decode())
+                # message = json.loads(data.decode())
+                message = pickle.loads(data)
                 message['SENDER_ADDRESS'] = address
                 self.receive(message)
 
@@ -191,7 +209,8 @@ class auction_component:
         while not self.TERMINATE:
             data, address = server_socket.recvfrom(self.BUFFER_SIZE)
             if data:
-                message = json.loads(data.decode())
+                # message = json.loads(data.decode())
+                message = pickle.loads(data)
                 message['SENDER_ADDRESS'] = address
                 self.receive(message)
                 # t = threading.Thread(target=self.receive, args=(message,))
@@ -235,27 +254,16 @@ class auction_component:
 
     def multicast(self, group, message):
         pass
-        #TODO: multicast
+        # TODO: multicast
 
     def remote_methode_invocation(self, address: tuple, methode: str):
         message = self.create_message('RMI', {'METHODE': methode})
         self.udp_send_without_response(address, message)
 
     def remote_para_set(self, address, **kwargs):
+        print(kwargs)
         message = self.create_message('SET', kwargs)
         self.udp_send_without_response(address, message)
-
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 
 if __name__ == '__main__':

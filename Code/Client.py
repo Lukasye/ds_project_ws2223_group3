@@ -3,7 +3,7 @@ from colorama import Fore, Style
 import time
 import pickle
 import pandas
-from auction_component import auction_component, bcolors
+from auction_component import auction_component
 
 
 class Client(auction_component):
