@@ -7,7 +7,7 @@ Our goal in this project is to build a fully functioning, distributed system for
 ### Requirements<br>
 Following additional package will be needed:
 1. click
-2. secrets
+2. uuid
 3. pickle
 4. pandas
 5. tqdm
@@ -16,9 +16,9 @@ Following additional package will be needed:
 ### Running<br>
 Run the client with a single command:
 ```
-python Client.py --port5700
+python Client.py --port 5700
 ```
-the default port will be 5700, if there are multiple clients, you should manually change the port.<br>
+the default port will be 5700, if there are multiple clients, you should manually change the port. <b>Attention: because a single process will use 4 ports, make sure that leave some space between two processes.</b><br>
 In order to start the Server, you need to enter two additional parameters
 ```
 python Server.py --port 10001 --opt 1
@@ -38,7 +38,7 @@ The command supported currently:
 9. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
 10. exit
 
-### Progress<br>
+### Progressing<br>
 ![broadcast](img/rmi.png) <br>
 27.11.2022: tune the broadcast function. Gonna watch the Worldcup! `:smiley:`<br>
 28.11.2022: multithread tested and added so that the system can handle multi-request.<br>
@@ -47,17 +47,19 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 04.12.2022: Tiny bugs fixed. Now the clients can also use the `find` method to join a group via redirect. Implemented remote methode invocation with no returned value.<br>
 05.12.2022: Dealt with the redundant request problem and optimize the structure. New function `assign()` to separate the main server logic with the servers. Finally! rmi works! Now the broadcast function is over and go into Bug test!<br>
 06.12.2022: Make the terminal more beautiful<br>
+08.12.2022: Add three new port for every process to handle specified task. Use pickle marshall instead of json to send out pandas file. Changed secrets to uuid4.<br>
 
 ### TODO<br>
 1. ~~broadcast logic~~
 2. ~~forwarding test~~
 3. ~~RMI test~~
-4. remote object instantiation: python object serialization
+4. ~~remote object instantiation: python object serialization~~
 5. color issue caused by multi-threading
-6. error handling
-7. number of clients update function
-8. heartbeat
-9. ip mask for broadcast
-10. comment!!!!
-11. ~~make code more beautiful~~
-12. BIG PROBLEM: I don't know how to add emoji in markdown!!
+6. totally reliable multicast
+7. error handling (extremely important)
+8. number of clients update function (currently not important)
+9. heartbeat
+10. ~~ip mask for broadcast~~
+11. comment!!!!
+12. ~~make code more beautiful~~
+13. BIG PROBLEM: I don't know how to add emoji in markdown!!

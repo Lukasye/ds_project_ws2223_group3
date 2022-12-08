@@ -1,9 +1,8 @@
-import json
 import socket
 import pickle
 import os
 from message import *
-from secrets import token_urlsafe
+from uuid import uuid4
 import threading
 from abc import abstractmethod
 from colorama import init, Fore, Style
@@ -23,7 +22,7 @@ class auction_component:
         self.BROADCAST_IP = self.get_broadcast_address(self.MY_IP, "255.255.240.0")  # "172.17.127.255"
         self.BUFFER_SIZE = 4096
         self.ENCODING = 'utf-8'
-        self.TOKEN_LENGTH = 16
+        # self.TOKEN_LENGTH = 16
         self.UDP_PORT = UDP_PORT
         self.BRO_PORT = UDP_PORT + 1
         self.ELE_PORT = UDP_PORT + 2
@@ -31,7 +30,8 @@ class auction_component:
         self.TYPE = TYPE
         self.hold_back_queue = hold_back_queue()
         self.delivery_queue = delivery_queue()
-        self.id = token_urlsafe(self.TOKEN_LENGTH)
+        # self.id = token_urlsafe(self.TOKEN_LENGTH)
+        self.id = uuid4()
         self.threads = []
         self.HEARTBEAT_RATE = 5
         self.TERMINATE = False
@@ -264,6 +264,10 @@ class auction_component:
         print(kwargs)
         message = self.create_message('SET', kwargs)
         self.udp_send_without_response(address, message)
+
+    def multicast_send_without_response(self, group: list, message: dict):
+        for member in group:
+            self.udp_send_without_response(member, message)
 
 
 if __name__ == '__main__':
