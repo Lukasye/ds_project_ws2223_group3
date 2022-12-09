@@ -43,6 +43,7 @@ class Client(auction_component):
         elif method == 'SET':
             tmp = response['CONTENT']
             for key in tmp:
+                # print('self.{} = {}'.format(key, tmp[key]))
                 exec('self.{} = {}'.format(key, tmp[key]))
             self.state_update()
         # **********************  METHOD HEARTBEAT **********************************
