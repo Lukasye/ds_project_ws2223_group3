@@ -62,6 +62,7 @@ class Server(auction_component):
         elif method == 'SET':
             tmp = request['CONTENT']
             for key in tmp:
+                # print('self.{} = {}'.format(key, tmp[key]))
                 exec('self.{} = {}'.format(key, tmp[key]))
             # self.state_update()
         # **********************  METHOD REDIRECT **********************************
@@ -97,10 +98,10 @@ class Server(auction_component):
             #                          'NUMBER': 0})
             new_row = pd.Series({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS']),
                                  'NUMBER': 0})
-            self.server_list = pd.concat([self.server_list, new_row.to_frame().T])
+            self.server_list = pd.concat([self.server_list, new_row.to_frame().T], ignore_index=True)
             self.num_servers += 1
             self.remote_para_set(tuple(request['CONTENT']['UDP_ADDRESS']),
-                                 MAINSERVER=(self.MY_IP, self.UDP_PORT),
+                                 MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
                                  is_member=True,
                                  server_list=self.server_list.to_dict())
             self.remote_methode_invocation(tuple(request['CONTENT']['UDP_ADDRESS']), 'to_df')
@@ -109,11 +110,12 @@ class Server(auction_component):
             if self.already_in(request['ID'], self.client_list):
                 return
             iD, addr = self.assign_clients()
+            print(iD, addr)
             if iD == self.id:
                 self.accept(request)
                 self.state_update()
             self.remote_para_set(tuple(request['CONTENT']['UDP_ADDRESS']),
-                                 MAINSERVER=(self.MY_IP, self.UDP_PORT),
+                                 MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
                                  is_member=True,
                                  CONTACT_SERVER=addr)
             if iD != self.id:
@@ -180,7 +182,7 @@ class Server(auction_component):
         #     if server['NUMBER'] < candidate['NUMBER']:
         #         candidate = server
         # return candidate['ID'], candidate['ADDRESS']
-        result = self.server_list[self.server_list['NUMBER'] == self.server_list['NUMBER'].max()].iloc[0]
+        result = self.server_list[self.server_list['NUMBER'] == self.server_list['NUMBER'].min()].iloc[0]
         return result['ID'], result['ADDRESS']
 
     def interface(self) -> None:

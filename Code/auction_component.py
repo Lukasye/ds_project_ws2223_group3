@@ -31,7 +31,7 @@ class auction_component:
         self.hold_back_queue = hold_back_queue()
         self.delivery_queue = delivery_queue()
         # self.id = token_urlsafe(self.TOKEN_LENGTH)
-        self.id = uuid4()
+        self.id = str(uuid4())
         self.threads = []
         self.HEARTBEAT_RATE = 5
         self.TERMINATE = False
