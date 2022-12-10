@@ -48,7 +48,7 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 05.12.2022: Dealt with the redundant request problem and optimize the structure. New function `assign()` to separate the main server logic with the servers. Finally! rmi works! Now the broadcast function is over and go into Bug test!<br>
 06.12.2022: Make the terminal more beautiful<br>
 08.12.2022: Add three new port for every process to handle specified task. Use pickle marshall instead of json to send out pandas file. Changed secrets to uuid4.<br>
-
+10.12.2022: add new sequencer. preparation for totally ordered multicast.<br>
 ### TODO<br>
 1. ~~broadcast logic~~
 2. ~~forwarding test~~

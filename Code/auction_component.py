@@ -174,6 +174,7 @@ class auction_component:
             pass
         elif message['SEQUENCE'] != 0:
             self.hold_back_queue.push(message)
+            print(self.hold_back_queue)
         else:
             self.deliver(message)
 

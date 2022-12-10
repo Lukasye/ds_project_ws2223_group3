@@ -75,6 +75,10 @@ class Client(auction_component):
                 self.report()
             elif user_input == 'find':
                 self.find_others()
+            elif user_input.startswith('bit'):
+                info = user_input.split(' ')
+                message = self.create_message('BIT', {'PRISE': info[1]})
+                self.udp_send_without_response(tuple(self.CONTACT_SERVER), message)
             elif user_input == 'leave':
                 self.is_member = False
                 self.MAIN_SERVER = None
