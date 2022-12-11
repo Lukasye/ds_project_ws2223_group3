@@ -79,13 +79,13 @@ class Server(auction_component):
         elif method == 'BIT':
             if self.is_main:
                 self.sequence += 1
-                request['SEQ'] = self.sequence
+                request['SEQUENCE'] = self.sequence
                 request['ID'] = self.id
                 self.multicast_send_without_response(self.server_list['ADDRESS'].to_list(),
                                                      request)
             else:
                 sequence = self.sequence_send()
-                request['SEQ'] = sequence
+                request['SEQUENCE'] = sequence
                 request['ID'] = self.id
                 self.multicast_send_without_response(self.server_list['ADDRESS'].to_list(),
                                                      request)

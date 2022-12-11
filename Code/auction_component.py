@@ -14,8 +14,9 @@ class auction_component:
         init()
         self.BROADCAST_PORT = 5972
         self.MY_HOST = socket.gethostname()
-        self.MY_IP = socket.gethostbyname(self.MY_HOST)
-        self.BROADCAST_IP = self.get_broadcast_address(self.MY_IP, "255.255.240.0")  # "172.17.127.255"
+        # self.MY_IP = socket.gethostbyname(self.MY_HOST)
+        self.MY_IP = self.get_ip_address()
+        self.BROADCAST_IP = self.get_broadcast_address(self.MY_IP, "255.255.255.0")  # "172.17.127.255"
         self.BUFFER_SIZE = 4096
         self.ENCODING = 'utf-8'
         # self.TOKEN_LENGTH = 16
@@ -65,6 +66,12 @@ class auction_component:
         :return: None
         """
         pass
+
+    @staticmethod
+    def get_ip_address():
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
 
     @staticmethod
     def udp_send_without_response(address, message: dict):
@@ -173,6 +180,7 @@ class auction_component:
             # I don't want to listen to myself
             pass
         elif message['SEQUENCE'] != 0:
+            print('ahahahahaha!')
             self.hold_back_queue.push(message)
             print(self.hold_back_queue)
         else:
