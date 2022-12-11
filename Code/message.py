@@ -6,6 +6,9 @@ class hold_back_queue:
         self.queue = PriorityQueue()
         self.COUNTER = 0
 
+    def __str__(self):
+        return self.queue.queue.__str__()
+
     def push(self, message):
         self.queue.put((message['SEQUENCE']), message)
 

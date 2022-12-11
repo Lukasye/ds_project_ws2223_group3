@@ -1,5 +1,7 @@
 import click
+import pickle
 import time
+import socket
 import pandas as pd
 from auction_component import auction_component
 from colorama import Fore, Style
@@ -10,6 +12,8 @@ class Server(auction_component):
                  UDP_PORT,
                  is_main: bool = False):
         super(Server, self).__init__('SERVER', UDP_PORT)
+        self.SEQ_PORT = UDP_PORT + 4
+        self.sequence = 0
         self.bid_history = []
         self.num_servers = 0
         self.num_clients = 0
@@ -17,15 +21,17 @@ class Server(auction_component):
         self.client_list = []
         self.is_main = is_main
         # initialize depends on whether this is the main server
+        warm_up_list = [self.udp_listen, self.broadcast_listen]
         if is_main:
             self.is_member = True
             self.MAIN_SERVER = (self.MY_IP, self.UDP_PORT)
+            warm_up_list.append(self.sequence_listen)
         else:
             self.is_member = False
             self.MAIN_SERVER = None
         self.report()
         # open multiple thread to do different jobs
-        self.warm_up([self.udp_listen, self.broadcast_listen])
+        self.warm_up(warm_up_list)
 
     def report(self):
         message = '{} activate on\n' \
@@ -69,14 +75,21 @@ class Server(auction_component):
         elif method == 'REDIRECT':
             if self.is_main:
                 self.receive(request['CONTENT']['MESSAGE'])
-        # **********************  METHOD HEARTBEAT **********************************
-        elif method == 'HEARTBEAT':
-            # TODO: implementation heartbeat
+        # **********************  METHOD RAISE BIT **********************************
+        elif method == 'BIT':
             if self.is_main:
-                pass
+                self.sequence += 1
+                request['SEQUENCE'] = self.sequence
+                request['ID'] = self.id
+                self.multicast_send_without_response(self.server_list['ADDRESS'].to_list(),
+                                                     request)
             else:
-                pass
-        # **********************  METHOD HEARTBEAT **********************************
+                sequence = self.sequence_send()
+                request['SEQUENCE'] = sequence
+                request['ID'] = self.id
+                self.multicast_send_without_response(self.server_list['ADDRESS'].to_list(),
+                                                     request)
+        # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             exec('self.{}()'.format(request['CONTENT']['METHODE']))
         else:
@@ -185,6 +198,26 @@ class Server(auction_component):
         result = self.server_list[self.server_list['NUMBER'] == self.server_list['NUMBER'].min()].iloc[0]
         return result['ID'], result['ADDRESS']
 
+    def sequence_listen(self):
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        server_socket.bind((self.MY_IP, self.SEQ_PORT))
+        while not self.TERMINATE:
+            data, address = server_socket.recvfrom(self.BUFFER_SIZE)
+            if data:
+                # message = json.loads(data.decode())
+                # message = pickle.loads(data)
+                # TODO: may need some logic
+                self.sequence += 1
+
+                message = self.create_message('SEQUENCE', {'SEQ': self.sequence})
+                self.udp_send_without_response(address, message)
+
+    def sequence_send(self):
+        assert self.MAIN_SERVER is not None
+        message = self.create_message('SEQUENCE', {})
+        sequence = self.udp_send(self.get_port(tuple(self.MAIN_SERVER), 'SEQ'), message)
+        return sequence['CONTENT']['SEQ']
+
     def interface(self) -> None:
         while True:
             print(Fore.LIGHTBLUE_EX + '*' * 60 + Style.RESET_ALL)
@@ -202,6 +235,10 @@ class Server(auction_component):
                 print(self.client_list)
             elif user_input == 'join':
                 self.join(None, True)
+            elif user_input == 'seq':
+                print(self.sequence_send())
+            elif user_input == 'queue':
+                print(self.hold_back_queue)
             elif user_input.startswith('rmi'):
                 info = user_input.split(' ')
                 self.remote_methode_invocation(('172.17.112.1', int(info[1])), info[2])

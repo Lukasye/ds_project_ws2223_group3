@@ -8,18 +8,15 @@ from abc import abstractmethod
 from colorama import init, Fore, Style
 
 
-# if len(a) > MAX_UDP_SIZE:
-#     raise ValueError('Message too large')
-
-
 class auction_component:
     def __init__(self, TYPE, UDP_PORT):
         # User interface and logic
         init()
         self.BROADCAST_PORT = 5972
         self.MY_HOST = socket.gethostname()
-        self.MY_IP = socket.gethostbyname(self.MY_HOST)
-        self.BROADCAST_IP = self.get_broadcast_address(self.MY_IP, "255.255.240.0")  # "172.17.127.255"
+        # self.MY_IP = socket.gethostbyname(self.MY_HOST)
+        self.MY_IP = self.get_ip_address()
+        self.BROADCAST_IP = self.get_broadcast_address(self.MY_IP, "255.255.255.0")  # "172.17.127.255"
         self.BUFFER_SIZE = 4096
         self.ENCODING = 'utf-8'
         # self.TOKEN_LENGTH = 16
@@ -71,6 +68,12 @@ class auction_component:
         pass
 
     @staticmethod
+    def get_ip_address():
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+
+    @staticmethod
     def udp_send_without_response(address, message: dict):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # udp_socket.sendto(str.encode(json.dumps(message)), tuple(address))
@@ -108,10 +111,25 @@ class auction_component:
         for i in range(3):
             broadcast.append(str(int(ip[i]) | (255 - int(netmask[i]))))
         broadcast.append("255")
-
         return '.'.join(broadcast)
 
-    def warm_up(self, ts) -> None:
+    @staticmethod
+    def get_port(MAIN_SERVER: tuple, PORT: str = 'SEQ') -> tuple:
+        addr = MAIN_SERVER[0]
+        port = MAIN_SERVER[1]
+        if PORT == 'BRO':
+            port += 1
+        elif PORT == 'ELE':
+            port += 2
+        elif PORT == 'HEA':
+            port += 3
+        elif PORT == 'SEQ':
+            port += 4
+        else:
+            raise ValueError('Input argument PORT not found!')
+        return tuple([addr, port])
+
+    def warm_up(self, ts: list) -> None:
         """
         HELPER FUNCTION:
         for initializing all the process and save them into a thread manager
@@ -140,16 +158,21 @@ class auction_component:
                 'SEQUENCE': SEQUENCE,
                 'CONTENT': CONTENT}
 
-    def udp_send(self, address, message: dict) -> None:
+    def udp_send(self, address, message: dict, receive: bool = False) -> dict:
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # udp_socket.sendto(str.encode(json.dumps(message)), address)
-        udp_socket.sendto(pickle.dumps(message), address)
+        message_byte = pickle.dumps(message)
+        if len(message_byte) > self.BUFFER_SIZE:
+            raise ValueError('Message too large')
+        udp_socket.sendto(message_byte, address)
         data, addr = udp_socket.recvfrom(self.BUFFER_SIZE)
         if data:
             # message = json.loads(data.decode())
-            message = pickle.loads(data)
-            message['SENDER_ADDRESS'] = address
-            self.receive(message)
+            data = pickle.loads(data)
+            data['SENDER_ADDRESS'] = addr
+            if receive:
+                self.receive(data)
+            return data
 
     def receive(self, message: dict):
         # TODO: function requirement
@@ -157,7 +180,9 @@ class auction_component:
             # I don't want to listen to myself
             pass
         elif message['SEQUENCE'] != 0:
+            print('ahahahahaha!')
             self.hold_back_queue.push(message)
+            print(self.hold_back_queue)
         else:
             self.deliver(message)
 
@@ -181,7 +206,10 @@ class auction_component:
         broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # broadcast_socket.sendto(str.encode(json.dumps(message), encoding=self.ENCODING),
         #                         (self.BROADCAST_IP, self.BROADCAST_PORT))
-        broadcast_socket.sendto(pickle.dumps(message),
+        message_byte = pickle.dumps(message)
+        if len(message_byte) > self.BUFFER_SIZE:
+            raise ValueError('Message too large')
+        broadcast_socket.sendto(message_byte,
                                 (self.BROADCAST_IP, self.BROADCAST_PORT))
 
     def broadcast_listen(self) -> None:
@@ -238,7 +266,7 @@ class auction_component:
         if inform_all:
             self.broadcast_send(message)
         else:
-            self.udp_send(address, message)
+            self.udp_send_without_response(address, message)
 
     def forward(self, address, request) -> None:
         """

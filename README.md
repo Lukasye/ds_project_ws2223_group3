@@ -32,11 +32,12 @@ The command supported currently:
 3. server: (server only feature) print the servers group list
 4. client: (server only feature) print the clients group list
 5. leave: (not available for main server) clear the memory.
-6. clear: clear screen to make the terminal more clean
-7. ~~join: send request to the main server to join the group~~
-8. ~~udp_listen: accept request at the udp port~~
-9. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
-10. exit
+6. clear: clear screen to make the terminal more clean.
+7. queue: To show the elements in the hold-back-queue.
+8. ~~join: send request to the main server to join the group~~
+9. ~~udp_listen: accept request at the udp port~~
+10. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
+11. exit
 
 ### Progressing<br>
 ![broadcast](img/rmi.png) <br>
@@ -48,18 +49,14 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 05.12.2022: Dealt with the redundant request problem and optimize the structure. New function `assign()` to separate the main server logic with the servers. Finally! rmi works! Now the broadcast function is over and go into Bug test!<br>
 06.12.2022: Make the terminal more beautiful<br>
 08.12.2022: Add three new port for every process to handle specified task. Use pickle marshall instead of json to send out pandas file. Changed secrets to uuid4.<br>
-
+10.12.2022: add new sequencer. preparation for totally ordered multicast.<br>
+11.12.2022： Try broadcast on several physical machines and fixed the ip problem in WLAN situation.<br> 
 ### TODO<br>
-1. ~~broadcast logic~~
-2. ~~forwarding test~~
-3. ~~RMI test~~
-4. ~~remote object instantiation: python object serialization~~
-5. color issue caused by multi-threading
-6. totally reliable multicast
-7. error handling (extremely important)
-8. number of clients update function (currently not important)
-9. heartbeat
-10. ~~ip mask for broadcast~~
-11. comment!!!!
-12. ~~make code more beautiful~~
-13. BIG PROBLEM: I don't know how to add emoji in markdown!!
+1. color issue caused by multi-threading
+2. totally reliable multicast
+3. election
+4. error handling (extremely important)
+5. number of clients update function (currently not important)
+6. heartbeat
+7. comment!!!!
+8. BIG PROBLEM: I don't know how to add emoji in markdown!!
