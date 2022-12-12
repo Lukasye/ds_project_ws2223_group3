@@ -10,9 +10,10 @@ Following additional package will be needed:
 2. uuid
 3. pickle
 4. pandas
-5. tqdm
-6. colorama
-7. threading
+5. heapq
+6. tqdm
+7. colorama
+8. threading
 ### Running<br>
 Run the client with a single command:
 ```

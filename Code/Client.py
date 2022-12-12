@@ -26,8 +26,10 @@ class Client(auction_component):
                   'Address: \t\t{}:{} \n' \
                   'Is member: \t\t{}\n' \
                   'Main Server: \t\t{}\n' \
-                  'Contact Server: \t{}'.format(self.TYPE,self.id, self.MY_IP, self.UDP_PORT,
-                                                self.is_member, self.MAIN_SERVER, self.CONTACT_SERVER)
+                  'Contact Server: \t{}\n' \
+                  'Sequence number: \t{}'.format(self.TYPE,self.id, self.MY_IP, self.UDP_PORT,
+                                                 self.is_member, self.MAIN_SERVER, self.CONTACT_SERVER,
+                                                 self.sequence_counter)
         print(Fore.LIGHTYELLOW_EX + message + Style.RESET_ALL)
 
     def logic(self, response: dict):

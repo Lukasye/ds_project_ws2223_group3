@@ -13,9 +13,8 @@ class Server(auction_component):
                  is_main: bool = False):
         super(Server, self).__init__('SERVER', UDP_PORT)
         self.SEQ_PORT = UDP_PORT + 4
-        self.sequence = 0
         self.bid_history = []
-        self.num_servers = 0
+        self.num_servers = 1
         self.num_clients = 0
         self.server_list = pd.DataFrame([{'ID': self.id, 'ADDRESS': (self.MY_IP, self.UDP_PORT), 'NUMBER': 0}])
         self.client_list = []
@@ -25,6 +24,7 @@ class Server(auction_component):
         if is_main:
             self.is_member = True
             self.MAIN_SERVER = (self.MY_IP, self.UDP_PORT)
+            self.sequencer = 0
             warm_up_list.append(self.sequence_listen)
         else:
             self.is_member = False
@@ -39,9 +39,11 @@ class Server(auction_component):
                   'Address: \t\t{}:{} \n' \
                   'Broadcast: \t\t{}:{}\n' \
                   'Main Server: \t\t{}\n' \
-                  'Number of Clients: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
-                                                   self.BROADCAST_IP, self.BROADCAST_PORT,
-                                                   self.MAIN_SERVER, self.num_clients)
+                  'Number of Clients: \t{}\n' \
+                  'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
+                                                 self.BROADCAST_IP, self.BROADCAST_PORT,
+                                                 self.MAIN_SERVER, self.num_clients,
+                                                 self.sequence_counter)
         print(Fore.LIGHTYELLOW_EX + message + Style.RESET_ALL)
 
     def logic(self, request: dict):
@@ -78,8 +80,9 @@ class Server(auction_component):
         # **********************  METHOD RAISE BIT **********************************
         elif method == 'BIT':
             if self.is_main:
-                self.sequence += 1
-                request['SEQUENCE'] = self.sequence
+                print(self.sequencer)
+                self.sequencer += 1
+                request['SEQUENCE'] = self.sequencer
                 request['ID'] = self.id
                 self.multicast_send_without_response(self.server_list['ADDRESS'].to_list(),
                                                      request)
@@ -113,11 +116,12 @@ class Server(auction_component):
                                  'NUMBER': 0})
             self.server_list = pd.concat([self.server_list, new_row.to_frame().T], ignore_index=True)
             self.num_servers += 1
-            self.remote_para_set(tuple(request['CONTENT']['UDP_ADDRESS']),
+            self.remote_para_set(self.server_list['ADDRESS'].to_list(),
                                  MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
                                  is_member=True,
                                  server_list=self.server_list.to_dict())
-            self.remote_methode_invocation(tuple(request['CONTENT']['UDP_ADDRESS']), 'to_df')
+            self.remote_methode_invocation(self.server_list['ADDRESS'].to_list(),
+                                           'to_df')
 
         else:
             if self.already_in(request['ID'], self.client_list):
@@ -127,12 +131,12 @@ class Server(auction_component):
             if iD == self.id:
                 self.accept(request)
                 self.state_update()
-            self.remote_para_set(tuple(request['CONTENT']['UDP_ADDRESS']),
+            self.remote_para_set([request['CONTENT']['UDP_ADDRESS']],
                                  MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
                                  is_member=True,
                                  CONTACT_SERVER=addr)
             if iD != self.id:
-                self.remote_methode_invocation(tuple(request['CONTENT']['UDP_ADDRESS']), 'join_contact')
+                self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'join_contact')
 
     @staticmethod
     def already_in(iD, table: list) -> bool:
@@ -207,9 +211,8 @@ class Server(auction_component):
                 # message = json.loads(data.decode())
                 # message = pickle.loads(data)
                 # TODO: may need some logic
-                self.sequence += 1
-
-                message = self.create_message('SEQUENCE', {'SEQ': self.sequence})
+                self.sequencer += 1
+                message = self.create_message('SEQUENCE', {'SEQ': self.sequencer})
                 self.udp_send_without_response(address, message)
 
     def sequence_send(self):
@@ -238,10 +241,10 @@ class Server(auction_component):
             elif user_input == 'seq':
                 print(self.sequence_send())
             elif user_input == 'queue':
-                print(self.hold_back_queue)
+                self.print_hold_back_queue()
             elif user_input.startswith('rmi'):
                 info = user_input.split(' ')
-                self.remote_methode_invocation(('172.17.112.1', int(info[1])), info[2])
+                self.remote_methode_invocation([('172.17.112.1', int(info[1]))], info[2])
             elif user_input == 'leave':
                 if self.is_main:
                     print(Fore.RED + 'Main Server cannot leave!' + Style.RESET_ALL)

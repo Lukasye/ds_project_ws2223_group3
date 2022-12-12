@@ -1,11 +1,26 @@
 import socket
 import pickle
 import os
-from message import *
+import heapq
 from uuid import uuid4
 import threading
 from abc import abstractmethod
 from colorama import init, Fore, Style
+
+
+class element:
+    def __init__(self, info: dict):
+        self.info = info
+        self.SEQ = info['SEQUENCE']
+
+    def __eq__(self, other):
+        return self.SEQ == other.SEQ
+
+    def __lt__(self, other):
+        return self.SEQ < other.SEQ
+
+    def __str__(self):
+        return str(self.info)
 
 
 class auction_component:
@@ -25,11 +40,12 @@ class auction_component:
         self.ELE_PORT = UDP_PORT + 2
         self.HEA_PORT = UDP_PORT + 3
         self.TYPE = TYPE
-        self.hold_back_queue = hold_back_queue()
-        self.delivery_queue = delivery_queue()
+        self.hold_back_queue = []
+        # self.delivery_queue = delivery_queue()
         # self.id = token_urlsafe(self.TOKEN_LENGTH)
         self.id = str(uuid4())
         self.threads = []
+        self.sequence_counter = 1
         self.HEARTBEAT_RATE = 5
         self.TERMINATE = False
 
@@ -74,10 +90,10 @@ class auction_component:
         return s.getsockname()[0]
 
     @staticmethod
-    def udp_send_without_response(address, message: dict):
+    def udp_send_without_response(address: tuple, message: dict):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # udp_socket.sendto(str.encode(json.dumps(message)), tuple(address))
-        udp_socket.sendto(pickle.dumps(message), tuple(address))
+        udp_socket.sendto(pickle.dumps(message), address)
 
     @staticmethod
     def clear_screen():
@@ -180,9 +196,17 @@ class auction_component:
             # I don't want to listen to myself
             pass
         elif message['SEQUENCE'] != 0:
-            print('ahahahahaha!')
-            self.hold_back_queue.push(message)
-            print(self.hold_back_queue)
+            seq = message['SEQUENCE']
+            # Reliable ordered needed!
+            if seq == self.sequence_counter:
+                self.deliver(message)
+                self.sequence_counter += 1
+            elif seq > self.sequence_counter:
+                heapq.heappush(self.hold_back_queue, element(message))
+                self.negative_acknowledgement()
+            else:
+                # This message has already delivered!
+                pass
         else:
             self.deliver(message)
 
@@ -245,6 +269,9 @@ class auction_component:
                 # t.start()
                 # p.join()
 
+    def print_hold_back_queue(self):
+        print(self.hold_back_queue)
+
     def find_others(self) -> None:
         """
         HELPER FUNCTION:
@@ -284,18 +311,25 @@ class auction_component:
         pass
         # TODO: multicast
 
-    def remote_methode_invocation(self, address: tuple, methode: str):
-        message = self.create_message('RMI', {'METHODE': methode})
-        self.udp_send_without_response(address, message)
+    def remote_methode_invocation(self, group: list, methode: str):
+        for address in group:
+            message = self.create_message('RMI', {'METHODE': methode})
+            self.udp_send_without_response(tuple(address), message)
 
-    def remote_para_set(self, address, **kwargs):
-        print(kwargs)
-        message = self.create_message('SET', kwargs)
-        self.udp_send_without_response(address, message)
+    def remote_para_set(self, group: list, **kwargs):
+        for address in group:
+            message = self.create_message('SET', kwargs)
+            self.udp_send_without_response(tuple(address), message)
 
     def multicast_send_without_response(self, group: list, message: dict):
+        print('Sending message multicast:')
+        print(message)
         for member in group:
-            self.udp_send_without_response(member, message)
+            self.udp_send_without_response(tuple(member), message)
+
+    def negative_acknowledgement(self):
+        # TODO: implement this function!
+        pass
 
 
 if __name__ == '__main__':
