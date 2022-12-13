@@ -32,32 +32,37 @@ The command supported currently:
 2. find: broadcasting and turn on udp listening after that
 3. server: (server only feature) print the servers group list
 4. client: (server only feature) print the clients group list
-5. leave: (not available for main server) clear the memory.
+5. leave: (not available for main server for now) clear the memory.
 6. clear: clear screen to make the terminal more clean.
 7. queue: To show the elements in the hold-back-queue.
-8. ~~join: send request to the main server to join the group~~
-9. ~~udp_listen: accept request at the udp port~~
-10. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
-11. exit
+8. multi1 & multi2: for the multicast testing. <b>multi1</b> will send out 4 messages with sequence number 1 to 4 with 10 seconds latency before the second message. <b>multi2</b> will send out a single udp message with sequence number 5. In the test, the multi1 should be executed on one server and right after that multi2 on another.
+9. history: To check the bit history.
+10. bit: (client only feature) to raise the bit in format `bit <Price>`.
+11. ~~join: send request to the main server to join the group~~
+12. ~~udp_listen: accept request at the udp port~~
+13. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
+14. exit
 
 ### Progressing<br>
-![broadcast](img/rmi.png) <br>
-27.11.2022: tune the broadcast function. Gonna watch the Worldcup! `:smiley:`<br>
-28.11.2022: multithread tested and added so that the system can handle multi-request.<br>
-03.12.2022: realizing the multithread function. Now the model can automatically set up the udp_listen function. Optimize the structure of codes. New abstract function for auction component:`interface()`, `state_update()`
+![broadcast](img/Reliable_multicast.png) <br>
+<b>27.11.2022:</b> tune the broadcast function. Gonna watch the Worldcup! `:smiley:`<br>
+<b>28.11.2022:</b> multithread tested and added so that the system can handle multi-request.<br>
+<b>03.12.2022:</b> realizing the multithread function. Now the model can automatically set up the udp_listen function. Optimize the structure of codes. New abstract function for auction component:`interface()`, `state_update()`
 and some small gadgets. Broadcast logic finished! unused user function deleted! Now we have a fully functioning broadcast system!<br>
-04.12.2022: Tiny bugs fixed. Now the clients can also use the `find` method to join a group via redirect. Implemented remote methode invocation with no returned value.<br>
-05.12.2022: Dealt with the redundant request problem and optimize the structure. New function `assign()` to separate the main server logic with the servers. Finally! rmi works! Now the broadcast function is over and go into Bug test!<br>
-06.12.2022: Make the terminal more beautiful<br>
-08.12.2022: Add three new port for every process to handle specified task. Use pickle marshall instead of json to send out pandas file. Changed secrets to uuid4.<br>
-10.12.2022: add new sequencer. preparation for totally ordered multicast.<br>
-11.12.2022： Try broadcast on several physical machines and fixed the ip problem in WLAN situation.<br> 
+<b>04.12.2022:</b> Tiny bugs fixed. Now the clients can also use the `find` method to join a group via redirect. Implemented remote methode invocation with no returned value.<br>
+<b>05.12.2022:</b> Dealt with the redundant request problem and optimize the structure. New function `assign()` to separate the main server logic with the servers. Finally! rmi works! Now the broadcast function is over and go into Bug test!<br>
+<b>06.12.2022:</b> Make the terminal more beautiful<br>
+<b>08.12.2022:</b> Add three new port for every process to handle specified task. Use pickle marshall instead of json to send out pandas file. Changed secrets to uuid4.<br>
+<b>10.12.2022:</b> add new sequencer. preparation for totally ordered multicast.<br>
+<b>11.12.2022:</b> Try broadcast on several physical machines and fixed the ip problem in WLAN situation. Deleted the message class merged it into Auction_component. Use `heapq` to maintain a min-Heap for the hold_back_queue implementation.<br> 
+<b>13.12.2022:</b> First test on reliable multicast without negative acknowledgement. No time to do more because of worldcup!<br>
 ### TODO<br>
 1. color issue caused by multi-threading
 2. totally reliable multicast
 3. election
 4. error handling (extremely important)
-5. number of clients update function (currently not important)
+5. number of clients/servers update function (currently not important)
 6. heartbeat
-7. comment!!!!
-8. BIG PROBLEM: I don't know how to add emoji in markdown!!
+7. bugs fix!!!!!!!!
+8. comment!!!!
+9. BIG PROBLEM: I don't know how to add emoji in markdown!!
