@@ -13,9 +13,8 @@ class Server(auction_component):
                  is_main: bool = False):
         super(Server, self).__init__('SERVER', UDP_PORT)
         self.SEQ_PORT = UDP_PORT + 4
-        self.sequence = 0
         self.bid_history = []
-        self.num_servers = 0
+        self.num_servers = 1
         self.num_clients = 0
         self.server_list = pd.DataFrame([{'ID': self.id, 'ADDRESS': (self.MY_IP, self.UDP_PORT), 'NUMBER': 0}])
         self.client_list = []
@@ -25,6 +24,7 @@ class Server(auction_component):
         if is_main:
             self.is_member = True
             self.MAIN_SERVER = (self.MY_IP, self.UDP_PORT)
+            self.sequencer = 0
             warm_up_list.append(self.sequence_listen)
         else:
             self.is_member = False
@@ -39,10 +39,14 @@ class Server(auction_component):
                   'Address: \t\t{}:{} \n' \
                   'Broadcast: \t\t{}:{}\n' \
                   'Main Server: \t\t{}\n' \
-                  'Number of Clients: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
-                                                   self.BROADCAST_IP, self.BROADCAST_PORT,
-                                                   self.MAIN_SERVER, self.num_clients)
+                  'Number of Clients: \t{}\n' \
+                  'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
+                                                 self.BROADCAST_IP, self.BROADCAST_PORT,
+                                                 self.MAIN_SERVER, self.num_clients,
+                                                 self.sequence_counter)
+        info = '$$$$\t' + 'Highest_bid:{}\t Winner:{}'.format(self.highest_bid, self.winner) + '\t$$$$'
         print(Fore.LIGHTYELLOW_EX + message + Style.RESET_ALL)
+        print(Fore.RED + info + Style.RESET_ALL)
 
     def logic(self, request: dict):
         method = request['METHOD']
@@ -77,21 +81,37 @@ class Server(auction_component):
                 self.receive(request['CONTENT']['MESSAGE'])
         # **********************  METHOD RAISE BIT **********************************
         elif method == 'BIT':
-            if self.is_main:
-                self.sequence += 1
-                request['SEQUENCE'] = self.sequence
-                request['ID'] = self.id
-                self.multicast_send_without_response(self.server_list['ADDRESS'].to_list(),
-                                                     request)
+            # if self.is_main:
+            #     self.sequencer += 1
+            #     request['SEQUENCE'] = self.sequencer
+            #     request['ID'] = self.id
+            #     self.multicast_send_without_response(self.server_list['ADDRESS'].to_list(),
+            #                                          request)
+            # else:
+            price = int(request['CONTENT']['PRICE'])
+            if price < self.highest_bid:
+                message = self.create_message('PRINT', {'PRINT': 'Invalid Price, the highest bid now is {}'. format(self.highest_bid)})
+                self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), message)
             else:
                 sequence = self.sequence_send()
-                request['SEQUENCE'] = sequence
-                request['ID'] = self.id
-                self.multicast_send_without_response(self.server_list['ADDRESS'].to_list(),
-                                                     request)
+                # request['SEQUENCE'] = sequence
+                # request['ID'] = self.id
+                # message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price,
+                #                                                                  'winner': request['ID']})
+                # self.multicast_send_without_response(self.server_list['ADDRESS'].to_list(),
+                #                                      message)
+                self.remote_para_set(self.server_list['ADDRESS'].to_list(), SEQUENCE=sequence, highest_bid=price,
+                                     winner=request['SENDER_ADDRESS'], update=True)
+                # self.remote_methode_invocation(self.server_list['ADDRESS'].to_list(), 'pass_on')
+                # foobar
+                self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
+                self.bid_history.append(request)
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             exec('self.{}()'.format(request['CONTENT']['METHODE']))
+        elif method == 'TEST':
+            # ignore test signals
+            pass
         else:
             print(request)
 
@@ -113,12 +133,12 @@ class Server(auction_component):
                                  'NUMBER': 0})
             self.server_list = pd.concat([self.server_list, new_row.to_frame().T], ignore_index=True)
             self.num_servers += 1
-            self.remote_para_set(tuple(request['CONTENT']['UDP_ADDRESS']),
+            self.remote_para_set(self.server_list['ADDRESS'].to_list(),
                                  MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
                                  is_member=True,
                                  server_list=self.server_list.to_dict())
-            self.remote_methode_invocation(tuple(request['CONTENT']['UDP_ADDRESS']), 'to_df')
-
+            self.remote_methode_invocation(self.server_list['ADDRESS'].to_list(),
+                                           'to_df')
         else:
             if self.already_in(request['ID'], self.client_list):
                 return
@@ -127,12 +147,12 @@ class Server(auction_component):
             if iD == self.id:
                 self.accept(request)
                 self.state_update()
-            self.remote_para_set(tuple(request['CONTENT']['UDP_ADDRESS']),
+            self.remote_para_set([request['CONTENT']['UDP_ADDRESS']],
                                  MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
                                  is_member=True,
                                  CONTACT_SERVER=addr)
             if iD != self.id:
-                self.remote_methode_invocation(tuple(request['CONTENT']['UDP_ADDRESS']), 'join_contact')
+                self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'join_contact')
 
     @staticmethod
     def already_in(iD, table: list) -> bool:
@@ -151,6 +171,10 @@ class Server(auction_component):
     def to_df(self):
         if isinstance(self.server_list, dict):
             self.server_list = pd.DataFrame(self.server_list)
+
+    def pass_on(self):
+        # TODO: here maybe need to add RMI with parameters
+        self.remote_para_set(self.client_list, highest_bid=self.highest_bid, winner=self.winner)
 
     def accept(self, request: dict) -> None:
         """
@@ -190,11 +214,6 @@ class Server(auction_component):
         assign the new client to the server which has the least number of clients
         :return: the id of the server to be assigned
         """
-        # candidate = self.server_list['ID']
-        # for server in self.server_list:
-        #     if server['NUMBER'] < candidate['NUMBER']:
-        #         candidate = server
-        # return candidate['ID'], candidate['ADDRESS']
         result = self.server_list[self.server_list['NUMBER'] == self.server_list['NUMBER'].min()].iloc[0]
         return result['ID'], result['ADDRESS']
 
@@ -207,9 +226,8 @@ class Server(auction_component):
                 # message = json.loads(data.decode())
                 # message = pickle.loads(data)
                 # TODO: may need some logic
-                self.sequence += 1
-
-                message = self.create_message('SEQUENCE', {'SEQ': self.sequence})
+                self.sequencer += 1
+                message = self.create_message('SEQUENCE', {'SEQ': self.sequencer})
                 self.udp_send_without_response(address, message)
 
     def sequence_send(self):
@@ -238,10 +256,28 @@ class Server(auction_component):
             elif user_input == 'seq':
                 print(self.sequence_send())
             elif user_input == 'queue':
-                print(self.hold_back_queue)
+                self.print_hold_back_queue()
             elif user_input.startswith('rmi'):
                 info = user_input.split(' ')
-                self.remote_methode_invocation(('172.17.112.1', int(info[1])), info[2])
+                self.remote_methode_invocation([('172.17.112.1', int(info[1]))], info[2])
+            elif user_input == 'history':
+                for ele in self.bid_history:
+                    print(ele)
+            elif user_input == 'multi1':
+                # multi test
+                print('Reliable multicast test (Part 1)...')
+                self.multicast_send_without_response([('141.58.63.87', 5700)],
+                                                     self.create_message('TEST', SEQUENCE=1, CONTENT={'N': 1}))
+                self.multicast_send_without_response([('141.58.63.87', 5700)],
+                                                     self.create_message('TEST', SEQUENCE=2, CONTENT={'N': 2}), test=0)
+                self.multicast_send_without_response([('141.58.63.87', 5700)],
+                                                     self.create_message('TEST', SEQUENCE=3, CONTENT={'N': 3}))
+                self.multicast_send_without_response([('141.58.63.87', 5700)],
+                                                     self.create_message('TEST', SEQUENCE=4, CONTENT={'N': 4}))
+            elif user_input == 'multi2':
+                print('Reliable multicast test (Part 2)...')
+                self.multicast_send_without_response([('141.58.63.87', 5700)],
+                                                     self.create_message('TEST', SEQUENCE=5, CONTENT={'N': 5}))
             elif user_input == 'leave':
                 if self.is_main:
                     print(Fore.RED + 'Main Server cannot leave!' + Style.RESET_ALL)

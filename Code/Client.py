@@ -12,7 +12,6 @@ class Client(auction_component):
         super().__init__('CLIENT', UDP_PORT)
         # self.leader = None
         self.current_bid = 0
-        self.highest_bid = 0
         self.is_member = False
         self.MAIN_SERVER = None
         self.CONTACT_SERVER = None
@@ -26,9 +25,13 @@ class Client(auction_component):
                   'Address: \t\t{}:{} \n' \
                   'Is member: \t\t{}\n' \
                   'Main Server: \t\t{}\n' \
-                  'Contact Server: \t{}'.format(self.TYPE,self.id, self.MY_IP, self.UDP_PORT,
-                                                self.is_member, self.MAIN_SERVER, self.CONTACT_SERVER)
+                  'Contact Server: \t{}\n' \
+                  'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
+                                                 self.is_member, self.MAIN_SERVER, self.CONTACT_SERVER,
+                                                 self.sequence_counter)
+        info = '$$$$\t' + 'Highest_bid:{}\t Winner:{}'.format(self.highest_bid, self.winner) + '\t$$$$'
         print(Fore.LIGHTYELLOW_EX + message + Style.RESET_ALL)
+        print(Fore.RED + info + Style.RESET_ALL)
 
     def logic(self, response: dict):
         method = response['METHOD']
@@ -46,18 +49,15 @@ class Client(auction_component):
                 # print('self.{} = {}'.format(key, tmp[key]))
                 exec('self.{} = {}'.format(key, tmp[key]))
             self.state_update()
-        # **********************  METHOD HEARTBEAT **********************************
-        elif method == 'HEARTBEAT':
-            # TODO: response to the heartbeat
-            pass
-        # # ********************** METHOD REDIRECT **********************************
-        # elif method == 'REDIRECT':
-        #     message = self.create_message(response['CONTENT']['type'],
-        #                                   {'type': self.TYPE})
-        #     self.udp_send(response['CONTENT']['ADDRESS'], message)
+        # # ********************** METHOD PRINT **********************************
+        elif method == 'PRINT':
+            print(response['CONTENT']['PRINT'])
         # **********************  METHOD HEARTBEAT **********************************
         elif method == 'RMI':
             exec('self.{}()'.format(response['CONTENT']['METHODE']))
+        elif method == 'TEST':
+            # ignore test signals
+            pass
         else:
             print(response)
 
@@ -77,14 +77,18 @@ class Client(auction_component):
                 self.find_others()
             elif user_input.startswith('bit'):
                 info = user_input.split(' ')
-                message = self.create_message('BIT', {'PRISE': info[1]})
-                self.udp_send_without_response(tuple(self.CONTACT_SERVER), message)
+                message = self.create_message('BIT', {'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT),
+                                                      'PRICE': info[1]})
+                self.udp_send(tuple(self.CONTACT_SERVER), message)
             elif user_input == 'leave':
                 self.is_member = False
                 self.MAIN_SERVER = None
                 self.CONTACT_SERVER = None
+                self.sequence_counter = 0
                 print('Dis-attached with Main-server!')
                 self.report()
+            elif user_input == 'queue':
+                self.print_hold_back_queue()
             elif user_input == 'clear':
                 self.clear_screen()
             else:

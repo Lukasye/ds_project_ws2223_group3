@@ -1,11 +1,34 @@
 import socket
 import pickle
 import os
-from message import *
+import heapq
+from tqdm import tqdm
+import time
 from uuid import uuid4
 import threading
 from abc import abstractmethod
 from colorama import init, Fore, Style
+
+
+class element:
+    def __init__(self, info: dict):
+        self.info = info
+        self.SEQ = info['SEQUENCE']
+
+    def get_seq(self):
+        return self.SEQ
+
+    def get_info(self):
+        return self.info
+
+    def __eq__(self, other):
+        return self.SEQ == other.SEQ
+
+    def __lt__(self, other):
+        return self.SEQ < other.SEQ
+
+    def __str__(self):
+        return str(self.info)
 
 
 class auction_component:
@@ -14,9 +37,8 @@ class auction_component:
         init()
         self.BROADCAST_PORT = 5972
         self.MY_HOST = socket.gethostname()
-        # self.MY_IP = socket.gethostbyname(self.MY_HOST)
         self.MY_IP = self.get_ip_address()
-        self.BROADCAST_IP = self.get_broadcast_address(self.MY_IP, "255.255.255.0")  # "172.17.127.255"
+        self.BROADCAST_IP = self.get_broadcast_address(self.MY_IP, "255.255.224.0")  # "172.17.127.255"
         self.BUFFER_SIZE = 4096
         self.ENCODING = 'utf-8'
         # self.TOKEN_LENGTH = 16
@@ -25,11 +47,15 @@ class auction_component:
         self.ELE_PORT = UDP_PORT + 2
         self.HEA_PORT = UDP_PORT + 3
         self.TYPE = TYPE
-        self.hold_back_queue = hold_back_queue()
-        self.delivery_queue = delivery_queue()
+        self.hold_back_queue = []
+        # self.delivery_queue = delivery_queue()
         # self.id = token_urlsafe(self.TOKEN_LENGTH)
         self.id = str(uuid4())
         self.threads = []
+        self.sequence_counter = 1  # the initial sequence number for all the participants
+        self.highest_bid = 0  # The highest bid that everyone agreed on
+        self.winner = None  # winner of this round
+        self.update = False
         self.HEARTBEAT_RATE = 5
         self.TERMINATE = False
 
@@ -74,10 +100,10 @@ class auction_component:
         return s.getsockname()[0]
 
     @staticmethod
-    def udp_send_without_response(address, message: dict):
+    def udp_send_without_response(address: tuple, message: dict):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # udp_socket.sendto(str.encode(json.dumps(message)), tuple(address))
-        udp_socket.sendto(pickle.dumps(message), tuple(address))
+        udp_socket.sendto(pickle.dumps(message), address)
 
     @staticmethod
     def clear_screen():
@@ -129,6 +155,13 @@ class auction_component:
             raise ValueError('Input argument PORT not found!')
         return tuple([addr, port])
 
+    @staticmethod
+    def extract_address(client_list: list) -> list:
+        tmp = []
+        for ele in client_list:
+            tmp.append(ele['ADDRESS'])
+        return tmp
+
     def warm_up(self, ts: list) -> None:
         """
         HELPER FUNCTION:
@@ -144,7 +177,7 @@ class auction_component:
         t = threading.Thread(target=self.interface)
         t.start()
 
-    def create_message(self, METHOD: str, CONTENT, SEQUENCE: int = 0):
+    def create_message(self, METHOD: str, CONTENT: dict, SEQUENCE: int = 0):
         """
         HELPER FUNCTION:
         pack the info to generate as dict file for the transmitting
@@ -176,13 +209,26 @@ class auction_component:
 
     def receive(self, message: dict):
         # TODO: function requirement
-        if message['ID'] == self.id:
+        if message['ID'] == self.id and message['SEQUENCE'] == 0:
             # I don't want to listen to myself
             pass
         elif message['SEQUENCE'] != 0:
-            print('ahahahahaha!')
-            self.hold_back_queue.push(message)
-            print(self.hold_back_queue)
+            seq = message['SEQUENCE']
+            # Reliable ordered needed!
+            if seq == self.sequence_counter:
+                self.deliver(message)
+                time.sleep(0.01)
+                self.sequence_counter += 1
+                # check whether the next (few) messages can be delivered
+                if bool(self.hold_back_queue):
+                    if self.sequence_counter == self.hold_back_queue[0].get_seq():
+                        self.receive(heapq.heappop(self.hold_back_queue).get_info())
+            elif seq > self.sequence_counter:
+                heapq.heappush(self.hold_back_queue, element(message))
+                self.negative_acknowledgement()
+            else:
+                # This message has already delivered!
+                pass
         else:
             self.deliver(message)
 
@@ -245,6 +291,10 @@ class auction_component:
                 # t.start()
                 # p.join()
 
+    def print_hold_back_queue(self):
+        for ele in self.hold_back_queue:
+            print(ele.get_info())
+
     def find_others(self) -> None:
         """
         HELPER FUNCTION:
@@ -284,18 +334,28 @@ class auction_component:
         pass
         # TODO: multicast
 
-    def remote_methode_invocation(self, address: tuple, methode: str):
-        message = self.create_message('RMI', {'METHODE': methode})
-        self.udp_send_without_response(address, message)
+    def remote_methode_invocation(self, group: list, methode: str, SEQUENCE: int = 0):
+        for address in group:
+            message = self.create_message('RMI',SEQUENCE=SEQUENCE, CONTENT={'METHODE': methode})
+            self.udp_send_without_response(tuple(address), message)
 
-    def remote_para_set(self, address, **kwargs):
-        print(kwargs)
-        message = self.create_message('SET', kwargs)
-        self.udp_send_without_response(address, message)
+    def remote_para_set(self, group: list, SEQUENCE: int = 0, **kwargs):
+        for address in group:
+            message = self.create_message('SET', SEQUENCE=SEQUENCE, CONTENT=kwargs)
+            self.udp_send_without_response(tuple(address), message)
 
-    def multicast_send_without_response(self, group: list, message: dict):
-        for member in group:
-            self.udp_send_without_response(member, message)
+    def multicast_send_without_response(self, group: list, message: dict, test: int = -1):
+        assert test < len(group)
+        count = 0
+        for member in tqdm(group):
+            if count == test:
+                time.sleep(10)
+            self.udp_send_without_response(tuple(member), message)
+            count += 1
+
+    def negative_acknowledgement(self):
+        # TODO: implement this function!
+        pass
 
 
 if __name__ == '__main__':
