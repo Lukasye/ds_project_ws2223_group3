@@ -10,10 +10,11 @@ Following additional package will be needed:
 2. uuid
 3. pickle
 4. pandas
-5. heapq
-6. tqdm
-7. colorama
-8. threading
+5. time
+6. heapq
+7. tqdm
+8. colorama
+9. threading
 ### Running<br>
 Run the client with a single command:
 ```
@@ -37,11 +38,12 @@ The command supported currently:
 7. queue: To show the elements in the hold-back-queue.
 8. multi1 & multi2: for the multicast testing. <b>multi1</b> will send out 4 messages with sequence number 1 to 4 with 10 seconds latency before the second message. <b>multi2</b> will send out a single udp message with sequence number 5. In the test, the multi1 should be executed on one server and right after that multi2 on another.
 9. history: To check the bit history.
-10. bit: (client only feature) to raise the bit in format `bit <Price>`.
-11. ~~join: send request to the main server to join the group~~
-12. ~~udp_listen: accept request at the udp port~~
-13. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
-14. exit
+10. intercept: Blocking the next incoming request with sequence number greater than 0.
+11. bit: (client only feature) to raise the bit in format `bit <Price>`.
+12. ~~join: send request to the main server to join the group~~
+13. ~~udp_listen: accept request at the udp port~~
+14. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
+15. exit
 
 ### Progressing<br>
 ![broadcast](img/Reliable_multicast.png) <br>
@@ -56,11 +58,12 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>10.12.2022:</b> add new sequencer. preparation for totally ordered multicast.<br>
 <b>11.12.2022:</b> Try broadcast on several physical machines and fixed the ip problem in WLAN situation. Deleted the message class merged it into Auction_component. Use `heapq` to maintain a min-Heap for the hold_back_queue implementation.<br> 
 <b>13.12.2022:</b> First test on reliable multicast without negative acknowledgement. No time to do more because of worldcup!<br>
+<b>14.12.2022:</b> Negative acknowledgement realized. Add a new user function `intercept`, but not tested. I think I can run the whole test on weekend. Worldcup tonight! <br>
 ### TODO<br>
 1. color issue caused by multi-threading
 2. totally reliable multicast
 3. election
-4. error handling (extremely important)
+4. error handling (extremely important). especially udp_send() function
 5. number of clients/servers update function (currently not important)
 6. heartbeat
 7. bugs fix!!!!!!!!

@@ -47,14 +47,19 @@ class auction_component:
         self.ELE_PORT = UDP_PORT + 2
         self.HEA_PORT = UDP_PORT + 3
         self.TYPE = TYPE
+        self.MAIN_SERVER = None
+        if TYPE == 'CLIENT':
+            self.CONTACT_SERVER = None
         self.hold_back_queue = []
         # self.delivery_queue = delivery_queue()
         # self.id = token_urlsafe(self.TOKEN_LENGTH)
         self.id = str(uuid4())
         self.threads = []
+        self.multicast_hist = []
         self.sequence_counter = 1  # the initial sequence number for all the participants
         self.highest_bid = 0  # The highest bid that everyone agreed on
         self.winner = None  # winner of this round
+        self.intercept = False
         self.update = False
         self.HEARTBEAT_RATE = 5
         self.TERMINATE = False
@@ -191,7 +196,14 @@ class auction_component:
                 'SEQUENCE': SEQUENCE,
                 'CONTENT': CONTENT}
 
-    def udp_send(self, address, message: dict, receive: bool = False) -> dict:
+    def udp_send(self, address: tuple, message: dict, receive: bool = False) -> dict:
+        """
+        normal udp send function
+        :param address: the address of the recipient
+        :param message: standard message format in dict
+        :param receive: boolean variable to set whether the message should be passed to the self.receive() function
+        :return: standard message format in dict
+        """
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # udp_socket.sendto(str.encode(json.dumps(message)), address)
         message_byte = pickle.dumps(message)
@@ -210,27 +222,56 @@ class auction_component:
     def receive(self, message: dict):
         # TODO: function requirement
         if message['ID'] == self.id and message['SEQUENCE'] == 0:
-            # I don't want to listen to myself
+            # I don't want to listen to myself (normal messages)
             pass
         elif message['SEQUENCE'] != 0:
+            if self.intercept:
+                # just for testing! skip the next message!
+                self.intercept = True
+                return
             seq = message['SEQUENCE']
             # Reliable ordered needed!
-            if seq == self.sequence_counter:
-                self.deliver(message)
-                time.sleep(0.01)
-                self.sequence_counter += 1
-                # check whether the next (few) messages can be delivered
-                if bool(self.hold_back_queue):
-                    if self.sequence_counter == self.hold_back_queue[0].get_seq():
-                        self.receive(heapq.heappop(self.hold_back_queue).get_info())
-            elif seq > self.sequence_counter:
-                heapq.heappush(self.hold_back_queue, element(message))
-                self.negative_acknowledgement()
-            else:
-                # This message has already delivered!
+            if seq < self.sequence_counter:
+                # this message has already delivered!
                 pass
+            else:
+                # push the message into the hold_back_queue
+                heapq.heappush(self.hold_back_queue, element(message))
+            # if seq == self.sequence_counter:
+            #     self.deliver(message)
+            #     time.sleep(0.01)
+            #     self.sequence_counter += 1
+            #     # check whether the next (few) messages can be delivered
+            #     if bool(self.hold_back_queue):
+            #         if self.sequence_counter == self.hold_back_queue[0].get_seq():
+            #             self.receive(heapq.heappop(self.hold_back_queue).get_info())
+            # elif seq > self.sequence_counter:
+            #     heapq.heappush(self.hold_back_queue, element(message))
+            #     self.negative_acknowledgement()
+            # else:
+            #     # This message has already delivered!
+            #     pass
         else:
+            # deliver direct all the normal messages
             self.deliver(message)
+
+    def check_hold_back_queue(self):
+        timestamp = time.time()
+        while not self.TERMINATE:
+            if bool(self.hold_back_queue):
+                # if the hold_back queue isn't empty
+                if self.sequence_counter == self.hold_back_queue[0].get_seq():
+                    # if the next message can be delivered
+                    ele = heapq.heappop(self.hold_back_queue)
+                    self.deliver(ele.get_info())
+                    self.sequence_counter += 1
+                    time.sleep(0.01)
+                else:
+                    # if not, send out the negative acknowledgement
+                    cmp = time.time()
+                    if cmp - timestamp > self.HEARTBEAT_RATE:
+                        self.negative_acknowledgement()
+                        timestamp = time.time()
 
     def deliver(self, message: dict) -> None:
         # p = Process(target=self.logic, args=message)
@@ -330,10 +371,6 @@ class auction_component:
                                                    'MESSAGE': request})
         self.udp_send_without_response(address, message)
 
-    def multicast(self, group, message):
-        pass
-        # TODO: multicast
-
     def remote_methode_invocation(self, group: list, methode: str, SEQUENCE: int = 0):
         for address in group:
             message = self.create_message('RMI',SEQUENCE=SEQUENCE, CONTENT={'METHODE': methode})
@@ -346,6 +383,9 @@ class auction_component:
 
     def multicast_send_without_response(self, group: list, message: dict, test: int = -1):
         assert test < len(group)
+        if message['SEQUENCE'] > 0:
+            # if it is a sequence relevant message, append it to the history
+            self.multicast_hist.append(message)
         count = 0
         for member in tqdm(group):
             if count == test:
@@ -354,8 +394,12 @@ class auction_component:
             count += 1
 
     def negative_acknowledgement(self):
-        # TODO: implement this function!
-        pass
+        message = self.create_message('GET', {'info': self.sequence_counter})
+        if self.TYPE == 'CLIENT':
+            # self.udp_send(self.CONTACT_SERVER, message, True)
+            self.udp_send_without_response(self.CONTACT_SERVER, message)
+        else:
+            self.udp_send(self.MAIN_SERVER, message, True)
 
 
 if __name__ == '__main__':

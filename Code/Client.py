@@ -1,8 +1,5 @@
 import click
 from colorama import Fore, Style
-import time
-import pickle
-import pandas
 from auction_component import auction_component
 
 
@@ -13,11 +10,9 @@ class Client(auction_component):
         # self.leader = None
         self.current_bid = 0
         self.is_member = False
-        self.MAIN_SERVER = None
-        self.CONTACT_SERVER = None
         self.report()
         # open multiple thread to do different jobs
-        self.warm_up([self.broadcast_listen, self.udp_listen])
+        self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue])
 
     def report(self):
         message = '{} activate on\n' \
@@ -79,7 +74,8 @@ class Client(auction_component):
                 info = user_input.split(' ')
                 message = self.create_message('BIT', {'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT),
                                                       'PRICE': info[1]})
-                self.udp_send(tuple(self.CONTACT_SERVER), message)
+                if self.CONTACT_SERVER is not None:
+                    self.udp_send(tuple(self.CONTACT_SERVER), message)
             elif user_input == 'leave':
                 self.is_member = False
                 self.MAIN_SERVER = None
@@ -89,6 +85,12 @@ class Client(auction_component):
                 self.report()
             elif user_input == 'queue':
                 self.print_hold_back_queue()
+            elif user_input == 'seq_hist':
+                for ele in self.multicast_hist:
+                    print(ele)
+            elif user_input == 'intercept':
+                self.intercept = True
+                print('Intercepting the next incoming message...')
             elif user_input == 'clear':
                 self.clear_screen()
             else:
@@ -96,10 +98,6 @@ class Client(auction_component):
 
     def state_update(self) -> None:
         pass
-
-    def foo(self):
-        print("I'm working...")
-        return 0
 
 
 @click.command()
