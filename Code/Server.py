@@ -1,5 +1,4 @@
 import click
-import pickle
 import time
 import socket
 import pandas as pd
@@ -20,7 +19,7 @@ class Server(auction_component):
         self.client_list = []
         self.is_main = is_main
         # initialize depends on whether this is the main server
-        warm_up_list = [self.udp_listen, self.broadcast_listen]
+        warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue]
         if is_main:
             self.is_member = True
             self.MAIN_SERVER = (self.MY_IP, self.UDP_PORT)
@@ -28,7 +27,6 @@ class Server(auction_component):
             warm_up_list.append(self.sequence_listen)
         else:
             self.is_member = False
-            self.MAIN_SERVER = None
         self.report()
         # open multiple thread to do different jobs
         self.warm_up(warm_up_list)
@@ -74,7 +72,6 @@ class Server(auction_component):
             for key in tmp:
                 # print('self.{} = {}'.format(key, tmp[key]))
                 exec('self.{} = {}'.format(key, tmp[key]))
-            # self.state_update()
         # **********************  METHOD REDIRECT **********************************
         elif method == 'REDIRECT':
             if self.is_main:
@@ -257,6 +254,9 @@ class Server(auction_component):
                 print(self.sequence_send())
             elif user_input == 'queue':
                 self.print_hold_back_queue()
+            elif user_input == 'seq_hist':
+                for ele in self.multicast_hist:
+                    print(ele)
             elif user_input.startswith('rmi'):
                 info = user_input.split(' ')
                 self.remote_methode_invocation([('172.17.112.1', int(info[1]))], info[2])
@@ -266,18 +266,23 @@ class Server(auction_component):
             elif user_input == 'multi1':
                 # multi test
                 print('Reliable multicast test (Part 1)...')
-                self.multicast_send_without_response([('141.58.63.87', 5700)],
+                address = '141.58.50.65'
+                self.multicast_send_without_response([(address, 5700)],
                                                      self.create_message('TEST', SEQUENCE=1, CONTENT={'N': 1}))
-                self.multicast_send_without_response([('141.58.63.87', 5700)],
+                self.multicast_send_without_response([(address, 5700)],
                                                      self.create_message('TEST', SEQUENCE=2, CONTENT={'N': 2}), test=0)
-                self.multicast_send_without_response([('141.58.63.87', 5700)],
+                self.multicast_send_without_response([(address, 5700)],
                                                      self.create_message('TEST', SEQUENCE=3, CONTENT={'N': 3}))
-                self.multicast_send_without_response([('141.58.63.87', 5700)],
+                self.multicast_send_without_response([(address, 5700)],
                                                      self.create_message('TEST', SEQUENCE=4, CONTENT={'N': 4}))
             elif user_input == 'multi2':
+                address = '141.58.50.65'
                 print('Reliable multicast test (Part 2)...')
-                self.multicast_send_without_response([('141.58.63.87', 5700)],
+                self.multicast_send_without_response([(address, 5700)],
                                                      self.create_message('TEST', SEQUENCE=5, CONTENT={'N': 5}))
+            elif user_input == 'intercept':
+                self.intercept = True
+                print('Intercepting the next incoming message...')
             elif user_input == 'leave':
                 if self.is_main:
                     print(Fore.RED + 'Main Server cannot leave!' + Style.RESET_ALL)
