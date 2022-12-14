@@ -1,4 +1,5 @@
 import click
+import time
 from colorama import Fore, Style
 from auction_component import auction_component
 
@@ -12,7 +13,7 @@ class Client(auction_component):
         self.is_member = False
         self.report()
         # open multiple thread to do different jobs
-        self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue])
+        self.warm_up([self.broadcast_listen, self.udp_listen, self.hea_listen, self.check_hold_back_queue, self.heartbeat_sender])
 
     def report(self):
         message = '{} activate on\n' \
@@ -48,6 +49,9 @@ class Client(auction_component):
         elif method == 'PRINT':
             print(response['CONTENT']['PRINT'])
         # **********************  METHOD HEARTBEAT **********************************
+        elif method == 'HEARTBEAT':
+            self.heartbeat_receiver(request)
+        # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             exec('self.{}()'.format(response['CONTENT']['METHODE']))
         elif method == 'TEST':
@@ -58,6 +62,12 @@ class Client(auction_component):
 
     def join_contact(self):
         self.join(tuple(self.CONTACT_SERVER))
+        
+    def leave(self) -> None:
+        self.is_member = False
+        self.MAIN_SERVER = None
+        self.CONTACT_SERVER = None
+        self.sequence_counter = 0
 
     def interface(self) -> None:
         while True:
@@ -77,10 +87,7 @@ class Client(auction_component):
                 if self.CONTACT_SERVER is not None:
                     self.udp_send(tuple(self.CONTACT_SERVER), message)
             elif user_input == 'leave':
-                self.is_member = False
-                self.MAIN_SERVER = None
-                self.CONTACT_SERVER = None
-                self.sequence_counter = 0
+                self.leave()
                 print('Dis-attached with Main-server!')
                 self.report()
             elif user_input == 'queue':
@@ -95,6 +102,30 @@ class Client(auction_component):
                 self.clear_screen()
             else:
                 print(Fore.RED + 'Invalid input!' + Style.RESET_ALL)
+
+    def heartbeat_sender(self):
+        while True:
+            if self.TERMINATE:
+                break
+            message = self.create_message('HEARTBEAT', {'ID': self.id})
+            # a client sends it's heartbeat to all his contact server
+            if self.CONTACT_SERVER is not None:
+                self.udp_send_without_response(self.get_port(self.CONTACT_SERVER['ADDRESS'], 'HEA'), message)
+                
+                # we check how long it was since the last heartbeat of our contact server
+                if self.CONTACT_SERVER['HEARTBEAT'] - self.timestamp() > self.HEARTBEAT_RATE * 1000 * 3:
+                    # if it's been longer than three times the heartbeat rate, we'll accept that we've lost out connection and try to reconnect
+                    self.leave()
+                    self.find_others()
+            
+            time.sleep(self.HEARTBEAT_RATE)
+
+    def heartbeat_receiver(self, request: dict):
+        # we should only get heartbeats from our contact server. Heartbeats from everybody else can be ignored
+        if self.CONTACT_SERVER is not None:
+            if request['CONTENT']['ID'] == self.CONTACT_SERVER['ID']:
+                # the last time we got a heartbeat from our contact server was right now
+                self.CONTACT_SERVER['HEARTBEAT'] = self.timestamp()
 
     def state_update(self) -> None:
         pass

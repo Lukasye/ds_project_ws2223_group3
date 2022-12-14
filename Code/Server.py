@@ -15,11 +15,11 @@ class Server(auction_component):
         self.bid_history = []
         self.num_servers = 1
         self.num_clients = 0
-        self.server_list = pd.DataFrame([{'ID': self.id, 'ADDRESS': (self.MY_IP, self.UDP_PORT), 'NUMBER': 0}])
-        self.client_list = []
+        self.server_list = pd.DataFrame([{'ID': self.id, 'ADDRESS': (self.MY_IP, self.UDP_PORT), 'NUMBER': 0, 'HEARTBEAT': self.timestamp()}])
+        self.client_list = pd.DataFrame()
         self.is_main = is_main
         # initialize depends on whether this is the main server
-        warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue]
+        warm_up_list = [self.udp_listen, self.hea_listen, self.broadcast_listen, self.check_hold_back_queue, self.heartbeat_sender]
         if is_main:
             self.is_member = True
             self.MAIN_SERVER = (self.MY_IP, self.UDP_PORT)
@@ -103,6 +103,9 @@ class Server(auction_component):
                 # foobar
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
                 self.bid_history.append(request)
+        # **********************  METHOD HEARTBEAT **********************************
+        elif method == 'HEARTBEAT':
+            self.heartbeat_receiver(request)
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             exec('self.{}()'.format(request['CONTENT']['METHODE']))
@@ -191,20 +194,27 @@ class Server(auction_component):
         while True:
             if self.TERMINATE:
                 break
-            print('Heart beating...')
-            message = self.create_message('HEARTBEAT', {'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT)})
+            message = self.create_message('HEARTBEAT', {'ID': self.id})
+            targets = []
             # a server sends it's heartbeat to all his connected clients
-            for client in self.client_list:
-                self.udp_send_without_response(client['ADDRESS'], message)
+            if not self.client_list.empty:
+                for clientAddress in self.client_list['ADDRESS'].to_list():
+                    targets.append(self.get_port(clientAddress, 'HEA'))
             # the main server sends his heartbeat to all other servers, the other servers only to the main server
             if self.is_main:
-                for server in self.server_list:
-                    if server['ID'] is not self.id:
-                        self.udp_send_without_response(server['ADDRESS'], message)
+               for serverAddress in self.server_list['ADDRESS'].to_list():
+                    targets.append(self.get_port(serverAddress, 'HEA'))
             else:
-                self.udp_send(MAIN_SERVER, message)
+                targets.append(self.get_port(MAIN_SERVER['ADDRESS'], 'HEA'))
+                
+            self.multicast_send_without_response(targets, message)
             time.sleep(self.HEARTBEAT_RATE)
-
+            
+    def heartbeat_receiver(self, request: dict):
+        # we look for the sender of the heartbeat among all the servers and clients we're connected to, and update the last heartbeat time when we find them
+        self.server_list.loc[self.server_list['ID'] == request['CONTENT']['ID'], 'HEARTBEAT'] = self.timestamp()
+        self.client_list.loc[self.server_list['ID'] == request['CONTENT']['ID'], 'HEARTBEAT'] = self.timestamp()
+                
     def assign_clients(self):
         """
         HELPER FUNCTION:

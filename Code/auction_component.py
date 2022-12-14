@@ -4,6 +4,7 @@ import os
 import heapq
 from tqdm import tqdm
 import time
+import calendar
 from uuid import uuid4
 import threading
 from abc import abstractmethod
@@ -166,6 +167,10 @@ class auction_component:
         for ele in client_list:
             tmp.append(ele['ADDRESS'])
         return tmp
+
+    @staticmethod
+    def timestamp() -> int:
+        return calendar.timegm(time.gmtime())
 
     def warm_up(self, ts: list) -> None:
         """
@@ -331,6 +336,16 @@ class auction_component:
                 # t = threading.Thread(target=self.receive, args=(message,))
                 # t.start()
                 # p.join()
+                
+    def hea_listen(self):
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        server_socket.bind((self.MY_IP, self.HEA_PORT))
+        while not self.TERMINATE:
+            data, address = server_socket.recvfrom(self.BUFFER_SIZE)
+            if data:
+                message = pickle.loads(data)
+                message['SENDER_ADDRESS'] = address
+                self.receive(message)
 
     def print_hold_back_queue(self):
         for ele in self.hold_back_queue:
@@ -401,6 +416,13 @@ class auction_component:
         else:
             self.udp_send(self.MAIN_SERVER, message, True)
 
+    @abstractmethod
+    def heartbeat_receiver(self, request: dict) -> None:
+        """
+        handle a heartbeat message
+        :return: None
+        """
+        pass
 
 if __name__ == '__main__':
     auction_component('SERVER', 12345)
