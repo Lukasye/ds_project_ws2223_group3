@@ -1,9 +1,11 @@
 import click
 import time
 import socket
-import pandas as pd
-from auction_component import auction_component
 from colorama import Fore, Style
+
+from auction_component import auction_component
+from group_member_service import group_member_service
+import utils
 
 
 class Server(auction_component):
@@ -15,11 +17,14 @@ class Server(auction_component):
         self.bid_history = []
         self.num_servers = 1
         self.num_clients = 0
-        self.server_list = pd.DataFrame([{'ID': self.id, 'ADDRESS': (self.MY_IP, self.UDP_PORT), 'NUMBER': 0, 'HEARTBEAT': self.timestamp()}])
-        self.client_list = pd.DataFrame()
+        # self.server_list = pd.DataFrame([{'ID': self.id, 'ADDRESS': (self.MY_IP, self.UDP_PORT), 'NUMBER': 0,
+        # 'HEARTBEAT': self.timestamp()}])
+        # self.client_list = pd.DataFrame()
+        self.gms = group_member_service(self.MY_IP, self.id, self.TYPE, self.GMS_PORT)
+        self.gms.add_server(self.id, (self.MY_IP, self.UDP_PORT))
         self.is_main = is_main
         # initialize depends on whether this is the main server
-        warm_up_list = [self.udp_listen, self.hea_listen, self.broadcast_listen, self.check_hold_back_queue, self.heartbeat_sender]
+        warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue]
         if is_main:
             self.is_member = True
             self.MAIN_SERVER = (self.MY_IP, self.UDP_PORT)
@@ -97,8 +102,9 @@ class Server(auction_component):
                 #                                                                  'winner': request['ID']})
                 # self.multicast_send_without_response(self.server_list['ADDRESS'].to_list(),
                 #                                      message)
-                self.remote_para_set(self.server_list['ADDRESS'].to_list(), SEQUENCE=sequence, highest_bid=price,
-                                     winner=request['SENDER_ADDRESS'], update=True)
+                # self.remote_para_set(self.server_list['ADDRESS'].to_list(), SEQUENCE=sequence, highest_bid=price,
+                #                      winner=request['SENDER_ADDRESS'], update=True)
+                self.gms.group_synchronise()
                 # self.remote_methode_invocation(self.server_list['ADDRESS'].to_list(), 'pass_on')
                 # foobar
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
@@ -122,28 +128,27 @@ class Server(auction_component):
         :param request: dict, request receipted from the client or server
         :return:
         """
-        # content = {'MAIN_SERVER': (self.MY_IP, self.UDP_PORT), 'is_member': True}
         if request['CONTENT']['TYPE'] == 'SERVER':
-            # if self.already_in(request['ID'], self.server_list):
-            if request['ID'] in list(self.server_list['ID']):
+            if self.gms.is_member(request['ID'], 'SERVER'):
                 return
             # self.server_list.append({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS']),
             #                          'NUMBER': 0})
-            new_row = pd.Series({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS']),
-                                 'NUMBER': 0})
-            self.server_list = pd.concat([self.server_list, new_row.to_frame().T], ignore_index=True)
+            # new_row = pd.Series({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS']),
+            #                      'NUMBER': 0})
+            # self.server_list = pd.concat([self.server_list, new_row.to_frame().T], ignore_index=True)
+            self.gms.add_server(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']))
             self.num_servers += 1
-            self.remote_para_set(self.server_list['ADDRESS'].to_list(),
+
+            self.remote_para_set(self.gms.get_server_address(),
                                  MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
-                                 is_member=True,
-                                 server_list=self.server_list.to_dict())
-            self.remote_methode_invocation(self.server_list['ADDRESS'].to_list(),
-                                           'to_df')
+                                 is_member=True)
+            self.gms.group_synchronise()
+            # self.remote_methode_invocation(self.server_list['ADDRESS'].to_list(),
+            #                                'to_df')
         else:
-            if self.already_in(request['ID'], self.client_list):
+            if self.gms.is_member(request['ID'], 'CLIENT'):
                 return
             iD, addr = self.assign_clients()
-            print(iD, addr)
             if iD == self.id:
                 self.accept(request)
                 self.state_update()
@@ -154,27 +159,27 @@ class Server(auction_component):
             if iD != self.id:
                 self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'join_contact')
 
-    @staticmethod
-    def already_in(iD, table: list) -> bool:
-        """
-        HELPER FUNCTION:
-        To determine whether the id appears in the server/client list
-        :param iD:
-        :param table:
-        :return:
-        """
-        for ele in table:
-            if ele['ID'] == iD:
-                return True
-        return False
+    # @staticmethod
+    # def already_in(iD, table: list) -> bool:
+    #     """
+    #     HELPER FUNCTION:
+    #     To determine whether the id appears in the server/client list
+    #     :param iD:
+    #     :param table:
+    #     :return:
+    #     """
+    #     for ele in table:
+    #         if ele['ID'] == iD:
+    #             return True
+    #     return False
 
-    def to_df(self):
-        if isinstance(self.server_list, dict):
-            self.server_list = pd.DataFrame(self.server_list)
+    # def to_df(self):
+    #     if isinstance(self.server_list, dict):
+    #         self.server_list = pd.DataFrame(self.server_list)
 
     def pass_on(self):
         # TODO: here maybe need to add RMI with parameters
-        self.remote_para_set(self.client_list, highest_bid=self.highest_bid, winner=self.winner)
+        self.remote_para_set(self.gms.get_client_address(), highest_bid=self.highest_bid, winner=self.winner)
 
     def accept(self, request: dict) -> None:
         """
@@ -185,9 +190,11 @@ class Server(auction_component):
         """
         # content = {'CONTACT_SERVER': (self.MY_IP, self.UDP_PORT), 'is_member': True}
         # if request['CONTENT']['TYPE'] == 'CLIENT':
-        if self.already_in(request['ID'], self.client_list):
+        # if self.already_in(request['ID'], self.client_list):
+        if self.gms.is_member(request['ID'], 'CLIENT'):
             return
-        self.client_list.append({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS'])})
+        # self.client_list.append({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS'])})
+        self.gms.add_client(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']))
         self.num_clients += 1
 
     def heartbeat_sender(self):
@@ -205,13 +212,14 @@ class Server(auction_component):
                for serverAddress in self.server_list['ADDRESS'].to_list():
                     targets.append(self.get_port(serverAddress, 'HEA'))
             else:
-                targets.append(self.get_port(MAIN_SERVER['ADDRESS'], 'HEA'))
+                targets.append(self.get_port(self.MAIN_SERVER, 'HEA'))
                 
             self.multicast_send_without_response(targets, message)
             time.sleep(self.HEARTBEAT_RATE)
             
     def heartbeat_receiver(self, request: dict):
-        # we look for the sender of the heartbeat among all the servers and clients we're connected to, and update the last heartbeat time when we find them
+        # we look for the sender of the heartbeat among all the servers and clients we're connected to,
+        # and update the last heartbeat time when we find them
         self.server_list.loc[self.server_list['ID'] == request['CONTENT']['ID'], 'HEARTBEAT'] = self.timestamp()
         self.client_list.loc[self.server_list['ID'] == request['CONTENT']['ID'], 'HEARTBEAT'] = self.timestamp()
                 
@@ -221,8 +229,7 @@ class Server(auction_component):
         assign the new client to the server which has the least number of clients
         :return: the id of the server to be assigned
         """
-        result = self.server_list[self.server_list['NUMBER'] == self.server_list['NUMBER'].min()].iloc[0]
-        return result['ID'], result['ADDRESS']
+        return self.gms.assign_clients()
 
     def sequence_listen(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -240,7 +247,7 @@ class Server(auction_component):
     def sequence_send(self):
         assert self.MAIN_SERVER is not None
         message = self.create_message('SEQUENCE', {})
-        sequence = self.udp_send(self.get_port(tuple(self.MAIN_SERVER), 'SEQ'), message)
+        sequence = self.udp_send(utils.get_port(tuple(self.MAIN_SERVER), 'SEQ'), message)
         return sequence['CONTENT']['SEQ']
 
     def interface(self) -> None:
@@ -255,9 +262,9 @@ class Server(auction_component):
             elif user_input == 'find':
                 self.find_others()
             elif user_input == 'server':
-                print(self.server_list)
+                self.gms.print_server()
             elif user_input == 'client':
-                print(self.client_list)
+                self.gms.print_client()
             elif user_input == 'join':
                 self.join(None, True)
             elif user_input == 'seq':
@@ -308,10 +315,11 @@ class Server(auction_component):
                 print(Fore.RED + 'Invalid input!' + Style.RESET_ALL)
 
     def state_update(self) -> None:
-        self.to_df()
+        # self.to_df()
         # result = next((ser for ser in self.server_list if ser['ID'] == self.id), None)
         # result['NUMBER'] = self.num_clients
-        self.server_list.loc[self.server_list['ID'] == self.id, 'NUMBER'] = self.num_clients
+        # self.server_list.loc[self.server_list['ID'] == self.id, 'NUMBER'] = self.num_clients
+        pass
 
 
 @click.command()

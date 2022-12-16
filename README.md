@@ -59,13 +59,16 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>11.12.2022:</b> Try broadcast on several physical machines and fixed the ip problem in WLAN situation. Deleted the message class merged it into Auction_component. Use `heapq` to maintain a min-Heap for the hold_back_queue implementation.<br> 
 <b>13.12.2022:</b> First test on reliable multicast without negative acknowledgement. No time to do more because of worldcup!<br>
 <b>14.12.2022:</b> Negative acknowledgement realized. Add a new user function `intercept`, but not tested. I think I can run the whole test on weekend. Worldcup tonight! <br>
+<b>15.12.2022:</b> New component group_member_service(gms) to manage all the client/server list and heartbeat for both client and server. Going to Christmas markt tonight!<br>
+<b>17.12.2022:</b> Finally the gms start to functioning! Tones of bugs fixed! New Added `utils.py` and `config.py` to make the code more clean and readable. Removed the code `message.py`, since the function is no longer needed.<br>
 ### TODO<br>
 1. color issue caused by multi-threading
-2. totally reliable multicast
-3. election
-4. error handling (extremely important). especially udp_send() function
-5. number of clients/servers update function (currently not important)
-6. heartbeat
-7. bugs fix!!!!!!!!
-8. comment!!!!
-9. BIG PROBLEM: I don't know how to add emoji in markdown!!
+2. totally reliable multicast(still missing answering negative ack part)
+3. gms
+4. election
+5. error handling (extremely important). especially udp_send() function
+6. number of clients/servers update function (currently not important)
+7. heartbeat
+8. bugs fix!!!!!!!!
+9. comment!!!!
+10. BIG PROBLEM: I don't know how to add emoji in markdown!!

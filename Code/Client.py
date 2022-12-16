@@ -13,7 +13,7 @@ class Client(auction_component):
         self.is_member = False
         self.report()
         # open multiple thread to do different jobs
-        self.warm_up([self.broadcast_listen, self.udp_listen, self.hea_listen, self.check_hold_back_queue, self.heartbeat_sender])
+        self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue])
 
     def report(self):
         message = '{} activate on\n' \
@@ -50,7 +50,7 @@ class Client(auction_component):
             print(response['CONTENT']['PRINT'])
         # **********************  METHOD HEARTBEAT **********************************
         elif method == 'HEARTBEAT':
-            self.heartbeat_receiver(request)
+            self.heartbeat_receiver(response)
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             exec('self.{}()'.format(response['CONTENT']['METHODE']))
@@ -110,11 +110,12 @@ class Client(auction_component):
             message = self.create_message('HEARTBEAT', {'ID': self.id})
             # a client sends it's heartbeat to all his contact server
             if self.CONTACT_SERVER is not None:
-                self.udp_send_without_response(self.get_port(self.CONTACT_SERVER['ADDRESS'], 'HEA'), message)
+                self.udp_send_without_response(self.get_port(self.CONTACT_SERVER, 'HEA'), message)
                 
                 # we check how long it was since the last heartbeat of our contact server
                 if self.CONTACT_SERVER['HEARTBEAT'] - self.timestamp() > self.HEARTBEAT_RATE * 1000 * 3:
-                    # if it's been longer than three times the heartbeat rate, we'll accept that we've lost out connection and try to reconnect
+                    # if it's been longer than three times the heartbeat rate,
+                    # we'll accept that we've lost out connection and try to reconnect
                     self.leave()
                     self.find_others()
             
