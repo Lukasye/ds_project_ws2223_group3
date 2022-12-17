@@ -15,8 +15,8 @@ class Server(auction_component):
         super(Server, self).__init__('SERVER', UDP_PORT)
         self.SEQ_PORT = UDP_PORT + 4
         self.bid_history = []
-        self.num_servers = 1
-        self.num_clients = 0
+        # self.num_servers = 1
+        # self.num_clients = 0
         # self.server_list = pd.DataFrame([{'ID': self.id, 'ADDRESS': (self.MY_IP, self.UDP_PORT), 'NUMBER': 0,
         # 'HEARTBEAT': self.timestamp()}])
         # self.client_list = pd.DataFrame()
@@ -45,7 +45,7 @@ class Server(auction_component):
                   'Number of Clients: \t{}\n' \
                   'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
                                                  self.BROADCAST_IP, self.BROADCAST_PORT,
-                                                 self.MAIN_SERVER, self.num_clients,
+                                                 self.MAIN_SERVER, self.gms.client_size(),
                                                  self.sequence_counter)
         info = '$$$$\t' + 'Highest_bid:{}\t Winner:{}'.format(self.highest_bid, self.winner) + '\t$$$$'
         print(Fore.LIGHTYELLOW_EX + message + Style.RESET_ALL)
@@ -83,29 +83,24 @@ class Server(auction_component):
                 self.receive(request['CONTENT']['MESSAGE'])
         # **********************  METHOD RAISE BIT **********************************
         elif method == 'BIT':
-            # if self.is_main:
-            #     self.sequencer += 1
-            #     request['SEQUENCE'] = self.sequencer
-            #     request['ID'] = self.id
-            #     self.multicast_send_without_response(self.server_list['ADDRESS'].to_list(),
-            #                                          request)
-            # else:
             price = int(request['CONTENT']['PRICE'])
             if price < self.highest_bid:
+                # if the bit is smaller than the current highest, nothing should be done.
                 message = self.create_message('PRINT', {'PRINT': 'Invalid Price, the highest bid now is {}'. format(self.highest_bid)})
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), message)
             else:
                 sequence = self.sequence_send()
-                # request['SEQUENCE'] = sequence
-                # request['ID'] = self.id
-                # message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price,
-                #                                                                  'winner': request['ID']})
-                # self.multicast_send_without_response(self.server_list['ADDRESS'].to_list(),
-                #                                      message)
-                # self.remote_para_set(self.server_list['ADDRESS'].to_list(), SEQUENCE=sequence, highest_bid=price,
-                #                      winner=request['SENDER_ADDRESS'], update=True)
-                self.gms.group_synchronise()
-                # self.remote_methode_invocation(self.server_list['ADDRESS'].to_list(), 'pass_on')
+                message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price})
+                tmp = request['ID']
+                if self.is_main:
+                    target = self.gms.get_all_address()
+                    self.winner = tmp
+                else:
+                    target = self.gms.get_client_address()
+                self.multicast_send_without_response(target, message)
+                self.remote_methode_invocation(target, f'self.winner = "{tmp}"')
+                if self.is_main:
+                    self.remote_methode_invocation(self.gms.get_server_address(), 'self.pass_on()')
                 # foobar
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
                 self.bid_history.append(request)
@@ -114,7 +109,12 @@ class Server(auction_component):
             self.heartbeat_receiver(request)
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
-            exec('self.{}()'.format(request['CONTENT']['METHODE']))
+            exec(request['CONTENT']['METHODE'])
+        elif method == 'GET':
+            seq = request['CONTENT']['SEQ']
+            if seq is not None and seq <= len(self.multicast_hist):
+                archive = self.multicast_hist[seq]
+                self.udp_send_without_response(request['SENDER_ADDRESS'], archive)
         elif method == 'TEST':
             # ignore test signals
             pass
@@ -137,27 +137,29 @@ class Server(auction_component):
             #                      'NUMBER': 0})
             # self.server_list = pd.concat([self.server_list, new_row.to_frame().T], ignore_index=True)
             self.gms.add_server(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']))
-            self.num_servers += 1
+            # self.num_servers += 1
 
             self.remote_para_set(self.gms.get_server_address(),
                                  MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
                                  is_member=True)
-            self.gms.group_synchronise()
+            # self.gms.group_synchronise()
             # self.remote_methode_invocation(self.server_list['ADDRESS'].to_list(),
             #                                'to_df')
         else:
+            # assign the process if it's a client, if it's already member of the group, ignore it
+            # if it's not that case, assign the process to the server with the least amount of clients
             if self.gms.is_member(request['ID'], 'CLIENT'):
                 return
             iD, addr = self.assign_clients()
             if iD == self.id:
                 self.accept(request)
-                self.state_update()
+                # self.state_update()
             self.remote_para_set([request['CONTENT']['UDP_ADDRESS']],
                                  MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
                                  is_member=True,
                                  CONTACT_SERVER=addr)
             if iD != self.id:
-                self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'join_contact')
+                self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'self.join_contact()')
 
     # @staticmethod
     # def already_in(iD, table: list) -> bool:
@@ -178,8 +180,9 @@ class Server(auction_component):
     #         self.server_list = pd.DataFrame(self.server_list)
 
     def pass_on(self):
-        # TODO: here maybe need to add RMI with parameters
-        self.remote_para_set(self.gms.get_client_address(), highest_bid=self.highest_bid, winner=self.winner)
+        tmp = self.winner
+        self.remote_para_set(self.gms.get_client_address(), highest_bid=self.highest_bid)
+        self.remote_methode_invocation(self.gms.get_client_address(), f'self.winner = "{tmp}"')
 
     def accept(self, request: dict) -> None:
         """
@@ -188,14 +191,9 @@ class Server(auction_component):
         :param request:
         :return:
         """
-        # content = {'CONTACT_SERVER': (self.MY_IP, self.UDP_PORT), 'is_member': True}
-        # if request['CONTENT']['TYPE'] == 'CLIENT':
-        # if self.already_in(request['ID'], self.client_list):
         if self.gms.is_member(request['ID'], 'CLIENT'):
             return
-        # self.client_list.append({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS'])})
         self.gms.add_client(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']))
-        self.num_clients += 1
 
     def heartbeat_sender(self):
         while True:

@@ -46,11 +46,11 @@ The command supported currently:
 15. exit
 
 ### Progressing<br>
-![broadcast](img/Reliable_multicast.png) <br>
+![broadcast](img/multicast.png) <br>
 <b>27.11.2022:</b> tune the broadcast function. Gonna watch the Worldcup! `:smiley:`<br>
 <b>28.11.2022:</b> multithread tested and added so that the system can handle multi-request.<br>
 <b>03.12.2022:</b> realizing the multithread function. Now the model can automatically set up the udp_listen function. Optimize the structure of codes. New abstract function for auction component:`interface()`, `state_update()`
-and some small gadgets. Broadcast logic finished! unused user function deleted! Now we have a fully functioning broadcast system!<br>
+and some small gadgets. Broadca  st logic finished! unused user function deleted! Now we have a fully functioning broadcast system!<br>
 <b>04.12.2022:</b> Tiny bugs fixed. Now the clients can also use the `find` method to join a group via redirect. Implemented remote methode invocation with no returned value.<br>
 <b>05.12.2022:</b> Dealt with the redundant request problem and optimize the structure. New function `assign()` to separate the main server logic with the servers. Finally! rmi works! Now the broadcast function is over and go into Bug test!<br>
 <b>06.12.2022:</b> Make the terminal more beautiful<br>
@@ -60,7 +60,8 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>13.12.2022:</b> First test on reliable multicast without negative acknowledgement. No time to do more because of worldcup!<br>
 <b>14.12.2022:</b> Negative acknowledgement realized. Add a new user function `intercept`, but not tested. I think I can run the whole test on weekend. Worldcup tonight! <br>
 <b>15.12.2022:</b> New component group_member_service(gms) to manage all the client/server list and heartbeat for both client and server. Going to Christmas markt tonight!<br>
-<b>17.12.2022:</b> Finally the gms start to functioning! Tones of bugs fixed! New Added `utils.py` and `config.py` to make the code more clean and readable. Removed the code `message.py`, since the function is no longer needed.<br>
+<b>16.12.2022:</b> Finally the gms start to functioning! Tones of bugs fixed! New Added `utils.py` and `config.py` to make the code more clean and readable. Removed the code `message.py`, since the function is no longer needed.<br>
+<b>17.12.2022:</b> Bit function online! Totally reliable multi-cast online! but not tested for message loss yet. <br>
 ### TODO<br>
 1. color issue caused by multi-threading
 2. totally reliable multicast(still missing answering negative ack part)

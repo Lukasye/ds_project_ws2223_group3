@@ -53,7 +53,7 @@ class Client(auction_component):
             self.heartbeat_receiver(response)
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
-            exec('self.{}()'.format(response['CONTENT']['METHODE']))
+            exec(response['CONTENT']['METHODE'])
         elif method == 'TEST':
             # ignore test signals
             pass

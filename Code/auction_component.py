@@ -360,8 +360,18 @@ class auction_component:
             message = self.create_message('SET', SEQUENCE=SEQUENCE, CONTENT=kwargs)
             self.udp_send_without_response(tuple(address), message)
 
-    def multicast_send_without_response(self, group: list, message: dict, test: int = -1):
+    def multicast_send_without_response(self, group: list, message: dict, test: int = -1, skip: int = -1):
+        """
+        HELPER FUNCTION
+        send out multicast to a group
+        :param group: list of tuple address of a group
+        :param message: standard dict message format
+        :param test: the chosen index of process will be blocked for 10 seconds (only for testing)
+        :param skip: the chosen index of process will be skipped (only for testing)
+        :return:
+        """
         assert test < len(group)
+        assert skip < len(group)
         if message['SEQUENCE'] > 0:
             # if it is a sequence relevant message, append it to the history
             self.multicast_hist.append(message)
@@ -369,14 +379,15 @@ class auction_component:
         for member in tqdm(group):
             if count == test:
                 time.sleep(10)
+            if count == skip:
+                continue
             self.udp_send_without_response(tuple(member), message)
             count += 1
 
     def negative_acknowledgement(self):
-        message = self.create_message('GET', {'info': self.sequence_counter})
+        message = self.create_message('GET', {'SEQ': self.sequence_counter})
         if self.TYPE == 'CLIENT':
-            # self.udp_send(self.CONTACT_SERVER, message, True)
-            self.udp_send_without_response(self.CONTACT_SERVER, message)
+            self.udp_send(self.CONTACT_SERVER, message, True)
         else:
             self.udp_send(self.MAIN_SERVER, message, True)
 

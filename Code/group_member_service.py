@@ -17,7 +17,8 @@ class group_member_service:
         self.id = iD
         self.IP_ADDRESS = IP_ADDRESS
         self.server_list = \
-            pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client', 'time_stamp']).astype({'number_of_client': 'int32'})
+            pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client', 'time_stamp']).astype(
+                {'number_of_client': 'int32'})
         self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT', 'time_stamp'])
         self.listen_port = listen_port
         self.send_port = None
@@ -61,11 +62,14 @@ class group_member_service:
         self.server_list.loc[iD, 'number_of_client'] = 0
         for ele in kwargs:
             self.server_list.loc[iD, ele] = kwargs[ele]
+        self.group_synchronise()
 
     def add_client(self, iD, addr: tuple, **kwargs):
         self.client_list = self.add_instance(iD, addr[0], addr[1], self.client_list)
         for ele in kwargs:
             self.client_list.loc[iD, ele] = kwargs[ele]
+        # increase the number of clients in server
+        self.server_list.loc[self.id, 'number_of_client'] += 1
 
     def remove_server(self, iD):
         self.server_list = self.server_list.drop(iD, axis=0)
@@ -89,18 +93,34 @@ class group_member_service:
     def server_size(self):
         return len(self.server_list)
 
-    def get_client_address(self) -> list:
+    def get_client_address(self, TYPE: str = 'UDP') -> list:
+        """
+        HELPER FUNCTION
+        Get all the addresses of clients that store in the gms
+        :param TYPE: specify the port you want to get
+        :return: a list of tuple address
+        """
         tmp = []
         for _, row in self.client_list.iterrows():
-            tmp.append((row['ADDRESS'], row['PORT']))
+            result = (row['ADDRESS'], row['PORT'])
+            tmp.append(utils.get_port(result, TYPE))
         return tmp
 
     def get_server_address(self, TYPE: str = 'UDP') -> list:
+        """
+        HELPER FUNCTION
+        Get all the addresses of servers that store in the gms
+        :param TYPE: specify the port you want to get
+        :return: a list of tuple address
+        """
         tmp = []
         for _, row in self.server_list.iterrows():
             result = (row['ADDRESS'], row['PORT'])
             tmp.append(utils.get_port(result, TYPE))
         return tmp
+
+    def get_all_address(self, TYPE: str = 'UDP'):
+        return self.get_server_address(TYPE) + self.get_client_address(TYPE)
 
     def is_member(self, iD, TYPE: str = 'SERVER') -> bool:
         """
@@ -120,16 +140,32 @@ class group_member_service:
     def close(self):
         self.TERMINATE = True
 
-    def assign_clients(self):
+    def assign_clients(self) -> tuple:
+        """
+        HELPER FUNCTION
+        return the server address with the least number of clients
+        :return:
+        """
         num = self.server_list['number_of_client'].argmin()
         iD = self.server_list.index[num]
         addr = tuple(self.server_list.loc[iD, ['ADDRESS', 'PORT']])
         return iD, addr
 
-    def remote_synchronise(self, address: tuple):
+    def remote_synchronise(self, address: tuple) -> None:
+        """
+        HELPER FUNCTION
+        synchronize the pandas dataframe with the object address
+        :param address: the address of the process you want to sync with
+        :return:
+        """
         utils.udp_send_without_response(address, self.server_list)
 
-    def group_synchronise(self):
+    def group_synchronise(self) -> None:
+        """
+        HELPER FUNCTION
+        synchronize with all the servers
+        :return:
+        """
         for member in self.get_server_address('GMS'):
             utils.udp_send_without_response(member, self.server_list)
 
@@ -150,4 +186,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
