@@ -1,5 +1,7 @@
+import calendar
 import socket
 import pickle
+import time
 
 import config as cfg
 
@@ -61,3 +63,29 @@ def get_port(MAIN_SERVER: tuple, PORT: str = 'SEQ') -> tuple:
     else:
         raise ValueError('Input argument PORT not found!')
     return tuple([addr, port])
+
+
+def get_broadcast_address(ip, netmask):
+    """
+    calculate broadcast address
+    :param ip:
+    :param netmask:
+    :return:
+    """
+    ip = ip.split('.')
+    netmask = netmask.split('.')
+    broadcast = []
+    for i in range(3):
+        broadcast.append(str(int(ip[i]) | (255 - int(netmask[i]))))
+    broadcast.append("255")
+    return '.'.join(broadcast)
+
+
+def timestamp() -> int:
+    return calendar.timegm(time.gmtime())
+
+
+def get_ip_address():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    return s.getsockname()[0]

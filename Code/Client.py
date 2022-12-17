@@ -1,6 +1,6 @@
 import click
 import time
-from colorama import Fore, Style
+from rich import print
 from auction_component import auction_component
 
 
@@ -8,7 +8,6 @@ class Client(auction_component):
     def __init__(self,
                  UDP_PORT):
         super().__init__('CLIENT', UDP_PORT)
-        # self.leader = None
         self.current_bid = 0
         self.is_member = False
         self.report()
@@ -25,9 +24,9 @@ class Client(auction_component):
                   'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
                                                  self.is_member, self.MAIN_SERVER, self.CONTACT_SERVER,
                                                  self.sequence_counter)
-        info = '$$$$\t' + 'Highest_bid:{}\t Winner:{}'.format(self.highest_bid, self.winner) + '\t$$$$'
-        print(Fore.LIGHTYELLOW_EX + message + Style.RESET_ALL)
-        print(Fore.RED + info + Style.RESET_ALL)
+        info = '\t' + 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner) + '\t'
+        print(":iphone:" + "\t" + message)
+        print(":moneybag:" + info + ":moneybag:")
 
     def logic(self, response: dict):
         method = response['METHOD']
@@ -71,7 +70,7 @@ class Client(auction_component):
 
     def interface(self) -> None:
         while True:
-            print(Fore.LIGHTBLUE_EX + '*' * 60 + Style.RESET_ALL)
+            self.console.print('*' * 60, style="yellow")
             user_input = input('Please enter your command:')
             if user_input == 'exit':
                 self.TERMINATE = True
@@ -101,7 +100,7 @@ class Client(auction_component):
             elif user_input == 'clear':
                 self.clear_screen()
             else:
-                print(Fore.RED + 'Invalid input!' + Style.RESET_ALL)
+                self.console.print('Invalid input!', style="bold red")
 
     def heartbeat_sender(self):
         while True:

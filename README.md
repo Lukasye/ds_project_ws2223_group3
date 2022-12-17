@@ -15,14 +15,17 @@ Following additional package will be needed:
 7. tqdm
 8. colorama
 9. threading
+10. rich
 ### Running<br>
 Run the client with a single command:
 ```
+cd Code
 python Client.py --port 5700
 ```
 the default port will be 5700, if there are multiple clients, you should manually change the port. <b>Attention: because a single process will use 4 ports, make sure that leave some space between two processes.</b><br>
 In order to start the Server, you need to enter two additional parameters
 ```
+cd Code
 python Server.py --port 10001 --opt 1
 ```
 the parameter `port` identify the port Server connected to. (for UDP) <br>
@@ -46,7 +49,7 @@ The command supported currently:
 15. exit
 
 ### Progressing<br>
-![broadcast](img/multicast.png) <br>
+![broadcast](img/Reliable_multicast.png) <br>
 <b>27.11.2022:</b> tune the broadcast function. Gonna watch the Worldcup! `:smiley:`<br>
 <b>28.11.2022:</b> multithread tested and added so that the system can handle multi-request.<br>
 <b>03.12.2022:</b> realizing the multithread function. Now the model can automatically set up the udp_listen function. Optimize the structure of codes. New abstract function for auction component:`interface()`, `state_update()`
@@ -61,7 +64,7 @@ and some small gadgets. Broadca  st logic finished! unused user function deleted
 <b>14.12.2022:</b> Negative acknowledgement realized. Add a new user function `intercept`, but not tested. I think I can run the whole test on weekend. Worldcup tonight! <br>
 <b>15.12.2022:</b> New component group_member_service(gms) to manage all the client/server list and heartbeat for both client and server. Going to Christmas markt tonight!<br>
 <b>16.12.2022:</b> Finally the gms start to functioning! Tones of bugs fixed! New Added `utils.py` and `config.py` to make the code more clean and readable. Removed the code `message.py`, since the function is no longer needed.<br>
-<b>17.12.2022:</b> Bit function online! Totally reliable multi-cast online! but not tested for message loss yet. <br>
+<b>17.12.2022:</b> Bit function online! Totally reliable multicast online! but not tested for message loss yet. And btw, i betrayed colorama, because i found rich more beautiful!<br>
 ### TODO<br>
 1. color issue caused by multi-threading
 2. totally reliable multicast(still missing answering negative ack part)

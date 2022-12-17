@@ -4,17 +4,20 @@ import os
 import heapq
 from tqdm import tqdm
 import time
-import calendar
 from uuid import uuid4
 import threading
 from abc import abstractmethod
-from colorama import init, Fore, Style
+from rich.console import Console
+from rich import print
 
 import utils
 import config as cfg
 
 
 class element:
+    """
+    A class to pack the message for the hold_back queue
+    """
     def __init__(self, info: dict):
         self.info = info
         self.SEQ = info['SEQUENCE']
@@ -37,15 +40,13 @@ class element:
 
 class auction_component:
     def __init__(self, TYPE, UDP_PORT):
-        # User interface and logic
-        init()
+        # init()
         self.BROADCAST_PORT = cfg.attr['BROADCAST_PORT']
         self.MY_HOST = socket.gethostname()
-        self.MY_IP = self.get_ip_address()
-        self.BROADCAST_IP = self.get_broadcast_address(self.MY_IP, "255.255.255.0")  # "172.17.127.255"
+        self.MY_IP = utils.get_ip_address()
+        self.BROADCAST_IP = utils.get_broadcast_address(self.MY_IP, "255.255.255.0")
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
         self.ENCODING = 'utf-8'
-        # self.TOKEN_LENGTH = 16
         self.UDP_PORT = UDP_PORT
         self.BRO_PORT = UDP_PORT + 1
         self.ELE_PORT = UDP_PORT + 2
@@ -55,7 +56,6 @@ class auction_component:
         if TYPE == 'CLIENT':
             self.CONTACT_SERVER = None
         self.hold_back_queue = []
-        # self.delivery_queue = delivery_queue()
         self.id = str(uuid4())
         self.threads = []
         self.multicast_hist = []
@@ -64,7 +64,8 @@ class auction_component:
         self.winner = None  # winner of this round
         self.intercept = False
         self.update = False
-        self.HEARTBEAT_RATE = 5
+        self.console = Console()
+        self.HEARTBEAT_RATE = cfg.attr['HEARTBEAT_RATE']
         self.TERMINATE = False
 
     @abstractmethod
@@ -102,12 +103,6 @@ class auction_component:
         pass
 
     @staticmethod
-    def get_ip_address():
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        return s.getsockname()[0]
-
-    @staticmethod
     def udp_send_without_response(address: tuple, message: dict):
         utils.udp_send_without_response(address, message)
 
@@ -115,8 +110,7 @@ class auction_component:
     def clear_screen():
         os.system('cls' if os.name == 'nt' else 'clear')
 
-    @staticmethod
-    def print_message(message: dict) -> None:
+    def print_message(self, message: dict) -> None:
         """
         HELPER FUNCTION:
         print the massage on the interface screen
@@ -125,37 +119,10 @@ class auction_component:
         """
         print()
         if message['SENDER_ADDRESS'] is not None:
-            print(Fore.LIGHTGREEN_EX + 'Message sent from {}'.format(message['SENDER_ADDRESS']))
-        print('ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['ID'], message['METHOD'],
-                                                          message['SEQUENCE'], message['CONTENT']) + Style.RESET_ALL)
-
-    @staticmethod
-    def get_broadcast_address(ip, netmask):
-        """
-        calculate broadcast address
-        :param ip:
-        :param netmask:
-        :return:
-        """
-        ip = ip.split('.')
-        netmask = netmask.split('.')
-        broadcast = []
-        for i in range(3):
-            broadcast.append(str(int(ip[i]) | (255 - int(netmask[i]))))
-        broadcast.append("255")
-        return '.'.join(broadcast)
-
-    @staticmethod
-    def extract_address(client_list: list) -> list:
-        # TODO: delete after gms implementation
-        tmp = []
-        for ele in client_list:
-            tmp.append(ele['ADDRESS'])
-        return tmp
-
-    @staticmethod
-    def timestamp() -> int:
-        return calendar.timegm(time.gmtime())
+            self.console.print('Message sent from {}'.format(message['SENDER_ADDRESS']), style="bold green")
+        self.console.print('ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['ID'], message['METHOD'],
+                                                                       message['SEQUENCE'], message['CONTENT']),
+                           style="green")
 
     def warm_up(self, ts: list) -> None:
         """
@@ -191,8 +158,12 @@ class auction_component:
             self.receive(data)
         return data
 
-    def receive(self, message: dict):
-        # TODO: function requirement
+    def receive(self, message: dict) -> None:
+        """
+        categorize all the information and distribute them to the right request dealers
+        :param message: standard dict format request
+        :return: None
+        """
         if message['ID'] == self.id and message['SEQUENCE'] == 0:
             # I don't want to listen to myself (normal messages)
             pass
@@ -209,20 +180,6 @@ class auction_component:
             else:
                 # push the message into the hold_back_queue
                 heapq.heappush(self.hold_back_queue, element(message))
-            # if seq == self.sequence_counter:
-            #     self.deliver(message)
-            #     time.sleep(0.01)
-            #     self.sequence_counter += 1
-            #     # check whether the next (few) messages can be delivered
-            #     if bool(self.hold_back_queue):
-            #         if self.sequence_counter == self.hold_back_queue[0].get_seq():
-            #             self.receive(heapq.heappop(self.hold_back_queue).get_info())
-            # elif seq > self.sequence_counter:
-            #     heapq.heappush(self.hold_back_queue, element(message))
-            #     self.negative_acknowledgement()
-            # else:
-            #     # This message has already delivered!
-            #     pass
         else:
             # deliver direct all the normal messages
             self.deliver(message)
@@ -265,8 +222,6 @@ class auction_component:
         print('Broadcast sent out on address: {}:{}'.format(self.BROADCAST_IP,
                                                             self.BROADCAST_PORT))
         broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # broadcast_socket.sendto(str.encode(json.dumps(message), encoding=self.ENCODING),
-        #                         (self.BROADCAST_IP, self.BROADCAST_PORT))
         message_byte = pickle.dumps(message)
         if len(message_byte) > self.BUFFER_SIZE:
             raise ValueError('Message too large')
@@ -282,11 +237,9 @@ class auction_component:
         listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         listen_socket.bind((self.MY_IP, self.BROADCAST_PORT))
-        # print("Listening to broadcast messages")
         while not self.TERMINATE:
             data, address = listen_socket.recvfrom(self.BUFFER_SIZE)
             if data:
-                # message = json.loads(data.decode())
                 message = pickle.loads(data)
                 message['SENDER_ADDRESS'] = address
                 self.receive(message)
@@ -328,7 +281,7 @@ class auction_component:
         """
         HELPER FUNCTION:
         ask to join a server group
-        :param inform_all: boolean variable whether use broadcast
+        :param inform_all: boolean variable whether broadcast is used
         :param address: the address of the main server
         :return: None
         """
@@ -360,10 +313,15 @@ class auction_component:
             message = self.create_message('SET', SEQUENCE=SEQUENCE, CONTENT=kwargs)
             self.udp_send_without_response(tuple(address), message)
 
-    def multicast_send_without_response(self, group: list, message: dict, test: int = -1, skip: int = -1):
+    def multicast_send_without_response(self, group: list,
+                                        message: dict,
+                                        record: bool = True,
+                                        test: int = -1,
+                                        skip: int = -1):
         """
         HELPER FUNCTION
         send out multicast to a group
+        :param record: whether the message should be added into the multicast_hist
         :param group: list of tuple address of a group
         :param message: standard dict message format
         :param test: the chosen index of process will be blocked for 10 seconds (only for testing)
@@ -372,7 +330,7 @@ class auction_component:
         """
         assert test < len(group)
         assert skip < len(group)
-        if message['SEQUENCE'] > 0:
+        if message['SEQUENCE'] > 0 and record:
             # if it is a sequence relevant message, append it to the history
             self.multicast_hist.append(message)
         count = 0

@@ -1,7 +1,7 @@
 import click
 import time
 import socket
-from colorama import Fore, Style
+from rich import print
 
 from auction_component import auction_component
 from group_member_service import group_member_service
@@ -15,11 +15,6 @@ class Server(auction_component):
         super(Server, self).__init__('SERVER', UDP_PORT)
         self.SEQ_PORT = UDP_PORT + 4
         self.bid_history = []
-        # self.num_servers = 1
-        # self.num_clients = 0
-        # self.server_list = pd.DataFrame([{'ID': self.id, 'ADDRESS': (self.MY_IP, self.UDP_PORT), 'NUMBER': 0,
-        # 'HEARTBEAT': self.timestamp()}])
-        # self.client_list = pd.DataFrame()
         self.gms = group_member_service(self.MY_IP, self.id, self.TYPE, self.GMS_PORT)
         self.gms.add_server(self.id, (self.MY_IP, self.UDP_PORT))
         self.is_main = is_main
@@ -47,9 +42,9 @@ class Server(auction_component):
                                                  self.BROADCAST_IP, self.BROADCAST_PORT,
                                                  self.MAIN_SERVER, self.gms.client_size(),
                                                  self.sequence_counter)
-        info = '$$$$\t' + 'Highest_bid:{}\t Winner:{}'.format(self.highest_bid, self.winner) + '\t$$$$'
-        print(Fore.LIGHTYELLOW_EX + message + Style.RESET_ALL)
-        print(Fore.RED + info + Style.RESET_ALL)
+        info = '\t' + 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner) + '\t'
+        print(":desktop_computer:" + "\t" + message)
+        print(":moneybag:" + info + ":moneybag:")
 
     def logic(self, request: dict):
         method = request['METHOD']
@@ -75,7 +70,6 @@ class Server(auction_component):
         elif method == 'SET':
             tmp = request['CONTENT']
             for key in tmp:
-                # print('self.{} = {}'.format(key, tmp[key]))
                 exec('self.{} = {}'.format(key, tmp[key]))
         # **********************  METHOD REDIRECT **********************************
         elif method == 'REDIRECT':
@@ -86,21 +80,24 @@ class Server(auction_component):
             price = int(request['CONTENT']['PRICE'])
             if price < self.highest_bid:
                 # if the bit is smaller than the current highest, nothing should be done.
-                message = self.create_message('PRINT', {'PRINT': 'Invalid Price, the highest bid now is {}'. format(self.highest_bid)})
+                message = self.create_message('PRINT',
+                                              {'PRINT': 'Invalid Price, '
+                                                        'the highest bid now is {}'. format(self.highest_bid)})
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), message)
             else:
                 sequence = self.sequence_send()
                 message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price})
                 tmp = request['ID']
-                if self.is_main:
-                    target = self.gms.get_all_address()
-                    self.winner = tmp
-                else:
-                    target = self.gms.get_client_address()
-                self.multicast_send_without_response(target, message)
-                self.remote_methode_invocation(target, f'self.winner = "{tmp}"')
-                if self.is_main:
-                    self.remote_methode_invocation(self.gms.get_server_address(), 'self.pass_on()')
+                # if self.is_main:
+                #     target = self.gms.get_all_address()
+                #     self.winner = tmp
+                # else:
+                #     target = self.gms.get_client_address()
+                self.winner = tmp
+                self.highest_bid = price
+                self.multicast_send_without_response(self.gms.get_all_address(), message)
+                self.remote_methode_invocation(self.gms.get_all_address(), f'self.winner = "{tmp}"')
+                self.remote_methode_invocation(self.gms.get_server_address(), 'self.pass_on()')
                 # foobar
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
                 self.bid_history.append(request)
@@ -131,53 +128,22 @@ class Server(auction_component):
         if request['CONTENT']['TYPE'] == 'SERVER':
             if self.gms.is_member(request['ID'], 'SERVER'):
                 return
-            # self.server_list.append({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS']),
-            #                          'NUMBER': 0})
-            # new_row = pd.Series({'ID': request['ID'], 'ADDRESS': tuple(request['CONTENT']['UDP_ADDRESS']),
-            #                      'NUMBER': 0})
-            # self.server_list = pd.concat([self.server_list, new_row.to_frame().T], ignore_index=True)
             self.gms.add_server(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']))
-            # self.num_servers += 1
-
             self.remote_para_set(self.gms.get_server_address(),
                                  MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
                                  is_member=True)
-            # self.gms.group_synchronise()
-            # self.remote_methode_invocation(self.server_list['ADDRESS'].to_list(),
-            #                                'to_df')
         else:
-            # assign the process if it's a client, if it's already member of the group, ignore it
-            # if it's not that case, assign the process to the server with the least amount of clients
             if self.gms.is_member(request['ID'], 'CLIENT'):
                 return
             iD, addr = self.assign_clients()
             if iD == self.id:
                 self.accept(request)
-                # self.state_update()
             self.remote_para_set([request['CONTENT']['UDP_ADDRESS']],
                                  MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
                                  is_member=True,
                                  CONTACT_SERVER=addr)
             if iD != self.id:
                 self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'self.join_contact()')
-
-    # @staticmethod
-    # def already_in(iD, table: list) -> bool:
-    #     """
-    #     HELPER FUNCTION:
-    #     To determine whether the id appears in the server/client list
-    #     :param iD:
-    #     :param table:
-    #     :return:
-    #     """
-    #     for ele in table:
-    #         if ele['ID'] == iD:
-    #             return True
-    #     return False
-
-    # def to_df(self):
-    #     if isinstance(self.server_list, dict):
-    #         self.server_list = pd.DataFrame(self.server_list)
 
     def pass_on(self):
         tmp = self.winner
@@ -211,7 +177,7 @@ class Server(auction_component):
                     targets.append(self.get_port(serverAddress, 'HEA'))
             else:
                 targets.append(self.get_port(self.MAIN_SERVER, 'HEA'))
-                
+
             self.multicast_send_without_response(targets, message)
             time.sleep(self.HEARTBEAT_RATE)
             
@@ -229,15 +195,16 @@ class Server(auction_component):
         """
         return self.gms.assign_clients()
 
-    def sequence_listen(self):
+    def sequence_listen(self) -> None:
+        """
+        hear at port SEQ_PORT and raise every time by 1 when a message received and increase the seq number
+        :return:
+        """
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         server_socket.bind((self.MY_IP, self.SEQ_PORT))
         while not self.TERMINATE:
             data, address = server_socket.recvfrom(self.BUFFER_SIZE)
             if data:
-                # message = json.loads(data.decode())
-                # message = pickle.loads(data)
-                # TODO: may need some logic
                 self.sequencer += 1
                 message = self.create_message('SEQUENCE', {'SEQ': self.sequencer})
                 self.udp_send_without_response(address, message)
@@ -250,10 +217,11 @@ class Server(auction_component):
 
     def interface(self) -> None:
         while True:
-            print(Fore.LIGHTBLUE_EX + '*' * 60 + Style.RESET_ALL)
+            self.console.print('*' * 60, style='yellow')
             user_input = input('Please enter your command:')
             if user_input == 'exit':
                 self.TERMINATE = True
+                self.gms.close()
                 quit()
             elif user_input == 'report':
                 self.report()
@@ -300,17 +268,17 @@ class Server(auction_component):
                 print('Intercepting the next incoming message...')
             elif user_input == 'leave':
                 if self.is_main:
-                    print(Fore.RED + 'Main Server cannot leave!' + Style.RESET_ALL)
+                    self.console.print('Main Server cannot leave!', style='bold red')
                     # TODO: when election then yes
                 else:
                     self.is_member = False
                     self.MAIN_SERVER = None
-                    print('Dis-attached with Main-server!')
+                    self.console.print('Dis-attached with Main-server!', style='bold red')
                 self.report()
             elif user_input == 'clear':
                 self.clear_screen()
             else:
-                print(Fore.RED + 'Invalid input!' + Style.RESET_ALL)
+                self.console.print('Invalid input!', style='bold red')
 
     def state_update(self) -> None:
         # self.to_df()

@@ -2,6 +2,7 @@ import socket
 import threading
 import pandas
 import pickle
+from rich import print
 
 import utils
 import config as cfg
