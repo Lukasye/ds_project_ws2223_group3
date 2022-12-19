@@ -167,7 +167,7 @@ class Server(auction_component):
                 break
             message = self.create_message('HEARTBEAT', {'ID': self.id})
             targets = []
-            # a server sends it's heartbeat to all his connected clients
+            # a server sends its heartbeat to all his connected clients
             if not self.client_list.empty:
                 for clientAddress in self.client_list['ADDRESS'].to_list():
                     targets.append(self.get_port(clientAddress, 'HEA'))
@@ -218,7 +218,7 @@ class Server(auction_component):
     def interface(self) -> None:
         while True:
             self.console.print('*' * 60, style='yellow')
-            user_input = input('Please enter your command:')
+            user_input = self.console.input('Please enter your command:')
             if user_input == 'exit':
                 self.TERMINATE = True
                 self.gms.close()

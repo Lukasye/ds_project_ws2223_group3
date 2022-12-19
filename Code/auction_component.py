@@ -118,11 +118,10 @@ class auction_component:
         :return:
         """
         print()
-        if message['SENDER_ADDRESS'] is not None:
-            self.console.print('Message sent from {}'.format(message['SENDER_ADDRESS']), style="bold green")
-        self.console.print('ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['ID'], message['METHOD'],
-                                                                       message['SEQUENCE'], message['CONTENT']),
-                           style="green")
+        self.console.print('Message sent from {}\n'
+                           'ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['SENDER_ADDRESS'], message['ID'],
+                                                                       message['METHOD'], message['SEQUENCE'],
+                                                                       message['CONTENT']), style="green")
 
     def warm_up(self, ts: list) -> None:
         """

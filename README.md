@@ -30,8 +30,13 @@ python Server.py --port 10001 --opt 1
 ```
 the parameter `port` identify the port Server connected to. (for UDP) <br>
 with `opt` you can define whether the Server is the entry point of this system. The default setting in this case will be `port 10001` and `opt 1` <br><br>
+<b>For windows Users:</b> In the Code dir you can find a `start_win.bat` file, by clicking on it or using the following command in cmd you'll get 4 terminal windows with 2 servers and 2 clients running. It is useful for do some testing.
+```
+cd Code
+start_win.bat
+```
+<b>The command supported currently:</b>
 ![terminal](img/broadcast.png) <br>
-The command supported currently:
 1. report: get the info of server
 2. find: broadcasting and turn on udp listening after that
 3. server: (server only feature) print the servers group list
@@ -53,7 +58,7 @@ The command supported currently:
 <b>27.11.2022:</b> tune the broadcast function. Gonna watch the Worldcup! `:smiley:`<br>
 <b>28.11.2022:</b> multithread tested and added so that the system can handle multi-request.<br>
 <b>03.12.2022:</b> realizing the multithread function. Now the model can automatically set up the udp_listen function. Optimize the structure of codes. New abstract function for auction component:`interface()`, `state_update()`
-and some small gadgets. Broadca  st logic finished! unused user function deleted! Now we have a fully functioning broadcast system!<br>
+and some small gadgets. Broadcast logic finished! unused user function deleted! Now we have a fully functioning broadcast system!<br>
 <b>04.12.2022:</b> Tiny bugs fixed. Now the clients can also use the `find` method to join a group via redirect. Implemented remote methode invocation with no returned value.<br>
 <b>05.12.2022:</b> Dealt with the redundant request problem and optimize the structure. New function `assign()` to separate the main server logic with the servers. Finally! rmi works! Now the broadcast function is over and go into Bug test!<br>
 <b>06.12.2022:</b> Make the terminal more beautiful<br>
@@ -65,14 +70,13 @@ and some small gadgets. Broadca  st logic finished! unused user function deleted
 <b>15.12.2022:</b> New component group_member_service(gms) to manage all the client/server list and heartbeat for both client and server. Going to Christmas markt tonight!<br>
 <b>16.12.2022:</b> Finally the gms start to functioning! Tones of bugs fixed! New Added `utils.py` and `config.py` to make the code more clean and readable. Removed the code `message.py`, since the function is no longer needed.<br>
 <b>17.12.2022:</b> Bit function online! Totally reliable multicast online! but not tested for message loss yet. And btw, i betrayed colorama, because i found rich more beautiful!<br>
-### TODO<br>
-1. color issue caused by multi-threading
-2. totally reliable multicast(still missing answering negative ack part)
-3. gms
-4. election
-5. error handling (extremely important). especially udp_send() function
-6. number of clients/servers update function (currently not important)
-7. heartbeat
-8. bugs fix!!!!!!!!
-9. comment!!!!
-10. BIG PROBLEM: I don't know how to add emoji in markdown!!
+<b>19.12.2022:</b> Add a batch file for testing. Fixed color issue caused by multi-threading.
+### TODO<br> 
+1. totally reliable multicast(test phase)
+2. election
+3. error handling (extremely important). especially udp_send() function
+4. number of clients/servers update function (currently not important)
+5. heartbeat
+6. bugs fix!!!!!!!!
+7. comment!!!!
+8. BIG PROBLEM: I don't know how to add emoji in markdown!!
