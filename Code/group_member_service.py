@@ -17,12 +17,12 @@ class group_member_service:
         self.TYPE = TYPE
         self.id = iD
         self.IP_ADDRESS = IP_ADDRESS
-        self.server_list = \
-            pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client', 'time_stamp']).astype(
-                {'number_of_client': 'int32'})
-        self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT', 'time_stamp'])
         self.listen_port = listen_port
         self.send_port = None
+        self.server_list = \
+            pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client', 'time_stamp']).astype(
+                {'number_of_client': 'int32'}) if self.TYPE == 'SERVER' else None
+        self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT', 'time_stamp']) if self.TYPE == 'SERVER' else None
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
         self.TERMINATE = False
         self.threads = [self.heartbeat_listen]
@@ -46,12 +46,22 @@ class group_member_service:
                 if isinstance(message, pandas.DataFrame):
                     # if the incoming data is panda df, synchronize the df
                     self.server_list = message
+                # elif isinstance(message, str):
+                #     # if it is a string, means it is an iD that should be removed from the df
+                #     self.remove_server(message)
+                # elif isinstance(message, pandas.Series):
+                #     # if it is a string, means it needs to be added to the df
+                #     pass
                 else:
                     # TODO: listen logic
                     pass
                 pass
 
     def heartbeat_send(self):
+        # TODO
+        pass
+
+    def ring_formation(self):
         # TODO
         pass
 

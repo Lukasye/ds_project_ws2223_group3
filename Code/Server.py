@@ -5,19 +5,26 @@ from rich import print
 
 from auction_component import auction_component
 from group_member_service import group_member_service
+from global_time_sync import global_time_sync
 import utils
 
 
 class Server(auction_component):
     def __init__(self,
                  UDP_PORT,
-                 is_main: bool = False):
+                 is_main: bool = False,
+                 headless=False):
         super(Server, self).__init__('SERVER', UDP_PORT)
         self.SEQ_PORT = UDP_PORT + 4
         self.bid_history = []
+        self.is_main = is_main
+        self.headless = headless
+        # introduce the group member service
         self.gms = group_member_service(self.MY_IP, self.id, self.TYPE, self.GMS_PORT)
         self.gms.add_server(self.id, (self.MY_IP, self.UDP_PORT))
-        self.is_main = is_main
+        # introduce the global time synchronizer
+        self.gts = global_time_sync(self.TIM_PORT, self.is_main)
+
         # initialize depends on whether this is the main server
         warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue]
         if is_main:
@@ -29,9 +36,11 @@ class Server(auction_component):
             self.is_member = False
         self.report()
         # open multiple thread to do different jobs
-        self.warm_up(warm_up_list)
+        self.warm_up(warm_up_list, self.headless)
 
     def report(self):
+        if self.headless:
+            return
         message = '{} activate on\n' \
                   'ID: \t\t\t{}\n' \
                   'Address: \t\t{}:{} \n' \
@@ -42,7 +51,7 @@ class Server(auction_component):
                                                  self.BROADCAST_IP, self.BROADCAST_PORT,
                                                  self.MAIN_SERVER, self.gms.client_size(),
                                                  self.sequence_counter)
-        info = '\t' + 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner) + '\t'
+        info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
         print(":desktop_computer:" + "\t" + message)
         print(":moneybag:" + info + ":moneybag:")
 
@@ -77,6 +86,15 @@ class Server(auction_component):
                 self.receive(request['CONTENT']['MESSAGE'])
         # **********************  METHOD RAISE BIT **********************************
         elif method == 'BIT':
+            # if the auction is started or already ended:
+            if not self.in_auction:
+                self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message(
+                    'PRINT', {'PRINT': 'Not in an auction!'}
+                ))
+                self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message(
+                    'SET', {'in_auction': False}
+                ))
+                return
             price = int(request['CONTENT']['PRICE'])
             if price < self.highest_bid:
                 # if the bit is smaller than the current highest, nothing should be done.
@@ -88,11 +106,6 @@ class Server(auction_component):
                 sequence = self.sequence_send()
                 message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price})
                 tmp = request['ID']
-                # if self.is_main:
-                #     target = self.gms.get_all_address()
-                #     self.winner = tmp
-                # else:
-                #     target = self.gms.get_client_address()
                 self.winner = tmp
                 self.highest_bid = price
                 self.multicast_send_without_response(self.gms.get_all_address(), message)
@@ -101,17 +114,25 @@ class Server(auction_component):
                 # foobar
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
                 self.bid_history.append(request)
-        # **********************  METHOD HEARTBEAT **********************************
-        elif method == 'HEARTBEAT':
-            self.heartbeat_receiver(request)
+        # ********************** METHOD PRINT **********************************
+        elif method == 'PRINT':
+            self.console.print(request['CONTENT']['PRINT'], style='pink3')
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             exec(request['CONTENT']['METHODE'])
+        # **************************  METHOD GET *********************************
         elif method == 'GET':
             seq = request['CONTENT']['SEQ']
-            if seq is not None and seq <= len(self.multicast_hist):
+            if seq is not None and len(self.multicast_hist) >= seq > 0:
                 archive = self.multicast_hist[seq]
                 self.udp_send_without_response(request['SENDER_ADDRESS'], archive)
+            else:
+                # TODO: not tested yet
+                content = {}
+                for key in request['CONTENT']:
+                    content[key] = request['CONTENT'][key]
+                message = self.create_message('GET', content)
+                self.udp_send_without_response(request['SENDER_ADDRESS'], message)
         elif method == 'TEST':
             # ignore test signals
             pass
@@ -215,6 +236,16 @@ class Server(auction_component):
         sequence = self.udp_send(utils.get_port(tuple(self.MAIN_SERVER), 'SEQ'), message)
         return sequence['CONTENT']['SEQ']
 
+    def start_auction(self):
+        # TODO: send out announcement
+        self.in_auction = True
+        print('Auction started!')
+
+    def end_auction(self):
+        # TODO: send out announcement
+        self.in_auction = False
+        print('Auction ended!')
+
     def interface(self) -> None:
         while True:
             self.console.print('*' * 60, style='yellow')
@@ -231,6 +262,10 @@ class Server(auction_component):
                 self.gms.print_server()
             elif user_input == 'client':
                 self.gms.print_client()
+            elif user_input == 'start':
+                self.start_auction()
+            elif user_input == 'end':
+                self.end_auction()
             elif user_input == 'join':
                 self.join(None, True)
             elif user_input == 'seq':
