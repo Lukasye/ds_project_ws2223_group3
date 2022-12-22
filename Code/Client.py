@@ -101,24 +101,6 @@ class Client(auction_component):
             else:
                 self.console.print('Invalid input!', style="bold red")
 
-    def heartbeat_sender(self):
-        while True:
-            if self.TERMINATE:
-                break
-            message = self.create_message('HEARTBEAT', {'ID': self.id})
-            # a client sends it's heartbeat to all his contact server
-            if self.CONTACT_SERVER is not None:
-                self.udp_send_without_response(self.get_port(self.CONTACT_SERVER, 'HEA'), message)
-                
-                # we check how long it was since the last heartbeat of our contact server
-                if self.CONTACT_SERVER['HEARTBEAT'] - self.timestamp() > self.HEARTBEAT_RATE * 1000 * 3:
-                    # if it's been longer than three times the heartbeat rate,
-                    # we'll accept that we've lost out connection and try to reconnect
-                    self.leave()
-                    self.find_others()
-            
-            time.sleep(self.HEARTBEAT_RATE)
-
     def state_update(self) -> None:
         pass
 

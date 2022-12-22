@@ -157,26 +157,6 @@ class Server(auction_component):
         if self.gms.is_member(request['ID'], 'CLIENT'):
             return
         self.gms.add_client(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']))
-
-    def heartbeat_sender(self):
-        while True:
-            if self.TERMINATE:
-                break
-            message = self.create_message('HEARTBEAT', {'ID': self.id})
-            targets = []
-            # a server sends its heartbeat to all his connected clients
-            if not self.client_list.empty:
-                for clientAddress in self.client_list['ADDRESS'].to_list():
-                    targets.append(self.get_port(clientAddress, 'HEA'))
-            # the main server sends his heartbeat to all other servers, the other servers only to the main server
-            if self.is_main:
-               for serverAddress in self.server_list['ADDRESS'].to_list():
-                    targets.append(self.get_port(serverAddress, 'HEA'))
-            else:
-                targets.append(self.get_port(self.MAIN_SERVER, 'HEA'))
-
-            self.multicast_send_without_response(targets, message)
-            time.sleep(self.HEARTBEAT_RATE)
                 
     def assign_clients(self):
         """
