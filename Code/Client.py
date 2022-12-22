@@ -2,6 +2,7 @@ import click
 import time
 from rich import print
 from auction_component import auction_component
+from group_member_service import group_member_service
 
 
 class Client(auction_component):
@@ -12,6 +13,7 @@ class Client(auction_component):
         self.is_member = False
         self.report()
         # open multiple thread to do different jobs
+        self.gms = group_member_service(self.MY_IP, self.id, self.TYPE, self.GMS_PORT)
         self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue])
 
     def report(self):
@@ -47,9 +49,6 @@ class Client(auction_component):
         # # ********************** METHOD PRINT **********************************
         elif method == 'PRINT':
             print(response['CONTENT']['PRINT'])
-        # **********************  METHOD HEARTBEAT **********************************
-        elif method == 'HEARTBEAT':
-            self.heartbeat_receiver(response)
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             exec(response['CONTENT']['METHODE'])
@@ -119,13 +118,6 @@ class Client(auction_component):
                     self.find_others()
             
             time.sleep(self.HEARTBEAT_RATE)
-
-    def heartbeat_receiver(self, request: dict):
-        # we should only get heartbeats from our contact server. Heartbeats from everybody else can be ignored
-        if self.CONTACT_SERVER is not None:
-            if request['CONTENT']['ID'] == self.CONTACT_SERVER['ID']:
-                # the last time we got a heartbeat from our contact server was right now
-                self.CONTACT_SERVER['HEARTBEAT'] = self.timestamp()
 
     def state_update(self) -> None:
         pass

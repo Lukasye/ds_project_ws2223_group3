@@ -101,9 +101,6 @@ class Server(auction_component):
                 # foobar
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
                 self.bid_history.append(request)
-        # **********************  METHOD HEARTBEAT **********************************
-        elif method == 'HEARTBEAT':
-            self.heartbeat_receiver(request)
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             exec(request['CONTENT']['METHODE'])
@@ -180,12 +177,6 @@ class Server(auction_component):
 
             self.multicast_send_without_response(targets, message)
             time.sleep(self.HEARTBEAT_RATE)
-            
-    def heartbeat_receiver(self, request: dict):
-        # we look for the sender of the heartbeat among all the servers and clients we're connected to,
-        # and update the last heartbeat time when we find them
-        self.server_list.loc[self.server_list['ID'] == request['CONTENT']['ID'], 'HEARTBEAT'] = self.timestamp()
-        self.client_list.loc[self.server_list['ID'] == request['CONTENT']['ID'], 'HEARTBEAT'] = self.timestamp()
                 
     def assign_clients(self):
         """
