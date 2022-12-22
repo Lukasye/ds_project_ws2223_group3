@@ -65,7 +65,6 @@ class auction_component:
         self.intercept = False
         self.update = False
         self.console = Console()
-        self.HEARTBEAT_RATE = cfg.attr['HEARTBEAT_RATE']
         self.TERMINATE = False
 
     @abstractmethod
@@ -337,7 +336,6 @@ class auction_component:
             self.udp_send(self.CONTACT_SERVER, message, True)
         else:
             self.udp_send(self.MAIN_SERVER, message, True)
-
 
 if __name__ == '__main__':
     auction_component('SERVER', 12345)
