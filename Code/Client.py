@@ -1,22 +1,31 @@
 import click
 import time
 from rich import print
+
 from auction_component import auction_component
+from global_time_sync import global_time_sync
 from group_member_service import group_member_service
 
 
 class Client(auction_component):
     def __init__(self,
-                 UDP_PORT):
+                 UDP_PORT,
+                 headless=False):
         super().__init__('CLIENT', UDP_PORT)
         self.current_bid = 0
         self.is_member = False
+        self.headless = headless
         self.report()
         # open multiple thread to do different jobs
+        self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue], headless)
+        # introduce the global time synchronizer
+        self.gts = global_time_sync(self.TIM_PORT, False)
         self.gms = group_member_service(self.MY_IP, self.id, self.TYPE, self.GMS_PORT)
         self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue])
 
     def report(self):
+        if self.headless:
+            return
         message = '{} activate on\n' \
                   'ID: \t\t\t{}\n' \
                   'Address: \t\t{}:{} \n' \
@@ -26,7 +35,7 @@ class Client(auction_component):
                   'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
                                                  self.is_member, self.MAIN_SERVER, self.CONTACT_SERVER,
                                                  self.sequence_counter)
-        info = '\t' + 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner) + '\t'
+        info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
         print(":iphone:" + "\t" + message)
         print(":moneybag:" + info + ":moneybag:")
 
@@ -46,9 +55,9 @@ class Client(auction_component):
                 # print('self.{} = {}'.format(key, tmp[key]))
                 exec('self.{} = {}'.format(key, tmp[key]))
             self.state_update()
-        # # ********************** METHOD PRINT **********************************
+        # ********************** METHOD PRINT **********************************
         elif method == 'PRINT':
-            print(response['CONTENT']['PRINT'])
+            self.console.print(response['CONTENT']['PRINT'], style='pink3')
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             exec(response['CONTENT']['METHODE'])
@@ -83,7 +92,7 @@ class Client(auction_component):
                 message = self.create_message('BIT', {'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT),
                                                       'PRICE': info[1]})
                 if self.CONTACT_SERVER is not None:
-                    self.udp_send(tuple(self.CONTACT_SERVER), message)
+                    self.udp_send(tuple(self.CONTACT_SERVER), message, receive=True)
             elif user_input == 'leave':
                 self.leave()
                 print('Dis-attached with Main-server!')

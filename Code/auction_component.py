@@ -44,15 +44,17 @@ class auction_component:
         self.BROADCAST_PORT = cfg.attr['BROADCAST_PORT']
         self.MY_HOST = socket.gethostname()
         self.MY_IP = utils.get_ip_address()
-        self.BROADCAST_IP = utils.get_broadcast_address(self.MY_IP, "255.255.255.0")
+        self.BROADCAST_IP = utils.get_broadcast_address(self.MY_IP, "255.255.224.0")
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
         self.ENCODING = 'utf-8'
         self.UDP_PORT = UDP_PORT
-        self.BRO_PORT = UDP_PORT + 1
+        self.TIM_PORT = UDP_PORT + 1
         self.ELE_PORT = UDP_PORT + 2
         self.GMS_PORT = UDP_PORT + 3
         self.TYPE = TYPE
+        self.SYS = os.name
         self.MAIN_SERVER = None
+        self.TERMINATE = False
         if TYPE == 'CLIENT':
             self.CONTACT_SERVER = None
         self.hold_back_queue = []
@@ -66,6 +68,8 @@ class auction_component:
         self.update = False
         self.console = Console()
         self.TERMINATE = False
+        self.headless = False
+        self.in_auction = False
 
     @abstractmethod
     def logic(self, request: dict) -> None:
@@ -122,10 +126,11 @@ class auction_component:
                                                                        message['METHOD'], message['SEQUENCE'],
                                                                        message['CONTENT']), style="green")
 
-    def warm_up(self, ts: list) -> None:
+    def warm_up(self, ts: list, headless: bool = False) -> None:
         """
         HELPER FUNCTION:
         for initializing all the process and save them into a thread manager
+        :param headless: whether the interface should be initialized
         :param ts: all the function you need to run
         :return: None
         """
@@ -134,8 +139,9 @@ class auction_component:
             t.start()
             # t.join()
             self.threads.append(t)
-        t = threading.Thread(target=self.interface)
-        t.start()
+        if not headless:
+            t = threading.Thread(target=self.interface)
+            t.start()
 
     def create_message(self, METHOD: str, CONTENT: dict, SEQUENCE: int = 0):
         return utils.create_message(iD=self.id,

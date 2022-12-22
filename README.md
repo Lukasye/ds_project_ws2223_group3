@@ -71,12 +71,14 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>16.12.2022:</b> Finally the gms start to functioning! Tones of bugs fixed! New Added `utils.py` and `config.py` to make the code more clean and readable. Removed the code `message.py`, since the function is no longer needed.<br>
 <b>17.12.2022:</b> Bit function online! Totally reliable multicast online! but not tested for message loss yet. And btw, i betrayed colorama, because i found rich more beautiful!<br>
 <b>19.12.2022:</b> Add a batch file for testing. Fixed color issue caused by multi-threading.
+<b>21.12.2022:</b> New headless model and function_test.py. For the future experiment and testing. New global_time_sync.py module to synchronize the clock in the best effort (planning phase).
 ### TODO<br> 
 1. totally reliable multicast(test phase)
 2. election
 3. error handling (extremely important). especially udp_send() function
 4. number of clients/servers update function (currently not important)
 5. heartbeat
-6. bugs fix!!!!!!!!
-7. comment!!!!
-8. BIG PROBLEM: I don't know how to add emoji in markdown!!
+6. time synchronize
+7. bugs fix!!!!!!!!
+8. comment!!!!
+9. BIG PROBLEM: I don't know how to add emoji in markdown!!
