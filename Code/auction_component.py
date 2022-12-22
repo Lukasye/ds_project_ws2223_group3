@@ -258,16 +258,6 @@ class auction_component:
                 message['SENDER_ADDRESS'] = address
                 self.receive(message)
 
-    def hea_listen(self):
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        server_socket.bind((self.MY_IP, self.GMS_PORT))
-        while not self.TERMINATE:
-            data, address = server_socket.recvfrom(self.BUFFER_SIZE)
-            if data:
-                message = pickle.loads(data)
-                message['SENDER_ADDRESS'] = address
-                self.receive(message)
-
     def print_hold_back_queue(self):
         for ele in self.hold_back_queue:
             print(ele.get_info())
@@ -352,14 +342,6 @@ class auction_component:
             self.udp_send(self.CONTACT_SERVER, message, True)
         else:
             self.udp_send(self.MAIN_SERVER, message, True)
-
-    @abstractmethod
-    def heartbeat_receiver(self, request: dict) -> None:
-        """
-        handle a heartbeat message
-        :return: None
-        """
-        pass
 
 
 if __name__ == '__main__':

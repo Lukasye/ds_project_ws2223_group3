@@ -4,6 +4,7 @@ from rich import print
 
 from auction_component import auction_component
 from global_time_sync import global_time_sync
+from group_member_service import group_member_service
 
 
 class Client(auction_component):
@@ -19,6 +20,8 @@ class Client(auction_component):
         self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue], headless)
         # introduce the global time synchronizer
         self.gts = global_time_sync(self.TIM_PORT, False)
+        self.gms = group_member_service(self.MY_IP, self.id, self.TYPE, self.GMS_PORT)
+        self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue])
 
     def report(self):
         if self.headless:
@@ -55,9 +58,6 @@ class Client(auction_component):
         # ********************** METHOD PRINT **********************************
         elif method == 'PRINT':
             self.console.print(response['CONTENT']['PRINT'], style='pink3')
-        # **********************  METHOD HEARTBEAT **********************************
-        elif method == 'HEARTBEAT':
-            self.heartbeat_receiver(response)
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             exec(response['CONTENT']['METHODE'])
@@ -109,31 +109,6 @@ class Client(auction_component):
                 self.clear_screen()
             else:
                 self.console.print('Invalid input!', style="bold red")
-
-    def heartbeat_sender(self):
-        while True:
-            if self.TERMINATE:
-                break
-            message = self.create_message('HEARTBEAT', {'ID': self.id})
-            # a client sends it's heartbeat to all his contact server
-            if self.CONTACT_SERVER is not None:
-                self.udp_send_without_response(self.get_port(self.CONTACT_SERVER, 'HEA'), message)
-                
-                # we check how long it was since the last heartbeat of our contact server
-                if self.CONTACT_SERVER['HEARTBEAT'] - self.timestamp() > self.HEARTBEAT_RATE * 1000 * 3:
-                    # if it's been longer than three times the heartbeat rate,
-                    # we'll accept that we've lost out connection and try to reconnect
-                    self.leave()
-                    self.find_others()
-            
-            time.sleep(self.HEARTBEAT_RATE)
-
-    def heartbeat_receiver(self, request: dict):
-        # we should only get heartbeats from our contact server. Heartbeats from everybody else can be ignored
-        if self.CONTACT_SERVER is not None:
-            if request['CONTENT']['ID'] == self.CONTACT_SERVER['ID']:
-                # the last time we got a heartbeat from our contact server was right now
-                self.CONTACT_SERVER['HEARTBEAT'] = self.timestamp()
 
     def state_update(self) -> None:
         pass
