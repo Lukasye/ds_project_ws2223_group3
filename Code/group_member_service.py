@@ -2,6 +2,7 @@ import socket
 import threading
 import pandas
 import pickle
+import time
 from rich import print
 
 import utils
@@ -24,8 +25,9 @@ class group_member_service:
                 {'number_of_client': 'int32'}) if self.TYPE == 'SERVER' else None
         self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT', 'time_stamp']) if self.TYPE == 'SERVER' else None
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
+        self.HEARTBEAT_RATE = cfg.attr['HEARTBEAT_RATE']
         self.TERMINATE = False
-        self.threads = [self.heartbeat_listen]
+        self.threads = [self.heartbeat_listen, self.heartbeat_send]
         for th in self.threads:
             t = threading.Thread(target=th, daemon=True)
             t.start()
@@ -61,28 +63,10 @@ class group_member_service:
         while True:
             if self.TERMINATE:
                 break
-            message = self.create_message('HEARTBEAT', {'ID': self.id})
-                         
-            if self.TYPE == 'CLIENT':
-                # a client sends it's heartbeat to all his contact server
-                if self.CONTACT_SERVER is not None:
-                    self.udp_send_without_response(self.get_port(self.CONTACT_SERVER, 'HEA'), message)
-            elif self.TYPE == 'SERVER':
-                targets = []
-                # a server sends its heartbeat to all his connected clients
-                if not self.client_list.empty:
-                    for clientAddress in self.client_list['ADDRESS'].to_list():
-                        targets.append(self.get_port(clientAddress, 'HEA'))
-                # the main server sends his heartbeat to all other servers, the other servers only to the main server
-                if self.is_main:
-                   for serverAddress in self.server_list['ADDRESS'].to_list():
-                        targets.append(self.get_port(serverAddress, 'HEA'))
-                else:
-                    targets.append(self.get_port(self.MAIN_SERVER, 'HEA'))
-
-                self.multicast_send_without_response(targets, message)
-            else:
-                print('Warning: Unknown type ' + self.TYPE)
+                
+            message = utils.create_message(self.id, 'HEARTBEAT', {'ID': self.id})
+            
+            # TODO: send logic
                 
             time.sleep(self.HEARTBEAT_RATE)
         pass
