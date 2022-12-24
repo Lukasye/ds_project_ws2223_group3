@@ -21,7 +21,6 @@ class Client(auction_component):
         # introduce the global time synchronizer
         self.gts = global_time_sync(self.TIM_PORT, False)
         self.gms = group_member_service(self.MY_IP, self.id, self.TYPE, self.GMS_PORT)
-        self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue])
 
     def report(self):
         if self.headless:
@@ -38,6 +37,7 @@ class Client(auction_component):
         info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
         print(":iphone:" + "\t" + message)
         print(":moneybag:" + info + ":moneybag:")
+        return message, info
 
     def logic(self, response: dict):
         method = response['METHOD']

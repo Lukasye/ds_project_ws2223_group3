@@ -10,7 +10,7 @@ import pandas as pd
 
 
 class group_member_service:
-    def __init__(self, IP_ADDRESS,
+    def __init__(self, IP_ADDRESS: str,
                  iD,
                  TYPE: str,
                  listen_port):
@@ -156,6 +156,14 @@ class group_member_service:
             tmp.append(utils.get_port(result, TYPE))
         return tmp
 
+    def get_server_id(self) -> list:
+        """
+        HELPER FUNCTION
+        Get all the id of servers that store in the gms
+        :return: a list of tuple id
+        """
+        return self.server_list.index
+
     def get_all_address(self, TYPE: str = 'UDP'):
         return self.get_server_address(TYPE) + self.get_client_address(TYPE)
 
@@ -208,17 +216,19 @@ class group_member_service:
 
 
 def main():
-    gms = group_member_service('SERVER', ('192.168.0.0', 5766), 4096)
-    gms.add_server(1233234, 'asdfasd', time_stamp='asdf')
-    gms.add_server(1455634, 'answered', number_of_client=3)
-    gms.add_server(1455934, 'aswerrd', time_stamp='a123')
-    gms.add_server(1445834, 'aswerrd')
-    gms.add_server(1111111, 'aswerrd')
+    gms = group_member_service('192.168.0.200', 12341, 'SERVER', 4096)
+    gms.add_server(1233234, ('123.123.123.123', 1634), time_stamp='asdf')
+    gms.add_server(1455634, ('123.123.123.123', 1734), number_of_client=3)
+    gms.add_server(1455934, ('123.123.123.123', 1834), time_stamp='a123')
+    gms.add_server(1445834, ('123.123.123.123', 1234))
+    gms.add_server(1111111, ('123.123.123.123', 1034))
     gms.remove_server(1111111)
     gms.print_server()
     print(gms.get_server_address())
     print(gms.server_size())
     print(gms.assign_clients())
+    for ele in gms.get_server_id():
+        print(ele)
 
 
 if __name__ == '__main__':

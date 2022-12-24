@@ -54,10 +54,12 @@ class Server(auction_component):
         info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
         print(":desktop_computer:" + "\t" + message)
         print(":moneybag:" + info + ":moneybag:")
+        return message, info
 
     def logic(self, request: dict):
         method = request['METHOD']
-        self.print_message(request)
+        if not self.headless:
+            self.print_message(request)
         # ********************** METHOD DISCOVERY **********************************
         if method == 'DISCOVERY':
             # if the server is still not a member or a main server
@@ -115,7 +117,7 @@ class Server(auction_component):
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
                 self.bid_history.append(request)
         # ********************** METHOD PRINT **********************************
-        elif method == 'PRINT':
+        elif method == 'PRINT' and not self.headless:
             self.console.print(request['CONTENT']['PRINT'], style='pink3')
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
@@ -222,7 +224,8 @@ class Server(auction_component):
 
     def interface(self) -> None:
         while True:
-            self.console.print('*' * 60, style='yellow')
+            if not self.headless:
+                self.console.print('*' * 60, style='yellow')
             user_input = self.console.input('Please enter your command:')
             if user_input == 'exit':
                 self.TERMINATE = True

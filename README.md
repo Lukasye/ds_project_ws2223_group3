@@ -10,12 +10,17 @@ Following additional package will be needed:
 2. uuid
 3. pickle
 4. pandas
-5. time
-6. heapq
-7. tqdm
-8. colorama
-9. threading
-10. rich
+5. heapq
+6. tqdm
+7. colorama
+8. threading
+9. rich
+10. curses<br>
+
+For the Windows user: It may be a problem with `curses` package.
+```
+pip install windows-curses
+```
 ### Running<br>
 Run the client with a single command:
 ```
@@ -72,6 +77,7 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>17.12.2022:</b> Bit function online! Totally reliable multicast online! but not tested for message loss yet. And btw, i betrayed colorama, because i found rich more beautiful!<br>
 <b>19.12.2022:</b> Add a batch file for testing. Fixed color issue caused by multi-threading.
 <b>21.12.2022:</b> New headless model and function_test.py. For the future experiment and testing. New global_time_sync.py module to synchronize the clock in the best effort (planning phase).
+<b>24.12.2022:</b> New TUI developing... And merry christmas!!!<br>
 ### TODO<br> 
 1. totally reliable multicast(test phase)
 2. election

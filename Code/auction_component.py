@@ -81,7 +81,7 @@ class auction_component:
         pass
 
     @abstractmethod
-    def report(self) -> None:
+    def report(self):
         """
         print the informant information of the class
         :return: None
