@@ -27,24 +27,29 @@ def create_message(iD, METHOD: str, CONTENT: dict, SEQUENCE: int = 0):
             'CONTENT': CONTENT}
 
 
-def udp_send(address: tuple, message) -> dict:
+def udp_send(address: tuple, message, timeout: int = 5) -> dict:
     """
     normal udp send function
     :param address: the address of the recipient
     :param message: information any kind
-    :return: standard message format in dict
+    :param timeout: the number of seconds until a response needs to arrive
+    :return: standard message format in dict, or None if a timeout occurs
     """
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # udp_socket.sendto(str.encode(json.dumps(message)), address)
     message_byte = pickle.dumps(message)
     if len(message_byte) > cfg.attr['BUFFER_SIZE']:
         raise ValueError('Message too large')
-    udp_socket.sendto(message_byte, address)
-    data, addr = udp_socket.recvfrom(cfg.attr['BUFFER_SIZE'])
-    if data:
-        data = pickle.loads(data)
-        data['SENDER_ADDRESS'] = addr
-        return data
+    udp_socket.settimeout(timeout)    
+    try:
+        udp_socket.sendto(message_byte, address)
+        data, addr = udp_socket.recvfrom(cfg.attr['BUFFER_SIZE'])
+        if data:
+            data = pickle.loads(data)
+            data['SENDER_ADDRESS'] = addr
+            return data
+    except TimeoutError:
+        return None
 
 
 def get_port(MAIN_SERVER: tuple, PORT: str = 'SEQ') -> tuple:
