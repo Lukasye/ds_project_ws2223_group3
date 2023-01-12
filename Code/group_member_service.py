@@ -54,8 +54,11 @@ class group_member_service:
                 #     # if it is a string, means it needs to be added to the df
                 #     pass
                 else:
-                    # TODO: listen logic
-                    pass
+                    if message['METHOD'] == 'HEAREQUEST':
+                        reply = utils.create_message(self.id, 'HEAREPLY', {'ID': self.id})
+                        self.udp_send_without_response(address, reply)
+                    else:
+                        print('Warning: Inappropriate message at heartbeat port.')
                 pass
 
     def heartbeat_send(self):
@@ -63,9 +66,12 @@ class group_member_service:
             if self.TERMINATE:
                 break
                 
-            message = utils.create_message(self.id, 'HEARTBEAT', {'ID': self.id})
+            message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id})
             
-            # TODO: send logic
+            if self.TYPE == 'CLIENT':
+                pass
+            else:
+                pass
                 
             time.sleep(self.HEARTBEAT_RATE)
         pass
