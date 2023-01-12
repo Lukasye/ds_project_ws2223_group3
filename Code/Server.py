@@ -19,7 +19,8 @@ class Server(auction_component):
         self.is_main = is_main
         self.headless = headless
         # introduce the group member service
-        self.gms = group_member_service(self.MY_IP, self.id, self.TYPE, self.GMS_PORT)
+        self.gms = group_member_service(self.MY_IP, self.id,
+                                     self.TYPE, self.UDP_PORT)
         self.gms.add_server(self.id, (self.MY_IP, self.UDP_PORT))
         # introduce the global time synchronizer
         self.gts = global_time_sync(self.TIM_PORT, self.is_main)
@@ -78,9 +79,9 @@ class Server(auction_component):
             if request['CONTENT']['UDP_ADDRESS'] == (self.MY_IP, self.UDP_PORT):
                 return
             # if the server is not main, it can only accept
-            if not self.is_main and self.is_member:
+            if not self.is_main and self.is_member and request['CONTENT']['TYPE'] == 'CLIENT':
                 self.accept(request)
-            else:
+            if self.is_main:
                 self.assign(request)
             # TODO: check avalibility
             self.remote_methode_invocation([tuple(request['CONTENT']['UDP_ADDRESS'])], 'self.negative_acknowledgement()')
@@ -240,6 +241,9 @@ class Server(auction_component):
             if not self.headless:
                 print('*' * 60)
             user_input = input('Please enter your command:')
+            # ************************************************************
+            #                        Basic Functions
+            # ************************************************************
             if user_input == 'exit':
                 self.TERMINATE = True
                 self.gms.close()
@@ -248,10 +252,10 @@ class Server(auction_component):
                 self.report()
             elif user_input == 'find':
                 self.find_others()
-            elif user_input == 'server':
-                self.gms.print_server()
-            elif user_input == 'client':
-                self.gms.print_client()
+            elif user_input == 'clear':
+                self.clear_screen()
+            elif user_input.startswith('bit'):
+                print('Wake up! You are a Server!!')
             elif user_input == 'start':
                 if self.is_main:
                     self.remote_methode_invocation(self.gms.get_server_address(), 'self.start_auction()')
@@ -261,6 +265,13 @@ class Server(auction_component):
                 self.remote_methode_invocation(self.gms.get_server_address(), 'self.end_auction()')
             elif user_input == 'join':
                 self.join(None, True)
+            # ************************************************************
+            #                 Information Functions
+            # ************************************************************
+            elif user_input == 'server':
+                self.gms.print_server()
+            elif user_input == 'client':
+                self.gms.print_client()
             elif user_input == 'seq':
                 print(self.sequence_send())
             elif user_input == 'queue':
@@ -268,12 +279,19 @@ class Server(auction_component):
             elif user_input == 'seq_hist':
                 for ele in self.multicast_hist:
                     print(ele)
-            elif user_input.startswith('rmi'):
-                info = user_input.split(' ')
-                self.remote_methode_invocation([('172.17.112.1', int(info[1]))], info[2])
             elif user_input == 'history':
                 for ele in self.bid_history:
                     print(ele)
+            # ************************************************************
+            #                     Test Functions
+            # ************************************************************
+            elif user_input == 'ring_test':
+                ring_uuid, ring = self.gms.form_ring()
+                print(ring_uuid)
+                print(self.gms.get_neighbour(ring))
+                command = 'self.gms.LCR()'
+                self.remote_methode_invocation(self.gms.get_server_address(),
+                                        command)
             elif user_input == 'multi1':
                 # multi test
                 print('Reliable multicast test (Part 1)...')
@@ -296,17 +314,13 @@ class Server(auction_component):
                 print(f'Intercepting the next {self.intercept} incoming message...')
             elif user_input == 'leave':
                 if self.is_main:
-                    print('Main Server cannot leave!')
-                    # TODO: when election then yes
+                    self.is_main = False
+                    print('you are note main server anymore!')
                 else:
                     self.is_member = False
                     self.MAIN_SERVER = None
                     print('Dis-attached with Main-server!')
                 self.report()
-            elif user_input == 'clear':
-                self.clear_screen()
-            elif user_input.startswith('bit'):
-                print('Wake up! You are a Server!!')
             elif user_input == 'multicast_test':
                 for i in range(10):
                     self.multicast_send_without_response(self.gms.get_server_address(),
@@ -326,7 +340,7 @@ class Server(auction_component):
 
 
 @click.command()
-@click.option('--port', required=True, default=10001, type=int, help='The port that the server connect to')
+@click.option('--port', required=True, default=10000, type=int, help='The port that the server connect to')
 @click.option('--opt', required=True, default=1, type=int, help='whether the server is entry point of the system')
 def main(port, opt):
     Server(port, opt == 1)

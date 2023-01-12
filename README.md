@@ -46,7 +46,7 @@ start_win.bat
 2. find: broadcasting and turn on udp listening after that
 3. server: (server only feature) print the servers group list
 4. client: (server only feature) print the clients group list
-5. leave: (not available for main server for now) clear the memory.
+5. leave: clear the memory, ps: for main server is to cancel the priority.
 6. clear: clear screen to make the terminal more clean.
 7. queue: To show the elements in the hold-back-queue.
 8. multi1 & multi2: for the multicast testing. <b>multi1</b> will send out 4 messages with sequence number 1 to 4 with 10 seconds latency before the second message. <b>multi2</b> will send out a single udp message with sequence number 5. In the test, the multi1 should be executed on one server and right after that multi2 on another.
@@ -55,8 +55,9 @@ start_win.bat
 11. bit: (client only feature) to raise the bit in format `bit <Price>`.
 12. ~~join: send request to the main server to join the group~~
 13. ~~udp_listen: accept request at the udp port~~
-14. rmi: use the format `rmi <port> <methode>` to do remote methode invocation!
+14. ~~rmi: use the format `rmi <port> <methode>` to do remote methode invocation!~~
 15. exit
+Look in the programm for more details!<br>
 
 ### Progressing<br>
 ![broadcast](img/Reliable_multicast.png) <br>
@@ -78,7 +79,8 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>19.12.2022:</b> Add a batch file for testing. Fixed color issue caused by multi-threading.
 <b>21.12.2022:</b> New headless model and function_test.py. For the future experiment and testing. New global_time_sync.py module to synchronize the clock in the best effort (planning phase).
 <b>24.12.2022:</b> New TUI developing... And merry christmas!!!<br>
-<b>12.01.2023:</b> Fixed little bugs for broadcast in complex enviroment and bit function corection.
+<b>12.01.2023:</b> Fixed little bugs for broadcast in complex enviroment and bit function corection.<br>
+<b>13.01.2023:</b> Added election functions! Start to look better!
 ### TODO<br> 
 1. totally reliable multicast(test phase)
 2. election

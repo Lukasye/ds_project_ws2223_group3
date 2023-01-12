@@ -44,7 +44,7 @@ class auction_component:
         self.BROADCAST_PORT = cfg.attr['BROADCAST_PORT']
         self.MY_HOST = socket.gethostname()
         self.MY_IP = utils.get_ip_address()
-        self.BROADCAST_IP = utils.get_broadcast_address(self.MY_IP, "255.255.224.0")
+        self.BROADCAST_IP = utils.get_broadcast_address()
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
         self.ENCODING = 'utf-8'
         self.UDP_PORT = UDP_PORT

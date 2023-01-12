@@ -19,7 +19,7 @@ class Client(auction_component):
         self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue], headless)
         # introduce the global time synchronizer
         self.gts = global_time_sync(self.TIM_PORT, False)
-        self.gms = group_member_service(self.MY_IP, self.id, self.TYPE, self.GMS_PORT)
+        self.gms = group_member_service(self.MY_IP, self.id, self.TYPE, self.UDP_PORT)
 
     def report(self):
         if self.headless:

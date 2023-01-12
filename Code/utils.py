@@ -70,13 +70,13 @@ def get_port(MAIN_SERVER: tuple, PORT: str = 'SEQ') -> tuple:
     return tuple([addr, port])
 
 
-def get_broadcast_address(ip, netmask):
+def get_broadcast_address():
     """
     calculate broadcast address
-    :param ip:
-    :param netmask:
     :return:
     """
+    ip = get_ip_address()
+    netmask = get_subnet_mask(ip)
     ip = ip.split('.')
     netmask = netmask.split('.')
     broadcast = []
@@ -94,3 +94,12 @@ def get_ip_address():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     return s.getsockname()[0]
+
+
+def get_subnet_mask(ip):
+    # nm = nmap.PortScanner()
+    # nm.scan(ip, arguments='-sP')
+    # subnet_mask = nm[ip]['addresses']['netmask']
+    # print(subnet_mask)
+    subnet_mask = '255.255.255.0'
+    return subnet_mask
