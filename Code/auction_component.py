@@ -342,6 +342,7 @@ class auction_component:
             count += 1
 
     def negative_acknowledgement(self):
+        # if the sequence number is already actuel ???
         message = self.create_message('GET', {'SEQ': self.sequence_counter})
         if self.TYPE == 'CLIENT':
             self.udp_send(self.CONTACT_SERVER, message, receive=True)

@@ -103,7 +103,7 @@ class Client(auction_component):
                 for ele in self.multicast_hist:
                     print(ele)
             elif user_input == 'intercept':
-                self.intercept = 3
+                self.intercept = 5
                 print(f'Intercepting the next {self.intercept} incoming message...')
             elif user_input == 'clear':
                 self.clear_screen()

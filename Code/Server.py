@@ -82,6 +82,8 @@ class Server(auction_component):
                 self.accept(request)
             else:
                 self.assign(request)
+            # TODO: check avalibility
+            self.remote_methode_invocation([tuple(request['CONTENT']['UDP_ADDRESS'])], 'self.negative_acknowledgement()')
         # **********************    METHOD SET     **********************************
         elif method == 'SET':
             tmp = request['CONTENT']
@@ -110,16 +112,17 @@ class Server(auction_component):
                                               {'PRINT': 'Invalid Price, '
                                                         'the highest bid now is {}'. format(self.highest_bid)})
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), message)
+                # TODO: Set the client ot the right value!
             else:
                 sequence = self.sequence_send()
-                print(str(sequence) * 20)
-                message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price})
+                # message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price})
                 tmp = request['ID']
                 self.winner = tmp
                 self.highest_bid = price
-                self.multicast_send_without_response(self.gms.get_all_address(), message)
-                self.remote_methode_invocation(self.gms.get_all_address(), f'self.winner = "{tmp}"')
-                self.remote_methode_invocation(self.gms.get_server_address(), f'self.pass_on(SEQ={sequence})')
+                command = f'self.highest_bid={price};self.winner="{tmp}"'
+                # self.multicast_send_without_response(self.gms.get_server_address(), message)
+                self.remote_methode_invocation(self.gms.get_server_address(), command, SEQUENCE=sequence)
+                self.remote_methode_invocation(self.gms.get_server_address(), f'self.pass_on({sequence})')
                 # foobar
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
                 self.bid_history.append(request)
@@ -176,10 +179,10 @@ class Server(auction_component):
             if iD != self.id:
                 self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'self.join_contact()')
 
-    def pass_on(self, SEQ: int = 0):
+    def pass_on(self, sequence: int):
         tmp = self.winner
-        self.remote_para_set(self.gms.get_client_address(), highest_bid=self.highest_bid)
-        self.remote_methode_invocation(self.gms.get_client_address(), f'self.winner = "{tmp}"', SEQUENCE=SEQ)
+        command = f'self.highest_bid={self.highest_bid};self.winner="{tmp}"'
+        self.remote_methode_invocation(self.gms.get_client_address(), command, SEQUENCE=sequence)
 
     def accept(self, request: dict) -> None:
         """
