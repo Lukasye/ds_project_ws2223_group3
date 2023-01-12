@@ -78,6 +78,7 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>19.12.2022:</b> Add a batch file for testing. Fixed color issue caused by multi-threading.
 <b>21.12.2022:</b> New headless model and function_test.py. For the future experiment and testing. New global_time_sync.py module to synchronize the clock in the best effort (planning phase).
 <b>24.12.2022:</b> New TUI developing... And merry christmas!!!<br>
+<b>12.01.2023:</b> Fixed little bugs for broadcast in complex enviroment and bit function corection.
 ### TODO<br> 
 1. totally reliable multicast(test phase)
 2. election

@@ -3,7 +3,6 @@ import threading
 import pandas
 import pickle
 import time
-from rich import print
 
 import utils
 import config as cfg

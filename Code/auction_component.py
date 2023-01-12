@@ -7,8 +7,8 @@ import time
 from uuid import uuid4
 import threading
 from abc import abstractmethod
-from rich.console import Console
-from rich import print
+# from rich.console import Console
+# from rich import print
 
 import utils
 import config as cfg
@@ -48,6 +48,7 @@ class auction_component:
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
         self.ENCODING = 'utf-8'
         self.UDP_PORT = UDP_PORT
+        self.HEARTBEAT_RATE = cfg.attr['HEARTBEAT_RATE']
         self.TIM_PORT = UDP_PORT + 1
         self.ELE_PORT = UDP_PORT + 2
         self.GMS_PORT = UDP_PORT + 3
@@ -64,9 +65,9 @@ class auction_component:
         self.sequence_counter = 1  # the initial sequence number for all the participants
         self.highest_bid = 0  # The highest bid that everyone agreed on
         self.winner = None  # winner of this round
-        self.intercept = False
+        self.intercept = 0
         self.update = False
-        self.console = Console()
+        # self.console = Console()
         self.TERMINATE = False
         self.headless = False
         self.in_auction = False
@@ -113,7 +114,8 @@ class auction_component:
     def clear_screen():
         os.system('cls' if os.name == 'nt' else 'clear')
 
-    def print_message(self, message: dict) -> None:
+    @staticmethod
+    def print_message(message: dict) -> None:
         """
         HELPER FUNCTION:
         print the massage on the interface screen
@@ -121,10 +123,10 @@ class auction_component:
         :return:
         """
         print()
-        self.console.print('Message sent from {}\n'
-                           'ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['SENDER_ADDRESS'], message['ID'],
-                                                                       message['METHOD'], message['SEQUENCE'],
-                                                                       message['CONTENT']), style="green")
+        print('Message sent from {}\n'
+              'ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['SENDER_ADDRESS'], message['ID'],
+                                                          message['METHOD'], message['SEQUENCE'],
+                                                          message['CONTENT']))
 
     def warm_up(self, ts: list, headless: bool = False) -> None:
         """
@@ -168,13 +170,13 @@ class auction_component:
         :param message: standard dict format request
         :return: None
         """
-        if message['ID'] == self.id and message['SEQUENCE'] == 0:
-            # I don't want to listen to myself (normal messages)
-            pass
-        elif message['SEQUENCE'] != 0:
+        # if message['ID'] == self.id and message['SEQUENCE'] == 0:
+        #     # I don't want to listen to myself (normal messages)
+        #     pass
+        if message['SEQUENCE'] != 0:
             if self.intercept:
                 # just for testing! skip the next message!
-                self.intercept = True
+                self.intercept -= 1
                 return
             seq = message['SEQUENCE']
             # Reliable ordered needed!
@@ -196,6 +198,8 @@ class auction_component:
                 if self.sequence_counter == self.hold_back_queue[0].get_seq():
                     # if the next message can be delivered
                     ele = heapq.heappop(self.hold_back_queue)
+                    # simultaneously record the message
+                    self.multicast_hist.append(ele.get_info())
                     self.deliver(ele.get_info())
                     self.sequence_counter += 1
                     time.sleep(0.01)
@@ -324,9 +328,10 @@ class auction_component:
         """
         assert test < len(group)
         assert skip < len(group)
-        if message['SEQUENCE'] > 0 and record:
-            # if it is a sequence relevant message, append it to the history
-            self.multicast_hist.append(message)
+        # if message['SEQUENCE'] > 0 and record:
+        #     # if it is a sequence relevant message, append it to the history
+        #     self.multicast_hist.append(message)
+        #     self.sequence_counter += 1
         count = 0
         for member in tqdm(group):
             if count == test:
@@ -339,9 +344,10 @@ class auction_component:
     def negative_acknowledgement(self):
         message = self.create_message('GET', {'SEQ': self.sequence_counter})
         if self.TYPE == 'CLIENT':
-            self.udp_send(self.CONTACT_SERVER, message, True)
+            self.udp_send(self.CONTACT_SERVER, message, receive=True)
         else:
-            self.udp_send(self.MAIN_SERVER, message, True)
+            self.udp_send(self.MAIN_SERVER, message, receive=True)
+
 
 if __name__ == '__main__':
     auction_component('SERVER', 12345)

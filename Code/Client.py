@@ -1,10 +1,9 @@
 import click
-import time
-from rich import print
 
 from auction_component import auction_component
 from global_time_sync import global_time_sync
 from group_member_service import group_member_service
+import config as cfg
 
 
 class Client(auction_component):
@@ -35,13 +34,14 @@ class Client(auction_component):
                                                  self.is_member, self.MAIN_SERVER, self.CONTACT_SERVER,
                                                  self.sequence_counter)
         info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
-        print(":iphone:" + "\t" + message)
-        print(":moneybag:" + info + ":moneybag:")
+        print(message + '\n' + info)
         return message, info
 
     def logic(self, response: dict):
+        type_monitor = cfg.type_monitor
         method = response['METHOD']
-        self.print_message(response)
+        if not self.headless and method in type_monitor:
+            self.print_message(response)
         # ********************** METHOD DISCOVERY **********************************
         if method == 'DISCOVERY':
             if not self.is_member:
@@ -57,7 +57,7 @@ class Client(auction_component):
             self.state_update()
         # ********************** METHOD PRINT **********************************
         elif method == 'PRINT':
-            self.console.print(response['CONTENT']['PRINT'], style='pink3')
+            print(response['CONTENT']['PRINT'])
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             exec(response['CONTENT']['METHODE'])
@@ -78,7 +78,7 @@ class Client(auction_component):
 
     def interface(self) -> None:
         while True:
-            self.console.print('*' * 60, style="yellow")
+            print('*' * 60)
             user_input = input('Please enter your command:')
             if user_input == 'exit':
                 self.TERMINATE = True
@@ -103,12 +103,12 @@ class Client(auction_component):
                 for ele in self.multicast_hist:
                     print(ele)
             elif user_input == 'intercept':
-                self.intercept = True
-                print('Intercepting the next incoming message...')
+                self.intercept = 3
+                print(f'Intercepting the next {self.intercept} incoming message...')
             elif user_input == 'clear':
                 self.clear_screen()
             else:
-                self.console.print('Invalid input!', style="bold red")
+                print('Invalid input!')
 
     def state_update(self) -> None:
         pass

@@ -15,3 +15,5 @@ window = {'time': (0, 1, 2, 70),
           'list': (0, 73, 21, 20),
           'input': (22, 73, 2, 20),
           }
+
+type_monitor = ['SET', 'RMI', 'GET']

@@ -1,11 +1,10 @@
 import click
-import time
 import socket
-from rich import print
 
 from auction_component import auction_component
 from group_member_service import group_member_service
 from global_time_sync import global_time_sync
+import config as cfg
 import utils
 
 
@@ -52,18 +51,21 @@ class Server(auction_component):
                                                  self.MAIN_SERVER, self.gms.client_size(),
                                                  self.sequence_counter)
         info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
-        print(":desktop_computer:" + "\t" + message)
-        print(":moneybag:" + info + ":moneybag:")
+        print("\t" + message + '\n' + info)
+        if self.is_main:
+            zusatz = 'Sequencer: \t\t{}'.format(self.sequencer)
+            print(zusatz)
         return message, info
 
     def logic(self, request: dict):
+        type_monitor = cfg.type_monitor
         method = request['METHOD']
-        if not self.headless:
+        if not self.headless and method in type_monitor:
             self.print_message(request)
         # ********************** METHOD DISCOVERY **********************************
         if method == 'DISCOVERY':
             # if the server is still not a member or a main server
-            if not self.is_member:
+            if not self.is_member and not self.is_main:
                 self.join(tuple(request['CONTENT']['UDP_ADDRESS']))
             else:
                 if self.is_main:
@@ -72,8 +74,11 @@ class Server(auction_component):
                     self.forward(self.MAIN_SERVER, request)
         # ********************** METHOD JOIN **********************************
         elif method == 'JOIN':
+            # see if the join request come from itself
+            if request['CONTENT']['UDP_ADDRESS'] == (self.MY_IP, self.UDP_PORT):
+                return
             # if the server is not main, it can only accept
-            if not self.is_main:
+            if not self.is_main and self.is_member:
                 self.accept(request)
             else:
                 self.assign(request)
@@ -82,6 +87,7 @@ class Server(auction_component):
             tmp = request['CONTENT']
             for key in tmp:
                 exec('self.{} = {}'.format(key, tmp[key]))
+            # self.remote_methode_invocation()
         # **********************  METHOD REDIRECT **********************************
         elif method == 'REDIRECT':
             if self.is_main:
@@ -106,19 +112,20 @@ class Server(auction_component):
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), message)
             else:
                 sequence = self.sequence_send()
+                print(str(sequence) * 20)
                 message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price})
                 tmp = request['ID']
                 self.winner = tmp
                 self.highest_bid = price
                 self.multicast_send_without_response(self.gms.get_all_address(), message)
                 self.remote_methode_invocation(self.gms.get_all_address(), f'self.winner = "{tmp}"')
-                self.remote_methode_invocation(self.gms.get_server_address(), 'self.pass_on()')
+                self.remote_methode_invocation(self.gms.get_server_address(), f'self.pass_on(SEQ={sequence})')
                 # foobar
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
                 self.bid_history.append(request)
         # ********************** METHOD PRINT **********************************
         elif method == 'PRINT' and not self.headless:
-            self.console.print(request['CONTENT']['PRINT'], style='pink3')
+            print(request['CONTENT']['PRINT'])
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             exec(request['CONTENT']['METHODE'])
@@ -126,7 +133,8 @@ class Server(auction_component):
         elif method == 'GET':
             seq = request['CONTENT']['SEQ']
             if seq is not None and len(self.multicast_hist) >= seq > 0:
-                archive = self.multicast_hist[seq]
+                archive = self.multicast_hist[seq - 1]
+                print(archive)
                 self.udp_send_without_response(request['SENDER_ADDRESS'], archive)
             else:
                 # TODO: not tested yet
@@ -168,10 +176,10 @@ class Server(auction_component):
             if iD != self.id:
                 self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'self.join_contact()')
 
-    def pass_on(self):
+    def pass_on(self, SEQ: int = 0):
         tmp = self.winner
         self.remote_para_set(self.gms.get_client_address(), highest_bid=self.highest_bid)
-        self.remote_methode_invocation(self.gms.get_client_address(), f'self.winner = "{tmp}"')
+        self.remote_methode_invocation(self.gms.get_client_address(), f'self.winner = "{tmp}"', SEQUENCE=SEQ)
 
     def accept(self, request: dict) -> None:
         """
@@ -213,20 +221,22 @@ class Server(auction_component):
         return sequence['CONTENT']['SEQ']
 
     def start_auction(self):
-        # TODO: send out announcement
+        command = 'self.in_auction = True;print("Auction Started!")'
+        self.remote_methode_invocation(self.gms.get_client_address(), command)
         self.in_auction = True
         print('Auction started!')
 
     def end_auction(self):
-        # TODO: send out announcement
+        command = 'self.in_auction = True;print("Auction Ended!")'
+        self.remote_methode_invocation(self.gms.get_client_address(), command)
         self.in_auction = False
         print('Auction ended!')
 
     def interface(self) -> None:
         while True:
             if not self.headless:
-                self.console.print('*' * 60, style='yellow')
-            user_input = self.console.input('Please enter your command:')
+                print('*' * 60)
+            user_input = input('Please enter your command:')
             if user_input == 'exit':
                 self.TERMINATE = True
                 self.gms.close()
@@ -240,9 +250,12 @@ class Server(auction_component):
             elif user_input == 'client':
                 self.gms.print_client()
             elif user_input == 'start':
-                self.start_auction()
+                if self.is_main:
+                    self.remote_methode_invocation(self.gms.get_server_address(), 'self.start_auction()')
+                else:
+                    print('You are not main!')
             elif user_input == 'end':
-                self.end_auction()
+                self.remote_methode_invocation(self.gms.get_server_address(), 'self.end_auction()')
             elif user_input == 'join':
                 self.join(None, True)
             elif user_input == 'seq':
@@ -276,21 +289,30 @@ class Server(auction_component):
                 self.multicast_send_without_response([(address, 5700)],
                                                      self.create_message('TEST', SEQUENCE=5, CONTENT={'N': 5}))
             elif user_input == 'intercept':
-                self.intercept = True
-                print('Intercepting the next incoming message...')
+                self.intercept = 3
+                print(f'Intercepting the next {self.intercept} incoming message...')
             elif user_input == 'leave':
                 if self.is_main:
-                    self.console.print('Main Server cannot leave!', style='bold red')
+                    print('Main Server cannot leave!')
                     # TODO: when election then yes
                 else:
                     self.is_member = False
                     self.MAIN_SERVER = None
-                    self.console.print('Dis-attached with Main-server!', style='bold red')
+                    print('Dis-attached with Main-server!')
                 self.report()
             elif user_input == 'clear':
                 self.clear_screen()
+            elif user_input.startswith('bit'):
+                print('Wake up! You are a Server!!')
+            elif user_input == 'multicast_test':
+                for i in range(10):
+                    self.multicast_send_without_response(self.gms.get_server_address(),
+                                                               self.create_message(METHOD='TEST', SEQUENCE=i,
+                                                                                   CONTENT={}), skip=0)
+                self.multicast_send_without_response(self.gms.get_server_address(),
+                                                     self.create_message(METHOD='TEST', SEQUENCE=10, CONTENT={}))
             else:
-                self.console.print('Invalid input!', style='bold red')
+                print('Invalid input!')
 
     def state_update(self) -> None:
         # self.to_df()

@@ -7,7 +7,7 @@ from multiprocessing import Process
 import config as cfg
 
 
-def test_1(num: int = 8):
+def test_1(num: int = 4):
     """
     TEST FUNCTION:
     Test of dynamic discovery, whether the server can handle a large amount of clients.
@@ -35,8 +35,20 @@ def test_1(num: int = 8):
 
 
 def test_2():
-    pass
+    server_port = cfg.attr['SERVER_PORT_START']
+    mainServer = Server(server_port, is_main=True, headless=True)
+    subServer = Server(server_port + 5, is_main=False)
+    mainServer.find_others()
+    time.sleep(0.5)
+    for i in range(10):
+        mainServer.multicast_send_without_response(mainServer.gms.get_server_address(),
+                                                   mainServer.create_message(METHOD='TEST', SEQUENCE=i, CONTENT={}),
+                                                   skip=0)
+    mainServer.multicast_send_without_response(mainServer.gms.get_server_address(),
+                                               mainServer.create_message(METHOD='TEST', SEQUENCE=10, CONTENT={}))
+    time.sleep(0.5)
+    print(subServer.sequence_counter)
 
 
 if __name__ == '__main__':
-    test_1()
+    test_2()
