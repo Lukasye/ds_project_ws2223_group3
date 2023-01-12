@@ -5,6 +5,8 @@ import time
 
 import config as cfg
 
+import ipaddress
+
 
 def udp_send_without_response(address: tuple, message):
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -65,13 +67,13 @@ def get_port(MAIN_SERVER: tuple, PORT: str = 'SEQ') -> tuple:
     return tuple([addr, port])
 
 
-def get_broadcast_address(ip, netmask):
+def get_broadcast_address():
     """
     calculate broadcast address
-    :param ip:
-    :param netmask:
     :return:
     """
+    ip = get_ip_address()
+    netmask = get_subnet_mask(ip)
     ip = ip.split('.')
     netmask = netmask.split('.')
     broadcast = []
@@ -89,3 +91,7 @@ def get_ip_address():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     return s.getsockname()[0]
+
+def get_subnet_mask(ip):
+    network = ipaddress.ip_interface(ip)
+    return str(network.netmask)
