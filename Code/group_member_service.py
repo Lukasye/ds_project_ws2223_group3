@@ -24,10 +24,6 @@ class group_member_service:
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
         self.HEARTBEAT_RATE = cfg.attr['HEARTBEAT_RATE']
         self.TERMINATE = False
-        self.threads = [self.heartbeat_listen, self.heartbeat_send]
-        for th in self.threads:
-            t = threading.Thread(target=th, daemon=True)
-            t.start()
 
     @staticmethod
     def add_instance(iD, addr, port, df: pd.DataFrame):
@@ -43,6 +39,12 @@ class group_member_service:
     def heartbeat_send(self):
         pass
 
+    def start_thread(self):
+        self.threads = [self.heartbeat_listen, self.heartbeat_send]
+        for th in self.threads:
+            t = threading.Thread(target=th, daemon=True)
+            t.start()
+
 
 class group_member_service_server(group_member_service):
     def __init__(self, IP_ADDRESS: str, iD, UDP_PORT):
@@ -52,6 +54,7 @@ class group_member_service_server(group_member_service):
             pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client', 'time_stamp']).astype(
                 {'number_of_client': 'int32'}) if self.TYPE == 'SERVER' else None
         self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT', 'time_stamp']) if self.TYPE == 'SERVER' else None
+        self.start_thread()
 
     def heartbeat_listen(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -324,6 +327,7 @@ class group_member_service_client(group_member_service):
     def __init__(self, IP_ADDRESS: str, iD, UDP_PORT):
         super().__init__(IP_ADDRESS, iD, UDP_PORT)
         self.TYPE = 'SERVER'
+        self.start_thread()
 
     def heartbeat_send(self):
         pass
