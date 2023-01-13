@@ -2,7 +2,7 @@ import click
 import socket
 
 from auction_component import auction_component
-from group_member_service import group_member_service
+from group_member_service import group_member_service_server
 from global_time_sync import global_time_sync
 import config as cfg
 import utils
@@ -19,8 +19,7 @@ class Server(auction_component):
         self.is_main = is_main
         self.headless = headless
         # introduce the group member service
-        self.gms = group_member_service(self.MY_IP, self.id,
-                                     self.TYPE, self.UDP_PORT)
+        self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT)
         self.gms.add_server(self.id, (self.MY_IP, self.UDP_PORT))
         # introduce the global time synchronizer
         self.gts = global_time_sync(self.TIM_PORT, self.is_main)
@@ -51,19 +50,20 @@ class Server(auction_component):
                                                  self.BROADCAST_IP, self.BROADCAST_PORT,
                                                  self.MAIN_SERVER, self.gms.client_size(),
                                                  self.sequence_counter)
-        info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
-        print("\t" + message + '\n' + info)
+        print("\t" + message + '\n')
         if self.is_main:
             zusatz = 'Sequencer: \t\t{}'.format(self.sequencer)
             print(zusatz)
-        return message, info
+        return message
 
     def logic(self, request: dict):
         type_monitor = cfg.type_monitor
         method = request['METHOD']
         if not self.headless and method in type_monitor:
             self.print_message(request)
-        # ********************** METHOD DISCOVERY **********************************
+        # ************************************************************
+        #                        Methode DISCOVERY
+        # ************************************************************
         if method == 'DISCOVERY':
             # if the server is still not a member or a main server
             if not self.is_member and not self.is_main:
@@ -73,7 +73,9 @@ class Server(auction_component):
                     self.assign(request)
                 elif self.MAIN_SERVER is not None:
                     self.forward(self.MAIN_SERVER, request)
-        # ********************** METHOD JOIN **********************************
+        # ************************************************************
+        #                        Methode JOIN
+        # ************************************************************
         elif method == 'JOIN':
             # see if the join request come from itself
             if request['CONTENT']['UDP_ADDRESS'] == (self.MY_IP, self.UDP_PORT):
@@ -83,19 +85,26 @@ class Server(auction_component):
                 self.accept(request)
             if self.is_main:
                 self.assign(request)
-            # TODO: check avalibility
-            self.remote_methode_invocation([tuple(request['CONTENT']['UDP_ADDRESS'])], 'self.negative_acknowledgement()')
-        # **********************    METHOD SET     **********************************
+            # TODO: check availability
+            self.remote_methode_invocation([tuple(request['CONTENT']['UDP_ADDRESS'])],
+                                           'self.negative_acknowledgement()')
+        # ************************************************************
+        #                        Methode SET
+        # ************************************************************
         elif method == 'SET':
             tmp = request['CONTENT']
             for key in tmp:
                 exec('self.{} = {}'.format(key, tmp[key]))
             # self.remote_methode_invocation()
-        # **********************  METHOD REDIRECT **********************************
+        # ************************************************************
+        #                        Methode REDIRECT
+        # ************************************************************
         elif method == 'REDIRECT':
             if self.is_main:
                 self.receive(request['CONTENT']['MESSAGE'])
-        # **********************  METHOD RAISE BIT **********************************
+        # ************************************************************
+        #                        Methode BIT
+        # ************************************************************
         elif method == 'BIT':
             # if the auction is started or already ended:
             if not self.in_auction:
@@ -127,13 +136,19 @@ class Server(auction_component):
                 # foobar
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
                 self.bid_history.append(request)
-        # ********************** METHOD PRINT **********************************
+        # ************************************************************
+        #                        Methode PRINT
+        # ************************************************************
         elif method == 'PRINT' and not self.headless:
             print(request['CONTENT']['PRINT'])
-        # ****************  METHOD REMOTE METHOD INVOCATION **************************
+        # ************************************************************
+        #              Methode REMOTE METHOD INVOCATION
+        # ************************************************************
         elif method == 'RMI':
             exec(request['CONTENT']['METHODE'])
-        # **************************  METHOD GET *********************************
+        # ************************************************************
+        #                        Methode GET
+        # ************************************************************
         elif method == 'GET':
             seq = request['CONTENT']['SEQ']
             if seq is not None and len(self.multicast_hist) >= seq > 0:
@@ -240,6 +255,8 @@ class Server(auction_component):
         while True:
             if not self.headless:
                 print('*' * 60)
+                info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
+                print(info)
             user_input = input('Please enter your command:')
             # ************************************************************
             #                        Basic Functions
@@ -290,8 +307,7 @@ class Server(auction_component):
                 print(ring_uuid)
                 print(self.gms.get_neighbour(ring))
                 command = 'self.gms.LCR()'
-                self.remote_methode_invocation(self.gms.get_server_address(),
-                                        command)
+                self.remote_methode_invocation(self.gms.get_server_address(), command)
             elif user_input == 'multi1':
                 # multi test
                 print('Reliable multicast test (Part 1)...')
@@ -324,8 +340,8 @@ class Server(auction_component):
             elif user_input == 'multicast_test':
                 for i in range(10):
                     self.multicast_send_without_response(self.gms.get_server_address(),
-                                                               self.create_message(METHOD='TEST', SEQUENCE=i,
-                                                                                   CONTENT={}), skip=0)
+                                                         self.create_message(METHOD='TEST', SEQUENCE=i,
+                                                                             CONTENT={}), skip=0)
                 self.multicast_send_without_response(self.gms.get_server_address(),
                                                      self.create_message(METHOD='TEST', SEQUENCE=10, CONTENT={}))
             else:

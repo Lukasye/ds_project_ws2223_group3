@@ -1,4 +1,6 @@
+import os
 import calendar
+import subprocess
 import socket
 import pickle
 import time
@@ -76,7 +78,7 @@ def get_broadcast_address():
     :return:
     """
     ip = get_ip_address()
-    netmask = get_subnet_mask(ip)
+    netmask = get_netmask(ip)
     ip = ip.split('.')
     netmask = netmask.split('.')
     broadcast = []
@@ -96,10 +98,19 @@ def get_ip_address():
     return s.getsockname()[0]
 
 
-def get_subnet_mask(ip):
-    # nm = nmap.PortScanner()
-    # nm.scan(ip, arguments='-sP')
-    # subnet_mask = nm[ip]['addresses']['netmask']
-    # print(subnet_mask)
-    subnet_mask = '255.255.255.0'
-    return subnet_mask
+def get_netmask(ip):
+    flag = os.name == 'nt'
+    proc = subprocess.Popen('ipconfig' if flag else 'ifconfig',stdout=subprocess.PIPE)
+    while True:
+        line = proc.stdout.readline()
+        if ip.encode() in line:
+            break
+    if flag:
+        mask = proc.stdout.readline().rstrip().split(b':')[-1].replace(b' ',b'').decode()
+    else:
+        mask = line.rstrip().split(b':')[-1].replace(b' ',b'').decode()
+    return mask
+
+
+if __name__ == '__main__':
+    print(get_broadcast_address())

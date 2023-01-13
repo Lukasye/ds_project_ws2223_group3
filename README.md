@@ -12,10 +12,7 @@ Following additional package will be needed:
 4. pandas
 5. heapq
 6. tqdm
-7. colorama
-8. threading
-9. rich
-10. curses<br>
+7. threading<br>
 
 For the Windows user: It may be a problem with `curses` package.
 ```
@@ -60,7 +57,7 @@ start_win.bat
 Look in the programm for more details!<br>
 
 ### Progressing<br>
-![broadcast](img/Reliable_multicast.png) <br>
+![broadcast](img/election.png) <br>
 <b>27.11.2022:</b> tune the broadcast function. Gonna watch the Worldcup! `:smiley:`<br>
 <b>28.11.2022:</b> multithread tested and added so that the system can handle multi-request.<br>
 <b>03.12.2022:</b> realizing the multithread function. Now the model can automatically set up the udp_listen function. Optimize the structure of codes. New abstract function for auction component:`interface()`, `state_update()`
@@ -79,15 +76,15 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>19.12.2022:</b> Add a batch file for testing. Fixed color issue caused by multi-threading.
 <b>21.12.2022:</b> New headless model and function_test.py. For the future experiment and testing. New global_time_sync.py module to synchronize the clock in the best effort (planning phase).
 <b>24.12.2022:</b> New TUI developing... And merry christmas!!!<br>
-<b>12.01.2023:</b> Fixed little bugs for broadcast in complex enviroment and bit function corection.<br>
+<b>12.01.2023:</b> Fixed little bugs for broadcast in complex environment and bit function correction.<br>
 <b>13.01.2023:</b> Added election functions! Start to look better!
-### TODO<br> 
-1. totally reliable multicast(test phase)
-2. election
-3. error handling (extremely important). especially udp_send() function
-4. number of clients/servers update function (currently not important)
-5. heartbeat
-6. time synchronize
-7. bugs fix!!!!!!!!
-8. comment!!!!
-9. BIG PROBLEM: I don't know how to add emoji in markdown!!
+<b>14.01.2023:</b> Fixed bugs in election and broadcasts. The subnet mask now is functioning on windows, test still need on linux pc.<br>
+### TODO<br>
+1. election failure model
+2. error handling (extremely important). especially udp_send() function
+3. number of clients/servers update function (currently not important)
+4. heartbeat
+5. time synchronize
+6. bugs fix!!!!!!!!
+7. comment!!!!
+8. BIG PROBLEM: I don't know how to add emoji in markdown!!

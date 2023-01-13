@@ -1,5 +1,6 @@
 import socket
 import threading
+from abc import abstractmethod
 import pandas
 import pickle
 from uuid import uuid4
@@ -13,20 +14,13 @@ import pandas as pd
 class group_member_service:
     def __init__(self, IP_ADDRESS: str,
                  iD,
-                 TYPE: str,
                  UDP_PORT):
-        self.TYPE = TYPE
         self.id = iD
         self.IP_ADDRESS = IP_ADDRESS
         self.UDP_PORT = UDP_PORT
         self.TIM_PORT = UDP_PORT + 1
         self.ELE_PORT = UDP_PORT + 2
         self.GMS_PORT = UDP_PORT + 3
-        self.send_port = None
-        self.server_list = \
-            pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client', 'time_stamp']).astype(
-                {'number_of_client': 'int32'}) if self.TYPE == 'SERVER' else None
-        self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT', 'time_stamp']) if self.TYPE == 'SERVER' else None
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
         self.HEARTBEAT_RATE = cfg.attr['HEARTBEAT_RATE']
         self.TERMINATE = False
@@ -40,6 +34,24 @@ class group_member_service:
         tmp = pd.DataFrame({'ADDRESS': addr, 'PORT': port}, index=[iD])
         df = pd.concat([df, tmp], ignore_index=False)
         return df
+
+    @abstractmethod
+    def heartbeat_listen(self):
+        pass
+
+    @abstractmethod
+    def heartbeat_send(self):
+        pass
+
+
+class group_member_service_server(group_member_service):
+    def __init__(self, IP_ADDRESS: str, iD, UDP_PORT):
+        super().__init__(IP_ADDRESS, iD, UDP_PORT)
+        self.TYPE = 'SERVER'
+        self.server_list = \
+            pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client', 'time_stamp']).astype(
+                {'number_of_client': 'int32'}) if self.TYPE == 'SERVER' else None
+        self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT', 'time_stamp']) if self.TYPE == 'SERVER' else None
 
     def heartbeat_listen(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -60,7 +72,7 @@ class group_member_service:
                 else:
                     if message['METHOD'] == 'HEAREQUEST':
                         reply = utils.create_message(self.id, 'HEAREPLY', {'ID': self.id})
-                        self.udp_send_without_response(address, reply)
+                        utils.udp_send_without_response(address, reply)
                     else:
                         print('Warning: Inappropriate message at heartbeat port.')
                 pass
@@ -69,14 +81,14 @@ class group_member_service:
         while True:
             if self.TERMINATE:
                 break
-                
+
             message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id})
-            
+
             if self.TYPE == 'CLIENT':
                 pass
             else:
                 pass
-                
+
             time.sleep(self.HEARTBEAT_RATE)
         pass
 
@@ -90,7 +102,7 @@ class group_member_service:
         for i in range(len(server_list)):
             server_list[i] = server_list[i] + (ids[i],)
         server_list.sort(key=lambda x: x[2])
-    
+
         ring_uuid = server_list
         # remove uuid
         for i in range(len(ring_uuid)):
@@ -124,17 +136,17 @@ class group_member_service:
         # ring_uuid is the ring with uuid
         # neighbour is the neighbour of current node
         # return the leader
-    
+
         # leader election with LaLann-Chang-Roberts algorithm
         # return the leader ip and port
-    
+
         # each node broadcast the uuid to the neighbour
         # if the neighbour uuid is greater than the current node uuid, then node send a pass message to the neighbour,
         # else node send a stop message to the neighbour
         # if the node receive a stop message, then node stop sending its own uuid to the neighbour,
         # else receive a pass message, then node continue sending(broadcast) its own uuid to the neighbour
         # eventually the node with the largest uuid will be the leader
-    
+
         # my_ip = "183.38.223.1"
         # id = "aed937ea-33f3-11eb-adc1-0242ac120002"  (my_id)
         # ring_port = 10001
@@ -144,54 +156,48 @@ class group_member_service:
         time.sleep(0.1)
         MY_IP = self.IP_ADDRESS
         ELE_PORT = self.ELE_PORT
-        id = ring_uuid[0][2]
-        
+        iD = ring_uuid[0][2]
+
         leader_uid = ""
         participant = False
         members = [...]
 
         ring_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         ring_socket.bind((MY_IP, ELE_PORT))
-        new_election_message = {"mid": id, "isLeader": False}
+        new_election_message = {"mid": iD, "isLeader": False}
         utils.udp_send_without_response(neighbour, new_election_message)
-        
-        print("\nWaiting to receive election message...\n")
-        while not self.TERMINATE: 
+
+        while not self.TERMINATE:
             data, _ = ring_socket.recvfrom(self.BUFFER_SIZE)
             election_message = pickle.loads(data)
             print(election_message)
             if election_message["isLeader"]:
                 leader_uid = election_message["mid"]
-                # forward received election message to left neighbour
-                participant = False
                 # ring_socket.sendto(pickle.dumps(election_message), neighbour)
                 utils.udp_send_without_response(neighbour, election_message)
                 break
-            if election_message["mid"] < id and not participant:
-                new_election_message = {"mid": id, "isLeader": False}
+            if election_message["mid"] < iD and not participant:
+                new_election_message = {"mid": iD, "isLeader": False}
                 participant = True
                 # send received election message to left neighbour
                 # ring_socket.sendto(pickle.dumps(new_election_message), neighbour)
                 utils.udp_send_without_response(neighbour, new_election_message)
-            elif election_message["mid"] > id:
+            elif election_message["mid"] > iD:
                 # send received election message to left neighbour
                 participant = True
                 # ring_socket.sendto(pickle.dumps(election_message), neighbour)
                 utils.udp_send_without_response(neighbour, election_message)
-            elif election_message["mid"] == id:
-                leader_uid = id
-                new_election_message = {"mid": id, "isLeader": True}
+            elif election_message["mid"] == iD:
+                leader_uid = iD
+                new_election_message = {"mid": iD, "isLeader": True}
                 # send new election message to left neighbour
                 participant = False
                 # ring_socket.sendto(pickle.dumps(new_election_message), neighbour)
                 utils.udp_send_without_response(neighbour, new_election_message)
-                break
-        print("Leader is: {}".format(leader_uid))
-    
         return leader_uid
 
-    def set_heartbeat_send_port(self, address: tuple):
-        self.send_port = address
+    def set_udp_port(self, address: tuple):
+        self.UDP_PORT = address
 
     def add_server(self, iD, addr: tuple, **kwargs):
         self.server_list = self.add_instance(iD, addr[0], addr[1], self.server_list)
@@ -255,7 +261,7 @@ class group_member_service:
             tmp.append(utils.get_port(result, TYPE))
         return tmp
 
-    def get_server_id(self) -> list:
+    def get_server_id(self) -> tuple[list, list]:
         """
         HELPER FUNCTION
         Get all the id of servers that store in the gms
@@ -314,9 +320,21 @@ class group_member_service:
             utils.udp_send_without_response(member, self.server_list)
 
 
+class group_member_service_client(group_member_service):
+    def __init__(self, IP_ADDRESS: str, iD, UDP_PORT):
+        super().__init__(IP_ADDRESS, iD, UDP_PORT)
+        self.TYPE = 'SERVER'
+
+    def heartbeat_send(self):
+        pass
+
+    def heartbeat_listen(self):
+        pass
+
+
 def main():
     iD = str(uuid4())
-    gms = group_member_service('192.168.0.200', iD, 'SERVER', 123)
+    gms = group_member_service_server('192.168.0.200', iD, 123)
     gms.add_server(str(uuid4()), ('192.168.0.200', 123), time_stamp='asdf')
     gms.add_server(str(uuid4()), ('123.123.123.111', 1111), number_of_client=3)
     gms.add_server(str(uuid4()), ('123.123.123.222', 2222), time_stamp='a123')
@@ -325,9 +343,10 @@ def main():
     gms.print_server()
     ring_with_id, ring = gms.form_ring()
     print(ring_with_id)
-    aneighbour = gms.get_neighbour(ring=ring, direction=False)
-    election_message = {"mid": "paticipant id", "isLeader": "True or False"}
-    gms.LCR(ring_with_id, aneighbour)
+    neighbour = gms.get_neighbour(ring=ring, direction=False)
+    print(neighbour)
+    gms.LCR()
+
 
 if __name__ == '__main__':
     main()

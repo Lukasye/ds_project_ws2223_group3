@@ -2,7 +2,7 @@ import click
 
 from auction_component import auction_component
 from global_time_sync import global_time_sync
-from group_member_service import group_member_service
+from group_member_service import group_member_service_client
 import config as cfg
 
 
@@ -19,7 +19,7 @@ class Client(auction_component):
         self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue], headless)
         # introduce the global time synchronizer
         self.gts = global_time_sync(self.TIM_PORT, False)
-        self.gms = group_member_service(self.MY_IP, self.id, self.TYPE, self.UDP_PORT)
+        self.gms = group_member_service_client(self.MY_IP, self.id, self.UDP_PORT)
 
     def report(self):
         if self.headless:
@@ -33,9 +33,8 @@ class Client(auction_component):
                   'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
                                                  self.is_member, self.MAIN_SERVER, self.CONTACT_SERVER,
                                                  self.sequence_counter)
-        info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
-        print(message + '\n' + info)
-        return message, info
+        print(message + '\n')
+        return message
 
     def logic(self, response: dict):
         type_monitor = cfg.type_monitor
@@ -78,8 +77,14 @@ class Client(auction_component):
 
     def interface(self) -> None:
         while True:
-            print('*' * 60)
+            if not self.headless:
+                print('*' * 60)
+                info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
+                print(info)
             user_input = input('Please enter your command:')
+            # ************************************************************
+            #                        Basic Functions
+            # ************************************************************
             if user_input == 'exit':
                 self.TERMINATE = True
                 quit()
@@ -102,11 +107,14 @@ class Client(auction_component):
             elif user_input == 'seq_hist':
                 for ele in self.multicast_hist:
                     print(ele)
+            elif user_input == 'clear':
+                self.clear_screen()
+            # ************************************************************
+            #                     Test Functions
+            # ************************************************************
             elif user_input == 'intercept':
                 self.intercept = 5
                 print(f'Intercepting the next {self.intercept} incoming message...')
-            elif user_input == 'clear':
-                self.clear_screen()
             else:
                 print('Invalid input!')
 
