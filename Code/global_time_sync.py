@@ -1,13 +1,15 @@
 import time
 import datetime
 import threading
+import socket
 
 import utils
 import config as cfg
 
 
 class global_time_sync:
-    def __init__(self, TIM_PORT, is_main):
+    def __init__(self, IP_ADDRESS: str, TIM_PORT, is_main):
+        self.IP_ADDRESS = IP_ADDRESS
         self.TIM_PORT = TIM_PORT
         self.is_main = is_main
         self.threads = [self.time_listen()]
@@ -37,6 +39,8 @@ class global_time_sync:
         and pass the variable to adjust_time function to update the time stamp
         :return:
         """
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        server_socket.bind((self.IP_ADDRESS, self.TIM_PORT))
         pass
 
     def adjust_time(self, timestamp):

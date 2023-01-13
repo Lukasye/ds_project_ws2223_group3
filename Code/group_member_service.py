@@ -21,6 +21,7 @@ class group_member_service:
         self.TIM_PORT = UDP_PORT + 1
         self.ELE_PORT = UDP_PORT + 2
         self.GMS_PORT = UDP_PORT + 3
+        self.server_list = None
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
         self.HEARTBEAT_RATE = cfg.attr['HEARTBEAT_RATE']
         self.TERMINATE = False
@@ -32,12 +33,26 @@ class group_member_service:
         return df
 
     @abstractmethod
-    def heartbeat_listen(self):
-        pass
-
-    @abstractmethod
     def heartbeat_send(self):
         pass
+        
+    def heartbeat_listen(self):
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        server_socket.bind((self.IP_ADDRESS, self.GMS_PORT))
+        while not self.TERMINATE:
+            data, address = server_socket.recvfrom(self.BUFFER_SIZE)
+            if data:
+                message = pickle.loads(data)
+                if isinstance(message, pandas.DataFrame):
+                    # if the datatype is pandas df, it will be a synchronize of serverlist
+                    self.server_list = message
+                else:
+                    method = message['METHOD']
+                    if method == 'HEAREQUEST':
+                        reply = utils.create_message(self.id, 'HEAREPLY', {'ID': self.id})
+                        utils.udp_send_without_response(address, reply)
+                    else:
+                        print('Warning: Inappropriate message at heartbeat port.')
 
     def start_thread(self):
         self.threads = [self.heartbeat_listen, self.heartbeat_send]
@@ -56,44 +71,13 @@ class group_member_service_server(group_member_service):
         self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT', 'time_stamp']) if self.TYPE == 'SERVER' else None
         self.start_thread()
 
-    def heartbeat_listen(self):
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        server_socket.bind((self.IP_ADDRESS, self.GMS_PORT))
-        while not self.TERMINATE:
-            data, address = server_socket.recvfrom(self.BUFFER_SIZE)
-            if data:
-                message = pickle.loads(data)
-                if isinstance(message, pandas.DataFrame):
-                    # if the incoming data is panda df, synchronize the df
-                    self.server_list = message
-                # elif isinstance(message, str):
-                #     # if it is a string, means it is an iD that should be removed from the df
-                #     self.remove_server(message)
-                # elif isinstance(message, pandas.Series):
-                #     # if it is a string, means it needs to be added to the df
-                #     pass
-                else:
-                    if message['METHOD'] == 'HEAREQUEST':
-                        reply = utils.create_message(self.id, 'HEAREPLY', {'ID': self.id})
-                        utils.udp_send_without_response(address, reply)
-                    else:
-                        print('Warning: Inappropriate message at heartbeat port.')
-                pass
-
     def heartbeat_send(self):
-        while True:
-            if self.TERMINATE:
-                break
-
+        while not self.TERMINATE:
             message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id})
 
-            if self.TYPE == 'CLIENT':
-                pass
-            else:
-                pass
+            # todo
 
             time.sleep(self.HEARTBEAT_RATE)
-        pass
 
     def form_ring(self):
         # server list is a list of tuples (ip, port)
@@ -264,7 +248,7 @@ class group_member_service_server(group_member_service):
             tmp.append(utils.get_port(result, TYPE))
         return tmp
 
-    def get_server_id(self) -> tuple[list, list]:
+    def get_server_id(self):
         """
         HELPER FUNCTION
         Get all the id of servers that store in the gms
@@ -326,16 +310,18 @@ class group_member_service_server(group_member_service):
 class group_member_service_client(group_member_service):
     def __init__(self, IP_ADDRESS: str, iD, UDP_PORT):
         super().__init__(IP_ADDRESS, iD, UDP_PORT)
-        self.TYPE = 'SERVER'
+        self.TYPE = 'CLIENT'
         self.start_thread()
 
     def heartbeat_send(self):
-        pass
+        while not self.TERMINATE:
+            message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id})
 
-    def heartbeat_listen(self):
-        pass
+            # todo
 
+            time.sleep(self.HEARTBEAT_RATE)
 
+            
 def main():
     iD = str(uuid4())
     gms = group_member_service_server('192.168.0.200', iD, 123)
