@@ -62,9 +62,10 @@ class group_member_service:
 
 
 class group_member_service_server(group_member_service):
-    def __init__(self, IP_ADDRESS: str, iD, UDP_PORT):
+    def __init__(self, IP_ADDRESS: str, iD, UDP_PORT, is_main: bool = False):
         super().__init__(IP_ADDRESS, iD, UDP_PORT)
         self.TYPE = 'SERVER'
+        self.is_main = is_main
         self.server_list = \
             pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client', 'time_stamp']).astype(
                 {'number_of_client': 'int32'}) if self.TYPE == 'SERVER' else None
@@ -75,7 +76,26 @@ class group_member_service_server(group_member_service):
         while not self.TERMINATE:
             message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id})
 
-            # todo
+            if self.is_main:
+                pass
+            else:
+                pass
+                
+            for address in self.get_client_address('UDP'):
+                try:
+                    response = utils.udp_send(utils.get_port(address, 'GMS'), message)
+                    print('Heartbeat sent!')
+                    if response == None:
+                        # our heartbeat request timed out, so we need to remove the client from our list
+                        self.remove_client(self.client_address_to_id(address))
+                    elif response['METHOD'] == 'HEAREPLY':
+                        # we got exactly the response we expected, so we don't need to do anything
+                        pass
+                    else:
+                        print('Warning: Inappropriate message at heartbeat port.')
+                except ConnectionResetError:
+                    # our heartbeat request crashed because the socket subsystem realised to client is gone, so we need to remove the client from our list
+                    self.remove_client(self.client_address_to_id(address))
 
             time.sleep(self.HEARTBEAT_RATE)
 
@@ -182,6 +202,13 @@ class group_member_service_server(group_member_service):
                 # ring_socket.sendto(pickle.dumps(new_election_message), neighbour)
                 utils.udp_send_without_response(neighbour, new_election_message)
         return leader_uid
+        
+    def client_address_to_id(self, address) -> int:
+        for index, row in self.client_list.iterrows():
+            if (row['ADDRESS'], row['PORT']) == address:
+                return index
+                
+        return None
 
     def set_udp_port(self, address: tuple):
         self.UDP_PORT = address
@@ -311,6 +338,7 @@ class group_member_service_client(group_member_service):
     def __init__(self, IP_ADDRESS: str, iD, UDP_PORT):
         super().__init__(IP_ADDRESS, iD, UDP_PORT)
         self.TYPE = 'CLIENT'
+        self.CONTACT_SERVER = None
         self.start_thread()
 
     def heartbeat_send(self):
