@@ -18,7 +18,7 @@ class Client(auction_component):
         # open multiple thread to do different jobs
         self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue], headless)
         # introduce the global time synchronizer
-        self.gts = global_time_sync(self.MY_IP, self.TIM_PORT, False)
+        self.gts = global_time_sync(self.TYPE, self.MY_IP, self.TIM_PORT, False)
         self.gms = group_member_service_client(self.MY_IP, self.id, self.UDP_PORT)
 
     def report(self):
@@ -87,6 +87,8 @@ class Client(auction_component):
             # ************************************************************
             if user_input == 'exit':
                 self.TERMINATE = True
+                self.gms.close()
+                self.gts.end()
                 quit()
             elif user_input == 'report':
                 self.report()

@@ -5,6 +5,7 @@ attr = {'BROADCAST_PORT': 5972,
         'BUFFER_SIZE': 4096,
         'DURATION': 100,
         'HEARTBEAT_RATE': 5,
+        'SYNC_RATE': 5,
         'NUMBER_PORTS': 4,
         'CLIENT_PORT_START': 5700,
         'SERVER_PORT_START': 10001}

@@ -60,6 +60,8 @@ class group_member_service:
             t = threading.Thread(target=th, daemon=True)
             t.start()
 
+    def close(self):
+        self.TERMINATE = True
 
 class group_member_service_server(group_member_service):
     def __init__(self, IP_ADDRESS: str, iD, UDP_PORT):
@@ -312,9 +314,6 @@ class group_member_service_server(group_member_service):
             return iD in self.client_list.index
         else:
             raise ValueError('TYPE can only be "SERVER" or "CLIENT"!')
-
-    def close(self):
-        self.TERMINATE = True
 
     def assign_clients(self) -> tuple:
         """
