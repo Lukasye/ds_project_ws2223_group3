@@ -22,7 +22,7 @@ class Server(auction_component):
         self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT)
         self.gms.add_server(self.id, (self.MY_IP, self.UDP_PORT))
         # introduce the global time synchronizer
-        self.gts = global_time_sync(self.TYPE, self.MY_IP, self.TIM_PORT, self.is_main)
+        self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT)
 
         # initialize depends on whether this is the main server
         warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue]
