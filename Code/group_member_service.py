@@ -36,20 +36,23 @@ class group_member_service:
     def heartbeat_send(self):
         pass
         
-    def heartbeat_listen(self):
+    def heartbeat_listen(self, content: dict):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         server_socket.bind((self.IP_ADDRESS, self.GMS_PORT))
         while not self.TERMINATE:
             data, address = server_socket.recvfrom(self.BUFFER_SIZE)
             if data:
                 message = pickle.loads(data)
+                # don't listen to yourself!
                 if isinstance(message, pandas.DataFrame):
                     # if the datatype is pandas df, it will be a synchronize of serverlist
                     self.server_list = message
                 else:
+                    # if message['CONTENT']['ID'] == self.id:
+                    #     continue
                     method = message['METHOD']
                     if method == 'HEAREQUEST':
-                        reply = utils.create_message(self.id, 'HEAREPLY', {'ID': self.id})
+                        reply = utils.create_message(self.id, 'HEAREPLY', content)
                         utils.udp_send_without_response(address, reply)
                     else:
                         print('Warning: Inappropriate message at heartbeat port.')
@@ -64,18 +67,23 @@ class group_member_service:
         self.TERMINATE = True
 
 class group_member_service_server(group_member_service):
-    def __init__(self, IP_ADDRESS: str, iD, UDP_PORT):
+    def __init__(self, IP_ADDRESS: str, iD, UDP_PORT, is_MAIN: bool):
         super().__init__(IP_ADDRESS, iD, UDP_PORT)
         self.TYPE = 'SERVER'
+        self.is_main = is_MAIN
         self.server_list = \
             pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client', 'time_stamp']).astype(
                 {'number_of_client': 'int32'}) if self.TYPE == 'SERVER' else None
         self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT', 'time_stamp']) if self.TYPE == 'SERVER' else None
         self.start_thread()
 
+    def heartbeat_listen(self):
+        content = {'ID': self.id,'CLIENTS': self.client_size()}
+        return super().heartbeat_listen(content)
+
     def heartbeat_send(self):
         while not self.TERMINATE:
-            message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id})
+            message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id, 'CLIENTS': self.client_size()})
 
             for address in self.get_server_address('UDP'):
                 try:
@@ -87,7 +95,9 @@ class group_member_service_server(group_member_service):
                         # TODO: Elect new main if the removed server was main
                     elif response['METHOD'] == 'HEAREPLY':
                         # we got exactly the response we expected, so we don't need to do anything
-                        pass
+                        # and at the same time we update the number of clients
+                        if self.is_main:
+                            self.server_list['number_of_client'] = response['CONTENT']['CLIENTS']
                     else:
                         print('Warning: Inappropriate message at heartbeat port.')
                 except ConnectionResetError:
@@ -111,8 +121,12 @@ class group_member_service_server(group_member_service):
                     # our heartbeat request crashed because the socket subsystem realised to client is gone, so we need to remove the client from our list
                     self.remove_client(self.address_to_id(self.client_list, address))
 
-            time.sleep(self.HEARTBEAT_RATE)
+            # is the proccess is main, it will update all the server list in this function
+            if self.is_main:
+                self.group_synchronise()
 
+            time.sleep(self.HEARTBEAT_RATE)
+        
     def form_ring(self):
         # server list is a list of tuples (ip, port)
         # add uuid to each server(ip, port, uuid)
@@ -359,8 +373,12 @@ class group_member_service_client(group_member_service):
             # todo
 
             time.sleep(self.HEARTBEAT_RATE)
+    
+    def heartbeat_listen(self):
+        content = {'ID': self.id}
+        return super().heartbeat_listen(content)
 
-            
+
 def main():
     iD = str(uuid4())
     gms = group_member_service_server('192.168.0.200', iD, 123)

@@ -176,7 +176,6 @@ class auction_component:
         if message['SEQUENCE'] != 0:
             if self.intercept:
                 # just for testing! skip the next message!
-                self.intercept -= 1
                 return
             seq = message['SEQUENCE']
             # Reliable ordered needed!
@@ -189,6 +188,8 @@ class auction_component:
         else:
             # deliver direct all the normal messages
             self.deliver(message)
+        if self.intercept != 0:
+            self.intercept -= 1
 
     def check_hold_back_queue(self):
         timestamp = time.time()

@@ -11,6 +11,7 @@ class global_time_sync:
     def __init__(self, TYPE: str, IP_ADDRESS: str, TIM_PORT, is_main):
         self.IP_ADDRESS = IP_ADDRESS
         self.TIM_PORT = TIM_PORT
+        self.is_main = is_main
         self.offset = 0
         self.SYNC_SERVER = None
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']

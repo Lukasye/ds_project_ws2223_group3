@@ -1,4 +1,5 @@
 import click
+import time
 
 from auction_component import auction_component
 from global_time_sync import global_time_sync
@@ -14,12 +15,12 @@ class Client(auction_component):
         self.current_bid = 0
         self.is_member = False
         self.headless = headless
+        self.gts = global_time_sync(self.TYPE, self.MY_IP, self.TIM_PORT, False)
+        self.gms = group_member_service_client(self.MY_IP, self.id, self.UDP_PORT)
         self.report()
         # open multiple thread to do different jobs
         self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue], headless)
         # introduce the global time synchronizer
-        self.gts = global_time_sync(self.TYPE, self.MY_IP, self.TIM_PORT, False)
-        self.gms = group_member_service_client(self.MY_IP, self.id, self.UDP_PORT)
 
     def report(self):
         if self.headless:
@@ -79,6 +80,7 @@ class Client(auction_component):
         while True:
             if not self.headless:
                 print('*' * 60)
+                print(f'Time: {time.gmtime(self.gts.get_time())}')
                 info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
                 print(info)
             user_input = input('Please enter your command:')
@@ -103,6 +105,8 @@ class Client(auction_component):
             elif user_input == 'leave':
                 self.leave()
                 print('Dis-attached with Main-server!')
+                self.gms.close()
+                self.gms = group_member_service_client(self.MY_IP, self.id, self.UDP_PORT)
                 self.report()
             elif user_input == 'queue':
                 self.print_hold_back_queue()
@@ -115,8 +119,8 @@ class Client(auction_component):
             #                     Test Functions
             # ************************************************************
             elif user_input == 'intercept':
-                self.intercept = 5
-                print('Intercepting the next {self.intercept} incoming message...')
+                self.intercept = 1
+                print(f'Intercepting the next {self.intercept} incoming message...')
             else:
                 print('Invalid input!')
 

@@ -1,4 +1,6 @@
 import click
+import time
+import threading
 import socket
 
 from auction_component import auction_component
@@ -19,7 +21,7 @@ class Server(auction_component):
         self.is_main = is_main
         self.headless = headless
         # introduce the group member service
-        self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT)
+        self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT, self.is_main)
         self.gms.add_server(self.id, (self.MY_IP, self.UDP_PORT))
         # introduce the global time synchronizer
         self.gts = global_time_sync(self.TYPE, self.MY_IP, self.TIM_PORT, self.is_main)
@@ -132,6 +134,7 @@ class Server(auction_component):
                 command = f'self.highest_bid={price};self.winner="{tmp}"'
                 # self.multicast_send_without_response(self.gms.get_server_address(), message)
                 self.remote_methode_invocation(self.gms.get_server_address(), command, SEQUENCE=sequence)
+                time.sleep(0.05)
                 self.remote_methode_invocation(self.gms.get_server_address(), f'self.pass_on({sequence})')
                 # foobar
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
@@ -194,6 +197,9 @@ class Server(auction_component):
                                  CONTACT_SERVER=addr)
             if iD != self.id:
                 self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'self.join_contact()')
+    
+    def info_update():
+        pass
 
     def pass_on(self, sequence: int):
         tmp = self.winner
@@ -239,11 +245,13 @@ class Server(auction_component):
         sequence = self.udp_send(utils.get_port(tuple(self.MAIN_SERVER), 'SEQ'), message)
         return sequence['CONTENT']['SEQ']
 
-    def start_auction(self):
+    def start_auction(self, duration: int = 5):
         command = 'self.in_auction = True;print("Auction Started!")'
         self.remote_methode_invocation(self.gms.get_client_address(), command)
         self.in_auction = True
         print('Auction started!')
+        # t = threading.Thread(target=self.auction_timer, args=duration)
+        # t.start()
 
     def end_auction(self):
         command = 'self.in_auction = True;print("Auction Ended!")'
@@ -251,10 +259,30 @@ class Server(auction_component):
         self.in_auction = False
         print('Auction ended!')
 
+    def update_interface(self):
+        command = 'self.report()'
+        self.remote_methode_invocation(self.gms.get_client_address(), command)
+
+    def auction_timer(self, duration: int):
+        # TODO: not tested!
+        start_time = self.gts.get_time()
+        self.gts.start()
+        while True:
+            current = self.gts.get_time()
+            if current - start_time > duration:
+                break
+        self.gts.end()
+        self.end_auction()
+
+    def declare_winner():
+        # TODO: end of the project
+        pass
+
     def interface(self) -> None:
         while True:
             if not self.headless:
                 print('*' * 60)
+                print(f'Time: {time.gmtime(self.gts.get_time())}')
                 info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
                 print(info)
             user_input = input('Please enter your command:')
@@ -327,7 +355,7 @@ class Server(auction_component):
                 self.multicast_send_without_response([(address, 5700)],
                                                      self.create_message('TEST', SEQUENCE=5, CONTENT={'N': 5}))
             elif user_input == 'intercept':
-                self.intercept = 3
+                self.intercept = 1
                 print(f'Intercepting the next {self.intercept} incoming message...')
             elif user_input == 'leave':
                 if self.is_main:
@@ -337,6 +365,8 @@ class Server(auction_component):
                     self.is_member = False
                     self.MAIN_SERVER = None
                     print('Dis-attached with Main-server!')
+                self.gms.close()
+                self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT, self.is_main)
                 self.report()
             elif user_input == 'multicast_test':
                 for i in range(10):

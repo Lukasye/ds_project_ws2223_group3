@@ -8,7 +8,7 @@ attr = {'BROADCAST_PORT': 5972,
         'SYNC_RATE': 5,
         'NUMBER_PORTS': 4,
         'CLIENT_PORT_START': 5700,
-        'SERVER_PORT_START': 10001}
+        'SERVER_PORT_START': 10000}
 
 window = {'time': (0, 1, 2, 70),
           'info': (3, 1, 10, 70),
@@ -17,4 +17,4 @@ window = {'time': (0, 1, 2, 70),
           'input': (22, 73, 2, 20),
           }
 
-type_monitor = ['SET', 'RMI', 'GET', 'JOIN']
+type_monitor = ['SET', 'RMI', 'GET']
