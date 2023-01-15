@@ -116,7 +116,7 @@ class Client(auction_component):
             # ************************************************************
             elif user_input == 'intercept':
                 self.intercept = 5
-                print(f'Intercepting the next {self.intercept} incoming message...')
+                print('Intercepting the next {self.intercept} incoming message...')
             else:
                 print('Invalid input!')
 

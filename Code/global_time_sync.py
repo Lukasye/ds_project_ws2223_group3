@@ -11,9 +11,9 @@ class global_time_sync:
     def __init__(self, TYPE: str, IP_ADDRESS: str, TIM_PORT, is_main):
         self.IP_ADDRESS = IP_ADDRESS
         self.TIM_PORT = TIM_PORT
-        self.is_main = is_main
         self.offset = 0
         self.SYNC_SERVER = None
+        self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
         self.SYNC_RATE = cfg.attr['SYNC_RATE']
         self.TYPE = TYPE
         self.TERMINATE = False
@@ -46,6 +46,17 @@ class global_time_sync:
         """
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         server_socket.bind((self.IP_ADDRESS, self.TIM_PORT))
+        
+        while not self.TERMINATE:
+            data, address = server_socket.recvfrom(self.BUFFER_SIZE)
+            if data:
+                message = pickle.loads(data)
+                method = message['METHOD']
+                if method == 'SYNCREQUEST':
+                    reply = utils.create_message(self.id, 'SYNCREPLY', {'SENDTIME': message['SENDTIME'], 'RCVTIME': self.get_time()})
+                    utils.udp_send_without_response(address, reply)
+                else:
+                    print('Warning: Inappropriate message at time port.')
 
     def time_synchronize(self):
         """
@@ -55,8 +66,17 @@ class global_time_sync:
         """
         
         while not self.TERMINATE:
-            if not self.is_main:
-               pass
+            if self.SYNC_SERVER != None:
+                message = utils.create_message(self.id, 'SYNCREQUEST', {'SENDTIME': self.get_time()})
+                response = utils.udp_send(utils.get_port(SYNC_SERVER, 'TIM'), message)
+               
+                if response == None:
+                    pass                # the request timed out - sucks, but not our problem
+                elif response['METHOD'] == 'SYNCREPLY':
+                    self.adjust_time(response['SENDTIME'], response['RCVTIME'])  
+                else:
+                    print('Warning: Inappropriate message at time port.')
+               
             time.sleep(self.SYNC_RATE)
 
     def adjust_time(self, timestamp1, timestamp2):
@@ -75,9 +95,6 @@ class global_time_sync:
         :return: float seconds since epoch
         """
         return time.time() + self.offset
-
-    def set_is_main(self, is_main):
-        self.is_main = is_main
 
     def set_sync_server(self, SYNC_SERVER):
         self.SYNC_SERVER = SYNC_SERVER

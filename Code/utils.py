@@ -59,7 +59,7 @@ def get_port(MAIN_SERVER: tuple, PORT: str = 'SEQ') -> tuple:
     port = MAIN_SERVER[1]
     if PORT == 'UDP':
         port = port
-    elif PORT == 'BRO':
+    elif PORT == 'TIM':
         port += 1
     elif PORT == 'ELE':
         port += 2
