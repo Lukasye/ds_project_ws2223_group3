@@ -125,7 +125,7 @@ class Client(auction_component):
                 print('Invalid input!')
 
     def state_update(self) -> None:
-        pass
+        self.gts.set_sync_server(self.CONTACT_SERVER)
 
 
 @click.command()
