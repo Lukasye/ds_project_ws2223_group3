@@ -349,6 +349,24 @@ class auction_component:
                 continue
             self.udp_send_without_response(tuple(member), message)
             count += 1
+    
+    def multicast_send(self, group: list,
+                                        message: dict,
+                                        test: int = -1,
+                                        skip: int = -1):
+        assert test < len(group)
+        assert skip < len(group)
+        replys = []
+        count = 0
+        for member in tqdm(group):
+            if count == test:
+                time.sleep(10)
+            if count == skip:
+                continue
+            replys.append(self.udp_send(tuple(member), message))
+            count += 1
+        return replys
+
 
     def negative_acknowledgement(self):
         # if the sequence number is already actuel ???

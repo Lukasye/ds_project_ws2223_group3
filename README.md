@@ -79,7 +79,8 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>12.01.2023:</b> Fixed little bugs for broadcast in complex environment and bit function correction.<br>
 <b>13.01.2023:</b> Added election functions! Start to look better!
 <b>14.01.2023:</b> Fixed bugs in election and broadcasts. The subnet mask now is functioning on windows, test still need on linux pc.<br>
-<b>15.01.2023:</b> Supplementary coding for gms and gts. Tested reliable ordered  multicast. Various bugs fixed.
+<b>15.01.2023:</b> Supplementary coding for gms and gts. Tested reliable ordered  multicast. Various bugs fixed.<br>
+<b>16.01.2023:</b> merge some of the functions. Try to implement byzantine agreement part. Add return value function for the remote method invocation and add new multicast send wit hresponse messages.<br>
 ### TODO<br>
 1. election failure model
 2. error handling (extremely important). especially udp_send() function

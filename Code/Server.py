@@ -132,8 +132,10 @@ class Server(auction_component):
                 self.winner = tmp
                 self.highest_bid = price
                 command = f'self.highest_bid={price};self.winner="{tmp}";self.result = self.pass_on({sequence})'
-                # self.multicast_send_without_response(self.gms.get_server_address(), message)
-                result = self.remote_methode_invocation(self.gms.get_server_address(), command, SEQUENCE=sequence)
+                command = f'self.highest_bid={price};self.winner="{tmp}";'
+                # result = self.remote_methode_invocation(self.gms.get_server_address(), command, SEQUENCE=sequence)
+                # result = utils.check_list(result)
+                result = self.notify_all(command=command, sequence=sequence)
                 result = utils.check_list(result)
                 if not result:
                     print('Something went Wrong!!!!!!!!!!!')
@@ -172,8 +174,8 @@ class Server(auction_component):
                 message = self.create_message('GET', content)
                 self.udp_send_without_response(request['SENDER_ADDRESS'], message)
         elif method == 'PRICE':
-            # TODO: deal with the byzentain failiure
-            pass
+            message = self.create_message('PRICE', {'PRICE': self.highest_bid})
+            self.udp_send_without_response(request['SENDER_ADDRESS'], message=message)
         elif method == 'TEST':
             # ignore test signals
             pass
@@ -207,12 +209,15 @@ class Server(auction_component):
             if iD != self.id:
                 self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'self.join_contact();')
     
-    def info_update():
-        pass
+    def notify_all(self, command: str, sequence: int = 0):
+        new_command = command + f"self.result = self.pass_on('{command}', {sequence});" 
+        result = self.remote_methode_invocation(self.gms.get_server_address(), new_command, SEQUENCE=sequence)
+        return result
 
-    def pass_on(self, sequence: int) -> bool:
-        tmp = self.winner
-        command = f'self.highest_bid={self.highest_bid};self.winner="{tmp}";self.result = True'
+    def pass_on(self, command, sequence: int = 0) -> bool:
+        # tmp = self.winner
+        # command = f'self.highest_bid={self.highest_bid};self.winner="{tmp}";self.result = True'
+        command += 'self.result = True;'
         result = self.remote_methode_invocation(self.gms.get_client_address(), command, SEQUENCE=sequence)
         return result
 
@@ -259,7 +264,7 @@ class Server(auction_component):
         if self.in_auction:
             print('Already in an auction!')
             return
-        command = 'self.in_auction = True;print("Auction Started!"); self.result = True'
+        command = 'self.in_auction = True;print("Auction Started!");self.report(); self.result = True'
         result = self.remote_methode_invocation(self.gms.get_client_address(), command)
         if all(result) or self.gms.client_size() == 0:
             self.in_auction = True
@@ -268,6 +273,7 @@ class Server(auction_component):
             print('Failed!')
         # t = threading.Thread(target=self.auction_timer, args=duration)
         # t.start()
+        self.report()
 
     def end_auction(self):
         command = 'self.in_auction = True;print("Auction Ended!"); self.result = True'
@@ -289,6 +295,14 @@ class Server(auction_component):
                 break
         self.gts.end()
         self.end_auction()
+
+    def reach_sgreement(self, agreement: list = []):
+        price = []
+        message = self.create_message('PRICE', {'PRICE': self.highest_bid})
+        result = self.multicast_send(self.gms.get_server_address(), message)
+        for message in result:
+            price.append(message['CONTENT']['PRICE'])
+        return price
 
     def declare_winner():
         # TODO: end of the project
@@ -391,6 +405,9 @@ class Server(auction_component):
                                                                              CONTENT={}), skip=0)
                 self.multicast_send_without_response(self.gms.get_server_address(),
                                                      self.create_message(METHOD='TEST', SEQUENCE=10, CONTENT={}))
+            elif user_input == 'bzt':
+                result = self.reach_sgreement()
+                print(result)
             else:
                 print('Invalid input!')
 
