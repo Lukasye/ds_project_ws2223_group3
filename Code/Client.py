@@ -78,6 +78,7 @@ class Client(auction_component):
         self.MAIN_SERVER = None
         self.CONTACT_SERVER = None
         self.sequence_counter = 0
+        self.state_update()
 
     def interface(self) -> None:
         while True:
@@ -130,6 +131,7 @@ class Client(auction_component):
 
     def state_update(self) -> None:
         self.gts.set_sync_server(self.CONTACT_SERVER)
+        self.gms.CONTACT_SERVER = self.CONTACT_SERVER
 
 
 @click.command()
