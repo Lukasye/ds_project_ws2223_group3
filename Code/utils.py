@@ -1,4 +1,5 @@
 import os
+from collections.abc import Iterable
 import calendar
 import subprocess
 import socket
@@ -110,6 +111,18 @@ def get_netmask(ip):
     else:
         mask = line.rstrip().split(b':')[-1].replace(b' ',b'').decode()
     return mask
+
+
+def flatten(lis):
+     for item in lis:
+         if isinstance(item, Iterable) and not isinstance(item, str):
+             for x in flatten(item):
+                 yield x
+         else:        
+             yield item
+
+def check_list(result: list):
+    return all(list(flatten(result)))
 
 
 if __name__ == '__main__':

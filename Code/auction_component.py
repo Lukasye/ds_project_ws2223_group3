@@ -71,6 +71,7 @@ class auction_component:
         self.TERMINATE = False
         self.headless = False
         self.in_auction = False
+        self.result = False
 
     @abstractmethod
     def logic(self, request: dict) -> None:
@@ -303,9 +304,16 @@ class auction_component:
         self.udp_send_without_response(address, message)
 
     def remote_methode_invocation(self, group: list, methode: str, SEQUENCE: int = 0):
+        reply = []
+        results = []
         for address in group:
             message = self.create_message('RMI', SEQUENCE=SEQUENCE, CONTENT={'METHODE': methode})
-            self.udp_send_without_response(tuple(address), message)
+            reply.append(self.udp_send(tuple(address), message))
+        for ele in reply:
+            if ele is None:
+                continue
+            results.append(ele['CONTENT']['RESULT'])
+        return results
 
     def remote_para_set(self, group: list, SEQUENCE: int = 0, **kwargs):
         for address in group:

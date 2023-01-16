@@ -9,7 +9,7 @@ import config as cfg
 
 
 class global_time_sync:
-    def __init__(self, TYPE: str, iD, IP_ADDRESS: str, TIM_PORT):
+    def __init__(self, TYPE: str, iD, IP_ADDRESS: str, TIM_PORT, is_main):
         self.id = iD
         self.IP_ADDRESS = IP_ADDRESS
         self.TIM_PORT = TIM_PORT

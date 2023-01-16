@@ -15,7 +15,7 @@ class Client(auction_component):
         self.current_bid = 0
         self.is_member = False
         self.headless = headless
-        self.gts = global_time_sync(self.TYPE, self.MY_IP, self.TIM_PORT, False)
+        self.gts = global_time_sync(self.TYPE,self.id, self.MY_IP, self.TIM_PORT, False)
         self.gms = group_member_service_client(self.MY_IP, self.id, self.UDP_PORT)
         self.report()
         # open multiple thread to do different jobs
@@ -60,7 +60,10 @@ class Client(auction_component):
             print(response['CONTENT']['PRINT'])
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
+            self.result = False
             exec(response['CONTENT']['METHODE'])
+            message = self.create_message('FOO', {'RESULT': self.result})
+            self.udp_send_without_response(response['SENDER_ADDRESS'], message)
         elif method == 'TEST':
             # ignore test signals
             pass
@@ -101,7 +104,8 @@ class Client(auction_component):
                 message = self.create_message('BIT', {'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT),
                                                       'PRICE': info[1]})
                 if self.CONTACT_SERVER is not None:
-                    self.udp_send(tuple(self.CONTACT_SERVER), message, receive=True)
+                    result = self.udp_send(tuple(self.CONTACT_SERVER), message, receive=True)
+                    print(result)
             elif user_input == 'leave':
                 self.leave()
                 print('Dis-attached with Main-server!')
