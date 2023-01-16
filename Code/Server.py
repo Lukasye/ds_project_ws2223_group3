@@ -97,7 +97,7 @@ class Server(auction_component):
             tmp = request['CONTENT']
             for key in tmp:
                 exec('self.{} = {}'.format(key, tmp[key]))
-            # self.remote_methode_invocation()
+            self.state_update();
         # ************************************************************
         #                        Methode REDIRECT
         # ************************************************************
@@ -416,8 +416,8 @@ class Server(auction_component):
         # result = next((ser for ser in self.server_list if ser['ID'] == self.id), None)
         # result['NUMBER'] = self.num_clients
         # self.server_list.loc[self.server_list['ID'] == self.id, 'NUMBER'] = self.num_clients
-        pass
-
+        if not self.is_main:
+            self.gts.set_sync_server(self.MAIN_SERVER)
 
 @click.command()
 @click.option('--port', required=True, default=10000, type=int, help='The port that the server connect to')

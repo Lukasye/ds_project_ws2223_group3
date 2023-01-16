@@ -369,8 +369,24 @@ class group_member_service_client(group_member_service):
     def heartbeat_send(self):
         while not self.TERMINATE:
             message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id})
+            
+            if self.CONTACT_SERVER != None:
+                try:
+                    response = utils.udp_send(utils.get_port(self.CONTACT_SERVER, 'GMS'), message)
 
-            # todo
+                    if response == None:
+                        # our heartbeat request timed out, so we need to reset the contact server
+                        self.CONTACT_SERVER = None
+                        # TODO: Inform Client class of the change, and try to reconnect
+                    elif response['METHOD'] == 'HEAREPLY':
+                        # we got exactly the response we expected, so we don't need to do anything
+                        pass
+                    else:
+                        print('Warning: Inappropriate message at heartbeat port.')
+                except ConnectionResetError:
+                    # our heartbeat request timed out, so we need to reset the contact server
+                    self.CONTACT_SERVER = None
+                    # TODO: Inform Client class of the change, and try to reconnect
 
             time.sleep(self.HEARTBEAT_RATE)
     
