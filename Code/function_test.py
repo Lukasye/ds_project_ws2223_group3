@@ -41,11 +41,11 @@ def test_2():
     mainServer.find_others()
     time.sleep(0.5)
     for i in range(10):
-        mainServer.multicast_send_without_response(mainServer.gms.get_server_address(),
-                                                   mainServer.create_message(METHOD='TEST', SEQUENCE=i, CONTENT={}),
-                                                   skip=0)
-    mainServer.multicast_send_without_response(mainServer.gms.get_server_address(),
-                                               mainServer.create_message(METHOD='TEST', SEQUENCE=10, CONTENT={}))
+        mainServer.unicast_group_without_response(mainServer.gms.get_server_address(),
+                                                  mainServer.create_message(METHOD='TEST', SEQUENCE=i, CONTENT={}),
+                                                  skip=0)
+    mainServer.unicast_group_without_response(mainServer.gms.get_server_address(),
+                                              mainServer.create_message(METHOD='TEST', SEQUENCE=10, CONTENT={}))
     time.sleep(0.5)
     print(subServer.sequence_counter)
 

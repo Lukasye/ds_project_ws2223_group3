@@ -25,6 +25,7 @@ class group_member_service:
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
         self.HEARTBEAT_RATE = cfg.attr['HEARTBEAT_RATE']
         self.TERMINATE = False
+        self.threads = []
 
     @staticmethod
     def add_instance(iD, addr, port, df: pd.DataFrame):
@@ -36,7 +37,12 @@ class group_member_service:
     def heartbeat_send(self):
         pass
         
-    def heartbeat_listen(self, content: dict):
+    def heartbeat_listen(self, content: dict) -> None:
+        """
+        create a socket to listen on the heartbeat port of the process
+        :param content: the reply message that should be sent to the applicants
+        :return: None
+        """
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         server_socket.bind((self.IP_ADDRESS, self.GMS_PORT))
         while not self.TERMINATE:
@@ -45,7 +51,7 @@ class group_member_service:
                 message = pickle.loads(data)
                 # don't listen to yourself!
                 if isinstance(message, pandas.DataFrame):
-                    # if the datatype is pandas df, it will be a synchronize of serverlist
+                    # if the datatype is pandas df, it will be a synchronized of serverlist
                     self.server_list = message
                 else:
                     # if message['CONTENT']['ID'] == self.id:
@@ -66,6 +72,7 @@ class group_member_service:
     def close(self):
         self.TERMINATE = True
 
+
 class group_member_service_server(group_member_service):
     def __init__(self, IP_ADDRESS: str, iD, UDP_PORT, is_MAIN: bool):
         super().__init__(IP_ADDRESS, iD, UDP_PORT)
@@ -78,7 +85,7 @@ class group_member_service_server(group_member_service):
         self.start_thread()
 
     def heartbeat_listen(self):
-        content = {'ID': self.id,'CLIENTS': self.client_size()}
+        content = {'ID': self.id, 'CLIENTS': self.client_size()}
         return super().heartbeat_listen(content)
 
     def heartbeat_send(self):
@@ -89,7 +96,7 @@ class group_member_service_server(group_member_service):
                 try:
                     response = utils.udp_send(utils.get_port(address, 'GMS'), message)
 
-                    if response == None:
+                    if response is None:
                         # our heartbeat request timed out, so we need to remove the server from our list
                         self.remove_server(self.address_to_id(self.server_list, address))
                         # TODO: Elect new main if the removed server was main
@@ -109,7 +116,7 @@ class group_member_service_server(group_member_service):
                 try:
                     response = utils.udp_send(utils.get_port(address, 'GMS'), message)
 
-                    if response == None:
+                    if response is None:
                         # our heartbeat request timed out, so we need to remove the client from our list
                         self.remove_client(self.address_to_id(self.client_list, address))
                     elif response['METHOD'] == 'HEAREPLY':
@@ -145,10 +152,13 @@ class group_member_service_server(group_member_service):
         return ring_uuid, ring
 
     def get_neighbour(self, ring, direction: bool = True):
-        # get the neighbour of current node
-        # direction can be left or right
-        # return the neighbour ip and port
-        # direction: True = Left
+        """
+        HELPER FUNCTION
+        get the neighbour of current node
+        :param ring: list of nodes
+        :param direction: True = Left. Boolean variable to show the direction of neighbour in a ring
+        :return: the neighbour ip and port
+        """
         current_node_ip = (self.IP_ADDRESS, self.UDP_PORT)
         current_node_index = ring.index(current_node_ip) if current_node_ip in ring else -1
 
@@ -231,11 +241,11 @@ class group_member_service_server(group_member_service):
                 utils.udp_send_without_response(neighbour, new_election_message)
         return leader_uid
         
-    def address_to_id(self, node_list, address : tuple) -> int:
+    @staticmethod
+    def address_to_id(node_list, address: tuple) -> None | int:
         for index, row in node_list.iterrows():
             if (row['ADDRESS'], row['PORT']) == address:
                 return index
-                
         return None
 
     def set_udp_port(self, address: tuple):
@@ -290,15 +300,18 @@ class group_member_service_server(group_member_service):
             tmp.append(utils.get_port(result, TYPE))
         return tmp
 
-    def get_server_address(self, TYPE: str = 'UDP') -> list:
+    def get_server_address(self, TYPE: str = 'UDP', without: list = []) -> list:
         """
         HELPER FUNCTION
         Get all the addresses of servers that store in the gms
+        :param without: indicate that the server list won't contain the list of servers
         :param TYPE: specify the port you want to get
         :return: a list of tuple address
         """
         tmp = []
-        for _, row in self.server_list.iterrows():
+        for iD, row in self.server_list.iterrows():
+            if iD in without:
+                continue
             result = (row['ADDRESS'], row['PORT'])
             tmp.append(utils.get_port(result, TYPE))
         return tmp
@@ -370,11 +383,11 @@ class group_member_service_client(group_member_service):
         while not self.TERMINATE:
             message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id})
             
-            if self.CONTACT_SERVER != None:
+            if self.CONTACT_SERVER is not None:
                 try:
                     response = utils.udp_send(utils.get_port(self.CONTACT_SERVER, 'GMS'), message)
 
-                    if response == None:
+                    if response is None:
                         # our heartbeat request timed out, so we need to reset the contact server
                         self.CONTACT_SERVER = None
                         # TODO: Inform Client class of the change, and try to reconnect

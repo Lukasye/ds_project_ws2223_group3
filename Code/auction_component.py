@@ -1,7 +1,10 @@
 import socket
+import struct
 import pickle
 import os
 import heapq
+from typing import List, Any
+
 from tqdm import tqdm
 import time
 from uuid import uuid4
@@ -18,6 +21,7 @@ class element:
     """
     A class to pack the message for the hold_back queue
     """
+
     def __init__(self, info: dict):
         self.info = info
         self.SEQ = info['SEQUENCE']
@@ -42,6 +46,7 @@ class auction_component:
     def __init__(self, TYPE, UDP_PORT):
         # init()
         self.BROADCAST_PORT = cfg.attr['BROADCAST_PORT']
+        self.MULTICAST_PORT = cfg.attr['MULTICAST_PORT']
         self.MY_HOST = socket.gethostname()
         self.MY_IP = utils.get_ip_address()
         self.BROADCAST_IP = utils.get_broadcast_address()
@@ -56,6 +61,7 @@ class auction_component:
         self.SYS = os.name
         self.MAIN_SERVER = None
         self.TERMINATE = False
+        self.MULTICAST_IP = None
         if TYPE == 'CLIENT':
             self.CONTACT_SERVER = None
         self.hold_back_queue = []
@@ -72,6 +78,7 @@ class auction_component:
         self.headless = False
         self.in_auction = False
         self.result = False
+        self.bid_history = []
 
     @abstractmethod
     def logic(self, request: dict) -> None:
@@ -128,6 +135,17 @@ class auction_component:
               'ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['SENDER_ADDRESS'], message['ID'],
                                                           message['METHOD'], message['SEQUENCE'],
                                                           message['CONTENT']))
+
+    def shut_down(self) -> None:
+        """
+        clear all the important data in the process
+        :return: None
+        """
+        self.TERMINATE = True
+        self.sequence_counter = 0
+        self.highest_bid = 0
+        self.winner = None
+        self.hold_back_queue = []
 
     def warm_up(self, ts: list, headless: bool = False) -> None:
         """
@@ -192,7 +210,14 @@ class auction_component:
         if self.intercept != 0:
             self.intercept -= 1
 
-    def check_hold_back_queue(self):
+    def check_hold_back_queue(self, frequency: int = 5) -> None:
+        """
+        HELPER FUNCTION:
+        regularly check the hold back queue and deliver or send out negative acknowledgement
+        :param frequency: int type, the frequency th check the hold back queue compare with
+        the heartbeat rate in the configuration.
+        :return: None
+        """
         timestamp = time.time()
         while not self.TERMINATE:
             if bool(self.hold_back_queue):
@@ -208,7 +233,7 @@ class auction_component:
                 else:
                     # if not, send out the negative acknowledgement
                     cmp = time.time()
-                    if cmp - timestamp > self.HEARTBEAT_RATE:
+                    if cmp - timestamp > self.HEARTBEAT_RATE / frequency:
                         self.negative_acknowledgement()
                         timestamp = time.time()
 
@@ -303,32 +328,109 @@ class auction_component:
                                                    'MESSAGE': request})
         self.udp_send_without_response(address, message)
 
-    def remote_methode_invocation(self, group: list, methode: str, SEQUENCE: int = 0):
-        reply = []
+    def remote_methode_invocation(self, group: list,
+                                  methode: str,
+                                  SEQUENCE: int = 0,
+                                  multicast: bool = False):
+        """
+        HELPER FUNCTION
+        Implementation of remote methode invocation. Send out the message in different cases depends on the input
+        :param group: list type of addresses of the recipients
+        :param methode: str type, the command that you want to execute
+        :param SEQUENCE: int type sequence number if necessary
+        :param multicast: bool type, whether multicast should be used to propagate the messages
+        :return: None
+        """
+        # if the multicast ip is None that mean the function is not enabled yet. So user uni_group send instead
+        # multicast = self.MULTICAST_IP is None
         results = []
-        for address in group:
-            message = self.create_message('RMI', SEQUENCE=SEQUENCE, CONTENT={'METHODE': methode})
-            reply.append(self.udp_send(tuple(address), message))
+        message = self.create_message('RMI', SEQUENCE=SEQUENCE, CONTENT={'METHODE': methode})
+        if len(group) == 1:
+            print('RMI with Unicast!')
+            return self.udp_send(group[0], message)
+        else:
+            if multicast:
+                print('RMI with Multicast!')
+                self.multicast_send(self.MULTICAST_IP, message=message)
+                return
+            else:
+                print('RMI with Group-Unicast!')
+                reply = self.unicast_group_send(group=group, message=message)
+        # for address in group:
+        #     reply.append(self.udp_send(tuple(address), message))
         for ele in reply:
             if ele is None:
                 continue
             results.append(ele['CONTENT']['RESULT'])
         return results
 
-    def remote_para_set(self, group: list, SEQUENCE: int = 0, **kwargs):
+    def remote_para_set(self, group: list, SEQUENCE: int = 0, **kwargs) -> None:
+        """
+        OUTDATED FUNCTION
+        Only here because of the completeness, replaced by remote_methode_invocation in the new version.
+        Not recommended!
+        :param group: The group that update via unicast_group_send
+        :param SEQUENCE: int type sequence number
+        :param kwargs: key value pairs that should be updated
+        :return: None
+        """
         for address in group:
             message = self.create_message('SET', SEQUENCE=SEQUENCE, CONTENT=kwargs)
             self.udp_send_without_response(tuple(address), message)
 
-    def multicast_send_without_response(self, group: list,
-                                        message: dict,
-                                        record: bool = True,
-                                        test: int = -1,
-                                        skip: int = -1):
+    def enable_multicast(self, ip) -> None:
         """
         HELPER FUNCTION
-        send out multicast to a group
-        :param record: whether the message should be added into the multicast_hist
+        To start the multicast thread after the server find a Main server
+        :param ip: The agreed ip of the multicast occurred
+        :return: None
+        """
+        self.MULTICAST_IP = ip
+        t = threading.Thread(target=self.multicast_listen, daemon=True)
+        t.start()
+        self.threads.append(t)
+
+    def multicast_send(self, ip: str, message: dict) -> None:
+        """
+        Send out multicast messages to the address. The multicast_port is fixed in the configuration
+        :param ip: The IP address of the receiver
+        :param message: standard dict type message
+        :return: None
+        """
+        ttl = 1
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+        sock.sendto(pickle.dumps(message), (ip, self.MULTICAST_PORT))
+
+    def multicast_listen(self):
+        """
+        Open a port to listen on the multicast channel
+        :return:
+        """
+        print('Multicast listen enabled!')
+        if self.MULTICAST_IP is None:
+            print('There is no multicast ip given!')
+            return
+        mc_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        mc_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        mc_sock.bind(('', self.MULTICAST_PORT))
+        mreq = struct.pack("4sl", socket.inet_aton(self.MULTICAST_IP), socket.INADDR_ANY)
+        mc_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        while True:
+            # print(sock.recv(10240))
+            data, addr = mc_sock.recvfrom(self.BUFFER_SIZE)
+            if data:
+                data = pickle.loads(data)
+                data['sender_address'] = addr
+                self.receive(data)
+
+    def unicast_group_without_response(self, group: list,
+                                       message: dict,
+                                       test: int = -1,
+                                       skip: int = -1):
+        """
+        HELPER FUNCTION
+        send out unicast to a group
         :param group: list of tuple address of a group
         :param message: standard dict message format
         :param test: the chosen index of process will be blocked for 10 seconds (only for testing)
@@ -337,10 +439,6 @@ class auction_component:
         """
         assert test < len(group)
         assert skip < len(group)
-        # if message['SEQUENCE'] > 0 and record:
-        #     # if it is a sequence relevant message, append it to the history
-        #     self.multicast_hist.append(message)
-        #     self.sequence_counter += 1
         count = 0
         for member in tqdm(group):
             if count == test:
@@ -349,24 +447,23 @@ class auction_component:
                 continue
             self.udp_send_without_response(tuple(member), message)
             count += 1
-    
-    def multicast_send(self, group: list,
-                                        message: dict,
-                                        test: int = -1,
-                                        skip: int = -1):
+
+    def unicast_group_send(self, group: list,
+                           message: dict,
+                           test: int = -1,
+                           skip: int = -1):
         assert test < len(group)
         assert skip < len(group)
-        replys = []
+        replies = []
         count = 0
         for member in tqdm(group):
             if count == test:
                 time.sleep(10)
             if count == skip:
                 continue
-            replys.append(self.udp_send(tuple(member), message))
+            replies.append(self.udp_send(tuple(member), message))
             count += 1
-        return replys
-
+        return replies
 
     def negative_acknowledgement(self):
         # if the sequence number is already actuel ???
@@ -378,4 +475,5 @@ class auction_component:
 
 
 if __name__ == '__main__':
-    auction_component('SERVER', 12345)
+    ac = auction_component('SERVER', 12345)
+    ac.shut_down()

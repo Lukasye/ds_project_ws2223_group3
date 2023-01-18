@@ -1,7 +1,6 @@
-import curses
-
-
 attr = {'BROADCAST_PORT': 5972,
+        'MULTICAST_PORT': 5007,
+        'MULTICAST_IP': '224.1.1.1',
         'BUFFER_SIZE': 4096,
         'DURATION': 100,
         'HEARTBEAT_RATE': 5,

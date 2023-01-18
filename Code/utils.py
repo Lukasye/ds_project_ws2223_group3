@@ -43,7 +43,7 @@ def udp_send(address: tuple, message, timeout: int = 5) -> dict:
     message_byte = pickle.dumps(message)
     if len(message_byte) > cfg.attr['BUFFER_SIZE']:
         raise ValueError('Message too large')
-    udp_socket.settimeout(timeout)    
+    udp_socket.settimeout(timeout)
     try:
         udp_socket.sendto(message_byte, address)
         data, addr = udp_socket.recvfrom(cfg.attr['BUFFER_SIZE'])
@@ -101,28 +101,40 @@ def get_ip_address():
 
 def get_netmask(ip):
     flag = os.name == 'nt'
-    proc = subprocess.Popen('ipconfig' if flag else 'ifconfig',stdout=subprocess.PIPE)
+    proc = subprocess.Popen('ipconfig' if flag else 'ifconfig', stdout=subprocess.PIPE)
     while True:
         line = proc.stdout.readline()
         if ip.encode() in line:
             break
     if flag:
-        mask = proc.stdout.readline().rstrip().split(b':')[-1].replace(b' ',b'').decode()
+        mask = proc.stdout.readline().rstrip().split(b':')[-1].replace(b' ', b'').decode()
     else:
-        mask = line.rstrip().split(b':')[-1].replace(b' ',b'').decode()
+        mask = line.rstrip().split(b':')[-1].replace(b' ', b'').decode()
     return mask
 
 
 def flatten(lis):
-     for item in lis:
-         if isinstance(item, Iterable) and not isinstance(item, str):
-             for x in flatten(item):
-                 yield x
-         else:        
-             yield item
+    for item in lis:
+        if isinstance(item, Iterable) and not isinstance(item, str):
+            for x in flatten(item):
+                yield x
+        else:
+            yield item
+
 
 def check_list(result: list):
     return all(list(flatten(result)))
+
+
+def most_common(lst: list):
+    return max(set(lst), key=lst.count)
+
+
+def show_bid_hist(bid_hist: list) -> None:
+    for num, ele in enumerate(bid_hist):
+        iD, price = ele
+        content = f'{num}: \t {iD} \t {price}'
+        print(content)
 
 
 if __name__ == '__main__':

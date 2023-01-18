@@ -1,6 +1,7 @@
+from typing import List, Any
+
 import click
 import time
-import threading
 import socket
 
 from auction_component import auction_component
@@ -17,7 +18,6 @@ class Server(auction_component):
                  headless=False):
         super(Server, self).__init__('SERVER', UDP_PORT)
         self.SEQ_PORT = UDP_PORT + 4
-        self.bid_history = []
         self.is_main = is_main
         self.headless = headless
         # introduce the group member service
@@ -30,6 +30,8 @@ class Server(auction_component):
         warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue]
         if is_main:
             self.is_member = True
+            self.MULTICAST_IP = cfg.attr['MULTICAST_IP']
+            self.enable_multicast(self.MULTICAST_IP)
             self.MAIN_SERVER = (self.MY_IP, self.UDP_PORT)
             self.sequencer = 0
             warm_up_list.append(self.sequence_listen)
@@ -38,6 +40,13 @@ class Server(auction_component):
         self.report()
         # open multiple thread to do different jobs
         self.warm_up(warm_up_list, self.headless)
+
+    def shut_down(self) -> None:
+        super().shut_down()
+        self.gms.close()
+        self.gts.end()
+        if self.is_main:
+            self.sequencer = 0
 
     def report(self):
         if self.headless:
@@ -97,7 +106,7 @@ class Server(auction_component):
             tmp = request['CONTENT']
             for key in tmp:
                 exec('self.{} = {}'.format(key, tmp[key]))
-            self.state_update();
+            self.state_update()
         # ************************************************************
         #                        Methode REDIRECT
         # ************************************************************
@@ -109,41 +118,42 @@ class Server(auction_component):
         # ************************************************************
         elif method == 'BIT':
             # if the auction is started or already ended:
+            if self.gms.server_size() < 4:
+                # there aren't enough servers for byzentain agreement
+                highst_bid = self.highest_bid
+            else:
+                command = 'self.result = self.reach_agreement();'
+                self.remote_methode_invocation(self.gms.get_server_address(), command, multicast=True)
+                highst_bid = self.highest_bid
             if not self.in_auction:
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message(
                     'PRINT', {'PRINT': 'Not in an auction!'}
                 ))
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message(
-                    'SET', {'in_auction': False}
+                    'multicast_send_without_response', {'in_auction': False}
                 ))
                 return
             price = int(request['CONTENT']['PRICE'])
-            if price < self.highest_bid:
+            if price < highst_bid:
                 # if the bit is smaller than the current highest, nothing should be done.
                 message = self.create_message('PRINT',
                                               {'PRINT': 'Invalid Price, '
-                                                        'the highest bid now is {}'. format(self.highest_bid)})
+                                                        'the highest bid now is {}'.format(self.highest_bid)})
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), message)
-                # TODO: Set the client ot the right value!
+                self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.multicast_hist[-1])
             else:
                 sequence = self.sequence_send()
                 # message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price})
                 tmp = request['ID']
                 self.winner = tmp
                 self.highest_bid = price
-                command = f'self.highest_bid={price};self.winner="{tmp}";self.result = self.pass_on({sequence})'
-                command = f'self.highest_bid={price};self.winner="{tmp}";'
-                # result = self.remote_methode_invocation(self.gms.get_server_address(), command, SEQUENCE=sequence)
-                # result = utils.check_list(result)
+                command = f'self.highest_bid={price};self.winner="{tmp}";self.bid_history.append(("{tmp}", {price}));'
                 result = self.notify_all(command=command, sequence=sequence)
                 result = utils.check_list(result)
                 if not result:
                     print('Something went Wrong!!!!!!!!!!!')
-                # time.sleep(0.05)
-                # self.remote_methode_invocation(self.gms.get_server_address(), f'self.pass_on({sequence})')
                 # foobar
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
-                self.bid_history.append(request)
         # ************************************************************
         #                        Methode PRINT
         # ************************************************************
@@ -173,9 +183,16 @@ class Server(auction_component):
                     content[key] = request['CONTENT'][key]
                 message = self.create_message('GET', content)
                 self.udp_send_without_response(request['SENDER_ADDRESS'], message)
+        # ************************************************************
+        #                        Methode Price
+        # ************************************************************
         elif method == 'PRICE':
             message = self.create_message('PRICE', {'PRICE': self.highest_bid})
             self.udp_send_without_response(request['SENDER_ADDRESS'], message=message)
+            # self.agreement[request['ID']] = request['CONTENT']['PRICE']
+            # self.send_agreement()
+            # if len(self.agreement) == self.gms.server_size():
+            #     self.agreement = {}
         elif method == 'TEST':
             # ignore test signals
             pass
@@ -193,9 +210,14 @@ class Server(auction_component):
             if self.gms.is_member(request['ID'], 'SERVER'):
                 return
             self.gms.add_server(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']))
-            self.remote_para_set(self.gms.get_server_address(),
-                                 MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
-                                 is_member=True)
+            command = f'self.MAIM_SERVER=("{self.MY_IP}",{self.UDP_PORT}); ' \
+                      f'self.is_member=True; self.enable_multicast("{self.MULTICAST_IP}");self.result = True;'
+            # self.remote_para_set(self.gms.get_server_address(without=[self.id]),
+            #                      MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
+            #                      is_member=True)
+            self.remote_methode_invocation([tuple(request['CONTENT']['UDP_ADDRESS'])], command)
+            # command = 'self.enable_multicast(); self.result = True;'
+            # self.remote_methode_invocation([request['SENDER_ADDRESS']], command)
         else:
             if self.gms.is_member(request['ID'], 'CLIENT'):
                 return
@@ -208,15 +230,29 @@ class Server(auction_component):
                                  CONTACT_SERVER=addr)
             if iD != self.id:
                 self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'self.join_contact();')
-    
+
     def notify_all(self, command: str, sequence: int = 0):
-        new_command = command + f"self.result = self.pass_on('{command}', {sequence});" 
+        """
+        HELPER FUNCTION:
+        To run the command on all the processes in this auction
+        :param command: str type, command that need to be passed on
+        :param sequence: int type sequence number if necessary
+        :return:
+        """
+        new_command = command + f"self.result = self.pass_on('{command}', {sequence});"
         result = self.remote_methode_invocation(self.gms.get_server_address(), new_command, SEQUENCE=sequence)
         return result
 
-    def pass_on(self, command, sequence: int = 0) -> bool:
+    def pass_on(self, command, sequence: int = 0) -> dict | None | list[Any]:
+        """
+        HELPER FUNCTION:
+        The methode that used to be invented remotely the pass all the command to the clients
+        :param command: str type, command that need to be passed on
+        :param sequence: int type sequence number if necessary
+        :return: Dict, None or list
+        """
         # tmp = self.winner
-        # command = f'self.highest_bid={self.highest_bid};self.winner="{tmp}";self.result = True'
+        # command = f' self.highest_bid={self.highest_bid};self.winner="{tmp}";self.result = True'
         command += 'self.result = True;'
         result = self.remote_methode_invocation(self.gms.get_client_address(), command, SEQUENCE=sequence)
         return result
@@ -231,7 +267,7 @@ class Server(auction_component):
         if self.gms.is_member(request['ID'], 'CLIENT'):
             return
         self.gms.add_client(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']))
-                
+
     def assign_clients(self):
         """
         HELPER FUNCTION:
@@ -254,7 +290,12 @@ class Server(auction_component):
                 message = self.create_message('SEQUENCE', {'SEQ': self.sequencer})
                 self.udp_send_without_response(address, message)
 
-    def sequence_send(self):
+    def sequence_send(self) -> int:
+        """
+        HELPER FUNCTION:
+        send out request for a new sequence number
+        :return: int type sequence number
+        """
         assert self.MAIN_SERVER is not None
         message = self.create_message('SEQUENCE', {})
         sequence = self.udp_send(utils.get_port(tuple(self.MAIN_SERVER), 'SEQ'), message)
@@ -276,19 +317,31 @@ class Server(auction_component):
         self.report()
 
     def end_auction(self):
-        command = 'self.in_auction = True;print("Auction Ended!"); self.result = True'
-        self.remote_methode_invocation(self.gms.get_client_address(), command)
-        self.in_auction = False
-        print('Auction ended!')
+        if not self.in_auction:
+            print('Already in an auction!')
+            return
+        command = f'self.in_auction = False;print("Winner is {self.winner}!");self.report(); self.result = True'
+        result = self.remote_methode_invocation(self.gms.get_client_address(), command)
+        if all(result) or self.gms.client_size() == 0:
+            self.in_auction = False
+            print('Auction ended successfully!')
+        else:
+            print('Failed!')
+        self.report()
 
-    def update_interface(self):
+    def update_interface(self) -> None:
+        """
+        HELPER FUNCTION:
+        Send out RMI to refresh all the interface of the clients of this server process
+        :return: None
+        """
         command = 'self.report()'
         self.remote_methode_invocation(self.gms.get_client_address(), command)
 
     def auction_timer(self, duration: int):
         # TODO: not tested!
         start_time = self.gts.get_time()
-        self.gts.start()
+        self.gts.start(duration)
         while True:
             current = self.gts.get_time()
             if current - start_time > duration:
@@ -296,17 +349,15 @@ class Server(auction_component):
         self.gts.end()
         self.end_auction()
 
-    def reach_sgreement(self, agreement: list = []):
+    def reach_agreement(self):
         price = []
         message = self.create_message('PRICE', {'PRICE': self.highest_bid})
-        result = self.multicast_send(self.gms.get_server_address(), message)
+        result = self.unicast_group_send(self.gms.get_server_address(without=[self.id]), message)
         for message in result:
             price.append(message['CONTENT']['PRICE'])
-        return price
-
-    def declare_winner():
-        # TODO: end of the project
-        pass
+        self.highest_bid = utils.most_common(price)
+        print(self.highest_bid)
+        return self.highest_bid
 
     def interface(self) -> None:
         while True:
@@ -320,9 +371,8 @@ class Server(auction_component):
             #                        Basic Functions
             # ************************************************************
             if user_input == 'exit':
-                self.response = True
-                self.gms.close()
-                self.gts.end()
+                # self.response = True
+                self.shut_down()
                 quit()
             elif user_input == 'report':
                 self.report()
@@ -356,8 +406,7 @@ class Server(auction_component):
                 for ele in self.multicast_hist:
                     print(ele)
             elif user_input == 'history':
-                for ele in self.bid_history:
-                    print(ele)
+                utils.show_bid_hist(self.bid_history)
             # ************************************************************
             #                     Test Functions
             # ************************************************************
@@ -371,19 +420,19 @@ class Server(auction_component):
                 # multi test
                 print('Reliable multicast test (Part 1)...')
                 address = '141.58.50.65'
-                self.multicast_send_without_response([(address, 5700)],
-                                                     self.create_message('TEST', SEQUENCE=1, CONTENT={'N': 1}))
-                self.multicast_send_without_response([(address, 5700)],
-                                                     self.create_message('TEST', SEQUENCE=2, CONTENT={'N': 2}), test=0)
-                self.multicast_send_without_response([(address, 5700)],
-                                                     self.create_message('TEST', SEQUENCE=3, CONTENT={'N': 3}))
-                self.multicast_send_without_response([(address, 5700)],
-                                                     self.create_message('TEST', SEQUENCE=4, CONTENT={'N': 4}))
+                self.unicast_group_without_response([(address, 5700)],
+                                                    self.create_message('TEST', SEQUENCE=1, CONTENT={'N': 1}))
+                self.unicast_group_without_response([(address, 5700)],
+                                                    self.create_message('TEST', SEQUENCE=2, CONTENT={'N': 2}), test=0)
+                self.unicast_group_without_response([(address, 5700)],
+                                                    self.create_message('TEST', SEQUENCE=3, CONTENT={'N': 3}))
+                self.unicast_group_without_response([(address, 5700)],
+                                                    self.create_message('TEST', SEQUENCE=4, CONTENT={'N': 4}))
             elif user_input == 'multi2':
                 address = '141.58.50.65'
                 print('Reliable multicast test (Part 2)...')
-                self.multicast_send_without_response([(address, 5700)],
-                                                     self.create_message('TEST', SEQUENCE=5, CONTENT={'N': 5}))
+                self.unicast_group_without_response([(address, 5700)],
+                                                    self.create_message('TEST', SEQUENCE=5, CONTENT={'N': 5}))
             elif user_input == 'intercept':
                 self.intercept = 1
                 print(f'Intercepting the next {self.intercept} incoming message...')
@@ -400,14 +449,26 @@ class Server(auction_component):
                 self.report()
             elif user_input == 'multicast_test':
                 for i in range(10):
-                    self.multicast_send_without_response(self.gms.get_server_address(),
-                                                         self.create_message(METHOD='TEST', SEQUENCE=i,
-                                                                             CONTENT={}), skip=0)
-                self.multicast_send_without_response(self.gms.get_server_address(),
-                                                     self.create_message(METHOD='TEST', SEQUENCE=10, CONTENT={}))
+                    self.unicast_group_without_response(self.gms.get_server_address(),
+                                                        self.create_message(METHOD='TEST', SEQUENCE=i,
+                                                                            CONTENT={}), skip=0)
+                self.unicast_group_without_response(self.gms.get_server_address(),
+                                                    self.create_message(METHOD='TEST', SEQUENCE=10, CONTENT={}))
             elif user_input == 'bzt':
-                result = self.reach_sgreement()
-                print(result)
+                # self.send_agreement()
+                # result = self.reach_agreement()
+                command = 'self.result = self.reach_agreement();'
+                self.remote_methode_invocation(self.gms.get_server_address(), command)
+            elif user_input.startswith('cheat'):
+                info = user_input.split(' ')
+                self.highest_bid = int(info[1])
+            elif user_input == 'yy':
+                print(self.gms.get_server_address(without=[self.id]))
+            elif user_input == 'ml':
+                self.multicast_listen()
+            elif user_input == 'ms':
+                message = self.create_message('ULTRA', {'FOO': 'BAR'})
+                self.multicast_send(self.MULTICAST_IP, message=message)
             else:
                 print('Invalid input!')
 
@@ -418,6 +479,7 @@ class Server(auction_component):
         # self.server_list.loc[self.server_list['ID'] == self.id, 'NUMBER'] = self.num_clients
         if not self.is_main:
             self.gts.set_sync_server(self.MAIN_SERVER)
+
 
 @click.command()
 @click.option('--port', required=True, default=10000, type=int, help='The port that the server connect to')

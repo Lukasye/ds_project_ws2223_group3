@@ -5,6 +5,7 @@ from auction_component import auction_component
 from global_time_sync import global_time_sync
 from group_member_service import group_member_service_client
 import config as cfg
+import utils
 
 
 class Client(auction_component):
@@ -15,12 +16,17 @@ class Client(auction_component):
         self.current_bid = 0
         self.is_member = False
         self.headless = headless
-        self.gts = global_time_sync(self.TYPE,self.id, self.MY_IP, self.TIM_PORT, False)
+        self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT, False)
         self.gms = group_member_service_client(self.MY_IP, self.id, self.UDP_PORT)
         self.report()
         # open multiple thread to do different jobs
         self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue], headless)
         # introduce the global time synchronizer
+
+    def shut_down(self) -> None:
+        super().shut_down()
+        self.gms.close()
+        self.gts.end()
 
     def report(self):
         if self.headless:
@@ -115,6 +121,8 @@ class Client(auction_component):
                 self.report()
             elif user_input == 'queue':
                 self.print_hold_back_queue()
+            elif user_input == 'history':
+                utils.show_bid_hist(self.bid_history)
             elif user_input == 'seq_hist':
                 for ele in self.multicast_hist:
                     print(ele)
