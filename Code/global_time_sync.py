@@ -27,7 +27,7 @@ class global_time_sync:
             t = threading.Thread(target=th, daemon=True)
             t.start()
 
-    def start(self, duration):
+    def start(self, duration) -> None:
         """
         event that should be done when the auction is started
         :param duration:
@@ -35,14 +35,14 @@ class global_time_sync:
         """
         pass
 
-    def end(self):
+    def end(self) -> None:
         """
         event that should be done when the auction is over
         :return:
         """
         self.TERMINATE = True
         
-    def time_listen(self):
+    def time_listen(self) -> None:
         """
         answer requests for the current time on the TIM_PORT
         :return:
@@ -61,7 +61,7 @@ class global_time_sync:
                 else:
                     print('Warning: Inappropriate message at time port.')
 
-    def time_synchronize(self):
+    def time_synchronize(self) -> None:
         """
         request updates of the current time from the sync server in regular intervals
         and use them to call the adjust_time function to update the time stamp
@@ -71,7 +71,12 @@ class global_time_sync:
         while not self.TERMINATE:
             if self.SYNC_SERVER != None:
                 message = utils.create_message(self.id, 'SYNCREQUEST', {'SENDTIME': self.get_time()})
-                response = utils.udp_send(utils.get_port(self.SYNC_SERVER, 'TIM'), message)
+                
+                try:
+                    response = utils.udp_send(utils.get_port(self.SYNC_SERVER, 'TIM'), message)
+                except ConnectionResetError:
+                    # we lost the connection to our sync server - nothing we can do about it except wait until it comes back
+                    pass
                
                 if response == None:
                     pass                # the request timed out - sucks, but not our problem
@@ -82,7 +87,7 @@ class global_time_sync:
                
             time.sleep(self.SYNC_RATE)
 
-    def adjust_time(self, timestamp1, timestamp2):
+    def adjust_time(self, timestamp1, timestamp2) -> None:
         """
         use the given time stamps to adjust the time different between this process and
         the main one
@@ -99,7 +104,12 @@ class global_time_sync:
         """
         return time.time() + self.offset
 
-    def set_sync_server(self, SYNC_SERVER):
+    def set_sync_server(self, SYNC_SERVER) -> None:
+        """
+        HELPER FUNCTION:
+        set the server from which we get our information about the current time
+        :return:
+        """
         self.SYNC_SERVER = SYNC_SERVER
 
 def test():

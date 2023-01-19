@@ -30,7 +30,7 @@ def create_message(iD, METHOD: str, CONTENT: dict, SEQUENCE: int = 0):
             'CONTENT': CONTENT}
 
 
-def udp_send(address: tuple, message, timeout: int = 5) -> dict:
+def udp_send(address: tuple, message, timeout: int = 5) -> None | dict:
     """
     normal udp send function
     :param address: the address of the recipient
