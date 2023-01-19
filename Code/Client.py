@@ -75,6 +75,10 @@ class Client(auction_component):
             pass
         else:
             print(response)
+    
+    def pass_on():
+        # foobar function to get rid of bugs
+        pass
 
     def join_contact(self):
         self.join(tuple(self.CONTACT_SERVER))
@@ -111,8 +115,7 @@ class Client(auction_component):
                 message = self.create_message('BIT', {'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT),
                                                       'PRICE': info[1]})
                 if self.CONTACT_SERVER is not None:
-                    result = self.udp_send(tuple(self.CONTACT_SERVER), message, receive=True)
-                    print(result)
+                    self.udp_send(tuple(self.CONTACT_SERVER), message, receive=True)
             elif user_input == 'leave':
                 self.leave()
                 print('Dis-attached with Main-server!')

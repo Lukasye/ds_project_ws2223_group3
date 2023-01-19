@@ -242,7 +242,7 @@ class group_member_service_server(group_member_service):
         return leader_uid
         
     @staticmethod
-    def address_to_id(node_list, address: tuple) -> None | int:
+    def address_to_id(node_list, address: tuple):
         for index, row in node_list.iterrows():
             if (row['ADDRESS'], row['PORT']) == address:
                 return index

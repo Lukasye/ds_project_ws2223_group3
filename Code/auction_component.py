@@ -192,6 +192,8 @@ class auction_component:
         # if message['ID'] == self.id and message['SEQUENCE'] == 0:
         #     # I don't want to listen to myself (normal messages)
         #     pass
+        if message is None:
+            return
         if message['SEQUENCE'] != 0:
             if self.intercept:
                 # just for testing! skip the next message!
@@ -331,7 +333,8 @@ class auction_component:
     def remote_methode_invocation(self, group: list,
                                   methode: str,
                                   SEQUENCE: int = 0,
-                                  multicast: bool = False):
+                                  multicast: bool = False,
+                                  result : bool = True):
         """
         HELPER FUNCTION
         Implementation of remote methode invocation. Send out the message in different cases depends on the input
@@ -346,23 +349,27 @@ class auction_component:
         results = []
         message = self.create_message('RMI', SEQUENCE=SEQUENCE, CONTENT={'METHODE': methode})
         if len(group) == 1:
-            print('RMI with Unicast!')
+            # print('RMI with Unicast!')
             return self.udp_send(group[0], message)
         else:
             if multicast:
-                print('RMI with Multicast!')
+                # print('RMI with Multicast!')
                 self.multicast_send(self.MULTICAST_IP, message=message)
                 return
             else:
-                print('RMI with Group-Unicast!')
-                reply = self.unicast_group_send(group=group, message=message)
+                # print('RMI with Group-Unicast!')
+                if result:
+                    reply = self.unicast_group_send(group=group, message=message)
+                else:
+                    self.unicast_group_without_response(group=group, message=message)
         # for address in group:
         #     reply.append(self.udp_send(tuple(address), message))
-        for ele in reply:
-            if ele is None:
-                continue
-            results.append(ele['CONTENT']['RESULT'])
-        return results
+        if result:
+            for ele in reply:
+                if ele is None:
+                    continue
+                results.append(ele['CONTENT']['RESULT'])
+            return results
 
     def remote_para_set(self, group: list, SEQUENCE: int = 0, **kwargs) -> None:
         """
@@ -472,6 +479,11 @@ class auction_component:
             self.udp_send(self.CONTACT_SERVER, message, receive=True)
         elif self.MAIN_SERVER is not None:
             self.udp_send(self.MAIN_SERVER, message, receive=True)
+
+    def negative_konowledgement_send(self,address: tuple, sequence : int) -> None:
+        iD, price = self.bid_history[sequence]
+        command = f'self.highest_bid={price};self.winner="{iD}";self.bid_history.append(("{iD}", {price}));'
+        self.remote_methode_invocation([address], command, SEQUENCE= sequence)
 
 
 if __name__ == '__main__':
