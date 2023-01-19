@@ -74,10 +74,11 @@ class group_member_service:
 
 
 class group_member_service_server(group_member_service):
-    def __init__(self, IP_ADDRESS: str, iD, UDP_PORT, is_MAIN: bool):
+    def __init__(self, IP_ADDRESS: str, iD, UDP_PORT, is_MAIN: bool, MAIN_SERVER: tuple):
         super().__init__(IP_ADDRESS, iD, UDP_PORT)
         self.TYPE = 'SERVER'
         self.is_main = is_MAIN
+        self.MAIN_SERVER = MAIN_SERVER
         self.server_list = \
             pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client', 'time_stamp']).astype(
                 {'number_of_client': 'int32'}) if self.TYPE == 'SERVER' else None
@@ -87,6 +88,13 @@ class group_member_service_server(group_member_service):
     def heartbeat_listen(self):
         content = {'ID': self.id, 'CLIENTS': self.client_size()}
         return super().heartbeat_listen(content)
+        
+    def handle_disconnect(self, address) -> None:
+        self.remove_server(self.address_to_id(self.server_list, address))
+        
+        if self.MAIN_SERVER == address:
+            self.MAIN_SERVER = None
+            self.LCR()
 
     def heartbeat_send(self):
         while not self.TERMINATE:
@@ -98,8 +106,7 @@ class group_member_service_server(group_member_service):
 
                     if response is None:
                         # our heartbeat request timed out, so we need to remove the server from our list
-                        self.remove_server(self.address_to_id(self.server_list, address))
-                        # TODO: Elect new main if the removed server was main
+                        self.handle_disconnect(address)
                     elif response['METHOD'] == 'HEAREPLY':
                         # we got exactly the response we expected, so we don't need to do anything
                         # and at the same time we update the number of clients
@@ -109,8 +116,7 @@ class group_member_service_server(group_member_service):
                         print('Warning: Inappropriate message at heartbeat port.')
                 except ConnectionResetError:
                     # our heartbeat request crashed because the socket subsystem realised to server is gone, so we need to remove the server from our list
-                    self.remove_server(self.address_to_id(self.server_list, address))
-                    # TODO: Elect new main if the removed server was main
+                    self.handle_disconnect(address)
                     
             for address in self.get_client_address('UDP'):
                 try:
@@ -370,6 +376,14 @@ class group_member_service_server(group_member_service):
         """
         for member in self.get_server_address('GMS'):
             utils.udp_send_without_response(member, self.server_list)
+            
+    def set_main_server(self, MAIN_SERVER: tuple) -> None:
+        """
+        HELPER FUNCTION:
+        set the main server
+        :return:
+        """
+        self.MAIN_SERVER = MAIN_SERVER
 
 
 class group_member_service_client(group_member_service):
@@ -389,8 +403,8 @@ class group_member_service_client(group_member_service):
 
                     if response is None:
                         # our heartbeat request timed out, so we need to reset the contact server
+                        # the client class will detect this change and automatically try to reconnect
                         self.CONTACT_SERVER = None
-                        # TODO: Inform Client class of the change, and try to reconnect
                     elif response['METHOD'] == 'HEAREPLY':
                         # we got exactly the response we expected, so we don't need to do anything
                         pass
@@ -398,8 +412,8 @@ class group_member_service_client(group_member_service):
                         print('Warning: Inappropriate message at heartbeat port.')
                 except ConnectionResetError:
                     # our heartbeat request timed out, so we need to reset the contact server
+                    # the client class will detect this change and automatically try to reconnect
                     self.CONTACT_SERVER = None
-                    # TODO: Inform Client class of the change, and try to reconnect
 
             time.sleep(self.HEARTBEAT_RATE)
     

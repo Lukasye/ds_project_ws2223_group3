@@ -94,6 +94,9 @@ class Client(auction_component):
                 info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
                 print(info)
             user_input = input('Please enter your command:')
+            if self.gms.CONTACT_SERVER == None:
+                self.leave()
+                self.find_others()
             # ************************************************************
             #                        Basic Functions
             # ************************************************************

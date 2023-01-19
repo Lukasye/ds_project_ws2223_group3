@@ -20,12 +20,7 @@ class Server(auction_component):
         self.SEQ_PORT = UDP_PORT + 4
         self.is_main = is_main
         self.headless = headless
-        # introduce the group member service
-        self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT, self.is_main)
-        self.gms.add_server(self.id, (self.MY_IP, self.UDP_PORT))
-        # introduce the global time synchronizer
-        self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT, self.is_main)
-
+        
         # initialize depends on whether this is the main server
         warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue]
         if is_main:
@@ -37,6 +32,13 @@ class Server(auction_component):
             warm_up_list.append(self.sequence_listen)
         else:
             self.is_member = False
+        
+        # introduce the group member service
+        self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT, self.is_main, self.MAIN_SERVER)
+        self.gms.add_server(self.id, (self.MY_IP, self.UDP_PORT))
+        # introduce the global time synchronizer
+        self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT, self.is_main)
+        
         self.report()
         # open multiple thread to do different jobs
         self.warm_up(warm_up_list, self.headless)
@@ -477,6 +479,7 @@ class Server(auction_component):
         # result = next((ser for ser in self.server_list if ser['ID'] == self.id), None)
         # result['NUMBER'] = self.num_clients
         # self.server_list.loc[self.server_list['ID'] == self.id, 'NUMBER'] = self.num_clients
+        self.gms.set_main_server(self.MAIN_SERVER)
         if not self.is_main:
             self.gts.set_sync_server(self.MAIN_SERVER)
 
