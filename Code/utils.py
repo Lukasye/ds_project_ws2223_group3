@@ -30,7 +30,7 @@ def create_message(iD, METHOD: str, CONTENT: dict, SEQUENCE: int = 0):
             'CONTENT': CONTENT}
 
 
-def udp_send(address: tuple, message, timeout: int = 5) -> None | dict:
+def udp_send(address: tuple, message, timeout: int = 5):
     """
     normal udp send function
     :param address: the address of the recipient
@@ -54,6 +54,17 @@ def udp_send(address: tuple, message, timeout: int = 5) -> None | dict:
     except TimeoutError:
         return None
 
+def multicast_send(ip: str, message: dict, MULTICAST_PORT) -> None:
+    """
+    Send out multicast messages to the address. The multicast_port is fixed in the configuration
+    :param ip: The IP address of the receiver
+    :param message: standard dict type message
+    :return: None
+    """
+    ttl = 1
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+    sock.sendto(pickle.dumps(message), (ip, MULTICAST_PORT))
 
 def get_port(MAIN_SERVER: tuple, PORT: str = 'SEQ') -> tuple:
     addr = MAIN_SERVER[0]

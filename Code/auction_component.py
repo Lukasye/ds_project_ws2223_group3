@@ -59,7 +59,8 @@ class auction_component:
         self.GMS_PORT = UDP_PORT + 3
         self.TYPE = TYPE
         self.SYS = os.name
-        self.MAIN_SERVER = None
+        # self.MAIN_SERVER = None
+        self.gms = None
         self.TERMINATE = False
         self.MULTICAST_IP = None
         if TYPE == 'CLIENT':
@@ -404,10 +405,11 @@ class auction_component:
         :param message: standard dict type message
         :return: None
         """
-        ttl = 1
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-        sock.sendto(pickle.dumps(message), (ip, self.MULTICAST_PORT))
+        # ttl = 1
+        # sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        # sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+        # sock.sendto(pickle.dumps(message), (ip, self.MULTICAST_PORT))
+        utils.multicast_send(ip, message, self.MULTICAST_PORT)
 
     def multicast_listen(self):
         """
@@ -477,8 +479,10 @@ class auction_component:
         message = self.create_message('GET', {'SEQ': self.sequence_counter})
         if self.TYPE == 'CLIENT' and self.CONTACT_SERVER is not None:
             self.udp_send(self.CONTACT_SERVER, message, receive=True)
-        elif self.MAIN_SERVER is not None:
-            self.udp_send(self.MAIN_SERVER, message, receive=True)
+        # elif self.MAIN_SERVER is not None:
+        #     self.udp_send(self.MAIN_SERVER, message, receive=True)
+        elif self.gms.MAIN_SERVER is not None:
+            self.udp_send(self.gms.MAIN_SERVER, message, receive=True)
 
     def negative_konowledgement_send(self,address: tuple, sequence : int) -> None:
         iD, price = self.bid_history[sequence]

@@ -27,14 +27,15 @@ class Server(auction_component):
             self.is_member = True
             self.MULTICAST_IP = cfg.attr['MULTICAST_IP']
             self.enable_multicast(self.MULTICAST_IP)
-            self.MAIN_SERVER = (self.MY_IP, self.UDP_PORT)
+            MAIN_SERVER = (self.MY_IP, self.UDP_PORT)
             self.sequencer = 0
             warm_up_list.append(self.sequence_listen)
         else:
             self.is_member = False
+            MAIN_SERVER = None
         
         # introduce the group member service
-        self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT, self.is_main, self.MAIN_SERVER)
+        self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT, self.is_main, MAIN_SERVER)
         self.gms.add_server(self.id, (self.MY_IP, self.UDP_PORT))
         # introduce the global time synchronizer
         self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT, self.is_main)
@@ -61,7 +62,7 @@ class Server(auction_component):
                   'Number of Clients: \t{}\n' \
                   'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
                                                  self.BROADCAST_IP, self.BROADCAST_PORT,
-                                                 self.MAIN_SERVER, self.gms.client_size(),
+                                                 self.gms.MAIN_SERVER, self.gms.client_size(),
                                                  self.sequence_counter)
         print("\t" + message + '\n')
         if self.is_main:
@@ -84,8 +85,8 @@ class Server(auction_component):
             else:
                 if self.is_main:
                     self.assign(request)
-                elif self.MAIN_SERVER is not None:
-                    self.forward(self.MAIN_SERVER, request)
+                elif self.gms.MAIN_SERVER is not None:
+                    self.forward(self.gms.MAIN_SERVER, request)
         # ************************************************************
         #                        Methode JOIN
         # ************************************************************
@@ -215,7 +216,7 @@ class Server(auction_component):
             if self.gms.is_member(request['ID'], 'SERVER'):
                 return
             self.gms.add_server(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']))
-            command = f'self.MAIN_SERVER=("{self.MY_IP}",{self.UDP_PORT}); ' \
+            command = f'self.gms.MAIN_SERVER=("{self.MY_IP}",{self.UDP_PORT}); ' \
                       f'self.is_member=True; self.enable_multicast("{self.MULTICAST_IP}");self.result = True;'
             # self.remote_para_set(self.gms.get_server_address(without=[self.id]),
             #                      MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
@@ -229,10 +230,14 @@ class Server(auction_component):
             iD, addr = self.assign_clients()
             if iD == self.id:
                 self.accept(request)
-            self.remote_para_set([request['CONTENT']['UDP_ADDRESS']],
-                                 MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
-                                 is_member=True,
-                                 CONTACT_SERVER=addr)
+            command = f'self.gms.MAIN_SERVER=("{self.MY_IP}",{self.UDP_PORT}); ' \
+                      f'self.is_member=True; self.gms.CONTACT_SERVER={addr};self.result = True;'
+            print(command) 
+            self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], command)
+            # self.remote_para_set([request['CONTENT']['UDP_ADDRESS']],
+            #                      MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
+            #                      is_member=True,
+            #                      CONTACT_SERVER=addr)
             if iD != self.id:
                 self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'self.join_contact();')
 
@@ -301,9 +306,9 @@ class Server(auction_component):
         send out request for a new sequence number
         :return: int type sequence number
         """
-        assert self.MAIN_SERVER is not None
+        assert self.gms.MAIN_SERVER is not None
         message = self.create_message('SEQUENCE', {})
-        sequence = self.udp_send(utils.get_port(tuple(self.MAIN_SERVER), 'SEQ'), message)
+        sequence = self.udp_send(utils.get_port(tuple(self.gms.MAIN_SERVER), 'SEQ'), message)
         return sequence['CONTENT']['SEQ']
 
     def start_auction(self, duration: int = 5):
@@ -447,7 +452,7 @@ class Server(auction_component):
                     print('you are note main server anymore!')
                 else:
                     self.is_member = False
-                    self.MAIN_SERVER = None
+                    self.gms.MAIN_SERVER = None
                     print('Dis-attached with Main-server!')
                 self.gms.close()
                 self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT, self.is_main)
@@ -482,9 +487,9 @@ class Server(auction_component):
         # result = next((ser for ser in self.server_list if ser['ID'] == self.id), None)
         # result['NUMBER'] = self.num_clients
         # self.server_list.loc[self.server_list['ID'] == self.id, 'NUMBER'] = self.num_clients
-        self.gms.set_main_server(self.MAIN_SERVER)
+        self.gms.set_main_server(self.gms.MAIN_SERVER)
         if not self.is_main:
-            self.gts.set_sync_server(self.MAIN_SERVER)
+            self.gts.set_sync_server(self.gms.MAIN_SERVER)
 
 
 @click.command()

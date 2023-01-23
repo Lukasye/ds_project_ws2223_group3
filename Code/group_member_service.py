@@ -17,10 +17,12 @@ class group_member_service:
                  UDP_PORT):
         self.id = iD
         self.IP_ADDRESS = IP_ADDRESS
+        self.MULTICAST_PORT = cfg.attr['MULTICAST_PORT']
         self.UDP_PORT = UDP_PORT
         self.TIM_PORT = UDP_PORT + 1
         self.ELE_PORT = UDP_PORT + 2
         self.GMS_PORT = UDP_PORT + 3
+        self.MAIN_SERVER = None
         self.server_list = None
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
         self.HEARTBEAT_RATE = cfg.attr['HEARTBEAT_RATE']
@@ -36,7 +38,7 @@ class group_member_service:
     @abstractmethod
     def heartbeat_send(self):
         pass
-        
+
     def heartbeat_listen(self, content: dict) -> None:
         """
         create a socket to listen on the heartbeat port of the process
@@ -60,6 +62,9 @@ class group_member_service:
                     if method == 'HEAREQUEST':
                         reply = utils.create_message(self.id, 'HEAREPLY', content)
                         utils.udp_send_without_response(address, reply)
+                    elif method == 'UPDATE':
+                        # now id the only for clients feature, to update the MAIN_SERVER
+                        self.MAIN_SERVER = message['CONTENT']['MAIN_SERVER']
                     else:
                         print('Warning: Inappropriate message at heartbeat port.')
 
@@ -80,7 +85,7 @@ class group_member_service_server(group_member_service):
         self.is_main = is_MAIN
         self.MAIN_SERVER = MAIN_SERVER
         self.server_list = \
-            pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client', 'time_stamp']).astype(
+            pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client']).astype(
                 {'number_of_client': 'int32'}) if self.TYPE == 'SERVER' else None
         self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT', 'time_stamp']) if self.TYPE == 'SERVER' else None
         self.start_thread()
@@ -92,9 +97,12 @@ class group_member_service_server(group_member_service):
     def handle_disconnect(self, address) -> None:
         self.remove_server(self.address_to_id(self.server_list, address))
         
+        print(address, ' Has disconnected with the group!')
         if self.MAIN_SERVER == address:
             self.MAIN_SERVER = None
+            self.group_synchronise()
             self.LCR()
+            self.update_state()
 
     def heartbeat_send(self):
         while not self.TERMINATE:
@@ -221,7 +229,7 @@ class group_member_service_server(group_member_service):
         while not self.TERMINATE:
             data, _ = ring_socket.recvfrom(self.BUFFER_SIZE)
             election_message = pickle.loads(data)
-            print(election_message)
+            # print(election_message)
             if election_message["isLeader"]:
                 leader_uid = election_message["mid"]
                 # ring_socket.sendto(pickle.dumps(election_message), neighbour)
@@ -245,6 +253,7 @@ class group_member_service_server(group_member_service):
                 participant = False
                 # ring_socket.sendto(pickle.dumps(new_election_message), neighbour)
                 utils.udp_send_without_response(neighbour, new_election_message)
+        self.MAIN_SERVER = self.id_to_address(leader_uid)
         return leader_uid
         
     @staticmethod
@@ -252,6 +261,11 @@ class group_member_service_server(group_member_service):
         for index, row in node_list.iterrows():
             if (row['ADDRESS'], row['PORT']) == address:
                 return index
+        return None
+
+    def id_to_address(self, iD: str):
+        if iD in self.server_list.index:
+            return (self.server_list.loc[iD, 'ADDRESS'], self.server_list.loc[iD, 'PORT'])
         return None
 
     def set_udp_port(self, address: tuple):
@@ -384,11 +398,17 @@ class group_member_service_server(group_member_service):
         :return:
         """
         self.MAIN_SERVER = MAIN_SERVER
+    
+    def update_state(self):
+        message = utils.create_message(self.id, 'UPDATE', {'MAIN_SERVER': self.MAIN_SERVER})
+        for member in self.get_client_address('GMS'):
+            utils.udp_send_without_response(member, message)
 
 
 class group_member_service_client(group_member_service):
-    def __init__(self, IP_ADDRESS: str, iD, UDP_PORT):
+    def __init__(self, IP_ADDRESS: str, iD, UDP_PORT, origin):
         super().__init__(IP_ADDRESS, iD, UDP_PORT)
+        self.ORIGIN = origin
         self.TYPE = 'CLIENT'
         self.CONTACT_SERVER = None
         self.start_thread()
@@ -414,6 +434,7 @@ class group_member_service_client(group_member_service):
                     # our heartbeat request timed out, so we need to reset the contact server
                     # the client class will detect this change and automatically try to reconnect
                     self.CONTACT_SERVER = None
+                    self.handle_disconnect()
 
             time.sleep(self.HEARTBEAT_RATE)
     
@@ -421,21 +442,27 @@ class group_member_service_client(group_member_service):
         content = {'ID': self.id}
         return super().heartbeat_listen(content)
 
+    def handle_disconnect(self) -> None:
+        # self.ORIGIN.join(None, TrueNone, True)
+        # TODO: realize it!
+        pass
 
 def main():
     iD = str(uuid4())
-    gms = group_member_service_server('192.168.0.200', iD, 123)
-    gms.add_server(str(uuid4()), ('192.168.0.200', 123), time_stamp='asdf')
+    gms = group_member_service_server('192.168.0.200', iD, 123, True, ('192.168.0.200', 1234))
+    iD_spe = str(uuid4())
+    gms.add_server(iD_spe, ('192.168.0.200', 123), time_stamp='asdf')
     gms.add_server(str(uuid4()), ('123.123.123.111', 1111), number_of_client=3)
     gms.add_server(str(uuid4()), ('123.123.123.222', 2222), time_stamp='a123')
     gms.add_server(str(uuid4()), ('123.123.123.123', 3333))
     gms.add_server(str(uuid4()), ('123.123.123.112', 4444))
-    gms.print_server()
-    ring_with_id, ring = gms.form_ring()
-    print(ring_with_id)
-    neighbour = gms.get_neighbour(ring=ring, direction=False)
-    print(neighbour)
-    gms.LCR()
+    print(gms.id_to_address(iD_spe))
+    # gms.print_server()
+    # ring_with_id, ring = gms.form_ring()
+    # print(ring_with_id)
+    # neighbour = gms.get_neighbour(ring=ring, direction=False)
+    # print(neighbour)
+    # gms.LCR()
 
 
 if __name__ == '__main__':

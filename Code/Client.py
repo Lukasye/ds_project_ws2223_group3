@@ -17,7 +17,7 @@ class Client(auction_component):
         self.is_member = False
         self.headless = headless
         self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT, False)
-        self.gms = group_member_service_client(self.MY_IP, self.id, self.UDP_PORT)
+        self.gms = group_member_service_client(self.MY_IP, self.id, self.UDP_PORT, self)
         self.report()
         # open multiple thread to do different jobs
         self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue], headless)
@@ -38,7 +38,7 @@ class Client(auction_component):
                   'Main Server: \t\t{}\n' \
                   'Contact Server: \t{}\n' \
                   'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
-                                                 self.is_member, self.MAIN_SERVER, self.CONTACT_SERVER,
+                                                 self.is_member, self.gms.MAIN_SERVER, self.gms.CONTACT_SERVER,
                                                  self.sequence_counter)
         print(message + '\n')
         return message
@@ -52,8 +52,8 @@ class Client(auction_component):
         if method == 'DISCOVERY':
             if not self.is_member:
                 self.join(tuple(response['CONTENT']['UDP_ADDRESS']))
-            elif self.MAIN_SERVER is not None:
-                self.forward(self.MAIN_SERVER, response)
+            elif self.gms.MAIN_SERVER is not None:
+                self.forward(self.gms.MAIN_SERVER, response)
         # **********************    METHOD SET     **********************************
         elif method == 'SET':
             tmp = response['CONTENT']
@@ -81,12 +81,12 @@ class Client(auction_component):
         pass
 
     def join_contact(self):
-        self.join(tuple(self.CONTACT_SERVER))
+        self.join(tuple(self.gms.CONTACT_SERVER))
         
     def leave(self) -> None:
         self.is_member = False
-        self.MAIN_SERVER = None
-        self.CONTACT_SERVER = None
+        self.gms.MAIN_SERVER = None
+        self.gms.CONTACT_SERVER = None
         self.sequence_counter = 0
         self.state_update()
 
@@ -117,8 +117,8 @@ class Client(auction_component):
                 info = user_input.split(' ')
                 message = self.create_message('BIT', {'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT),
                                                       'PRICE': info[1]})
-                if self.CONTACT_SERVER is not None:
-                    self.udp_send(tuple(self.CONTACT_SERVER), message, receive=True)
+                if self.gms.CONTACT_SERVER is not None:
+                    self.udp_send(tuple(self.gms.CONTACT_SERVER), message, receive=True)
             elif user_input == 'leave':
                 self.leave()
                 print('Dis-attached with Main-server!')
@@ -144,7 +144,7 @@ class Client(auction_component):
                 print('Invalid input!')
 
     def state_update(self) -> None:
-        self.gts.set_sync_server(self.CONTACT_SERVER)
+        self.gts.set_sync_server(self.gms.CONTACT_SERVER)
         self.gms.CONTACT_SERVER = self.CONTACT_SERVER
 
 
