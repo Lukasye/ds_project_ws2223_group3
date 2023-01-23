@@ -143,7 +143,7 @@ class auction_component:
         :return: None
         """
         self.TERMINATE = True
-        self.sequence_counter = 0
+        self.sequence_counter = 1
         self.highest_bid = 0
         self.winner = None
         self.hold_back_queue = []
@@ -232,6 +232,7 @@ class auction_component:
                     self.multicast_hist.append(ele.get_info())
                     self.deliver(ele.get_info())
                     self.sequence_counter += 1
+                    self.gms.sequencer += 1
                     time.sleep(0.01)
                 else:
                     # if not, send out the negative acknowledgement

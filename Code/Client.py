@@ -67,7 +67,8 @@ class Client(auction_component):
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
         elif method == 'RMI':
             self.result = False
-            exec(response['CONTENT']['METHODE'])
+            command = response['CONTENT']['METHODE']
+            exec(command)
             message = self.create_message('FOO', {'RESULT': self.result})
             self.udp_send_without_response(response['SENDER_ADDRESS'], message)
         elif method == 'TEST':
@@ -87,7 +88,7 @@ class Client(auction_component):
         self.is_member = False
         self.gms.MAIN_SERVER = None
         self.gms.CONTACT_SERVER = None
-        self.sequence_counter = 0
+        self.sequence_counter = 1
         self.state_update()
 
     def interface(self) -> None:

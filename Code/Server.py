@@ -20,6 +20,7 @@ class Server(auction_component):
         self.SEQ_PORT = UDP_PORT + 4
         self.is_main = is_main
         self.headless = headless
+        self.sequencer = 0
         
         # initialize depends on whether this is the main server
         warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue]
@@ -28,7 +29,6 @@ class Server(auction_component):
             self.MULTICAST_IP = cfg.attr['MULTICAST_IP']
             self.enable_multicast(self.MULTICAST_IP)
             MAIN_SERVER = (self.MY_IP, self.UDP_PORT)
-            self.sequencer = 0
             warm_up_list.append(self.sequence_listen)
         else:
             self.is_member = False
@@ -48,7 +48,7 @@ class Server(auction_component):
         super().shut_down()
         self.gms.close()
         self.gts.end()
-        if self.is_main:
+        if self.gms.is_main:
             self.sequencer = 0
 
     def report(self):
@@ -59,13 +59,14 @@ class Server(auction_component):
                   'Address: \t\t{}:{} \n' \
                   'Broadcast: \t\t{}:{}\n' \
                   'Main Server: \t\t{}\n' \
+                  'Is_Main: \t\t{}\n' \
                   'Number of Clients: \t{}\n' \
                   'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
                                                  self.BROADCAST_IP, self.BROADCAST_PORT,
-                                                 self.gms.MAIN_SERVER, self.gms.client_size(),
+                                                 self.gms.MAIN_SERVER, self.gms.is_main, self.gms.client_size(),
                                                  self.sequence_counter)
         print("\t" + message + '\n')
-        if self.is_main:
+        if self.gms.is_main:
             zusatz = 'Sequencer: \t\t{}'.format(self.sequencer)
             print(zusatz)
         return message
@@ -80,10 +81,10 @@ class Server(auction_component):
         # ************************************************************
         if method == 'DISCOVERY':
             # if the server is still not a member or a main server
-            if not self.is_member and not self.is_main:
+            if not self.is_member and not self.gms.is_main:
                 self.join(tuple(request['CONTENT']['UDP_ADDRESS']))
             else:
-                if self.is_main:
+                if self.gms.is_main:
                     self.assign(request)
                 elif self.gms.MAIN_SERVER is not None:
                     self.forward(self.gms.MAIN_SERVER, request)
@@ -95,11 +96,10 @@ class Server(auction_component):
             if request['CONTENT']['UDP_ADDRESS'] == (self.MY_IP, self.UDP_PORT):
                 return
             # if the server is not main, it can only accept
-            if not self.is_main and self.is_member and request['CONTENT']['TYPE'] == 'CLIENT':
+            if not self.gms.is_main and self.is_member and request['CONTENT']['TYPE'] == 'CLIENT':
                 self.accept(request)
-            if self.is_main:
+            if self.gms.is_main:
                 self.assign(request)
-            # TODO: check availability
             self.remote_methode_invocation([tuple(request['CONTENT']['UDP_ADDRESS'])],
                                            'self.negative_acknowledgement()')
         # ************************************************************
@@ -114,7 +114,7 @@ class Server(auction_component):
         #                        Methode REDIRECT
         # ************************************************************
         elif method == 'REDIRECT':
-            if self.is_main:
+            if self.gms.is_main:
                 self.receive(request['CONTENT']['MESSAGE'])
         # ************************************************************
         #                        Methode BIT
@@ -393,7 +393,7 @@ class Server(auction_component):
             elif user_input.startswith('bit'):
                 print('Wake up! You are a Server!!')
             elif user_input == 'start':
-                if self.is_main:
+                if self.gms.is_main:
                     self.remote_methode_invocation(self.gms.get_server_address(), 'self.start_auction()')
                 else:
                     print('You are not main!')
@@ -447,15 +447,15 @@ class Server(auction_component):
                 self.intercept = 1
                 print(f'Intercepting the next {self.intercept} incoming message...')
             elif user_input == 'leave':
-                if self.is_main:
-                    self.is_main = False
+                if self.gms.is_main:
+                    self.gms.is_main = False
                     print('you are note main server anymore!')
                 else:
                     self.is_member = False
                     self.gms.MAIN_SERVER = None
                     print('Dis-attached with Main-server!')
                 self.gms.close()
-                self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT, self.is_main)
+                self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT, self.gms.is_main)
                 self.report()
             elif user_input == 'multicast_test':
                 for i in range(10):
@@ -488,7 +488,7 @@ class Server(auction_component):
         # result['NUMBER'] = self.num_clients
         # self.server_list.loc[self.server_list['ID'] == self.id, 'NUMBER'] = self.num_clients
         self.gms.set_main_server(self.gms.MAIN_SERVER)
-        if not self.is_main:
+        if not self.gms.is_main:
             self.gts.set_sync_server(self.gms.MAIN_SERVER)
 
 

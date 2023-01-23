@@ -28,6 +28,7 @@ class group_member_service:
         self.HEARTBEAT_RATE = cfg.attr['HEARTBEAT_RATE']
         self.TERMINATE = False
         self.threads = []
+        self.sequencer = 0
 
     @staticmethod
     def add_instance(iD, addr, port, df: pd.DataFrame):
@@ -242,7 +243,7 @@ class group_member_service_server(group_member_service):
                 # ring_socket.sendto(pickle.dumps(new_election_message), neighbour)
                 utils.udp_send_without_response(neighbour, new_election_message)
             elif election_message["mid"] > iD:
-                # send received election message to left neighbour
+                # send received election message to left neighbouerver
                 participant = True
                 # ring_socket.sendto(pickle.dumps(election_message), neighbour)
                 utils.udp_send_without_response(neighbour, election_message)
@@ -254,6 +255,7 @@ class group_member_service_server(group_member_service):
                 # ring_socket.sendto(pickle.dumps(new_election_message), neighbour)
                 utils.udp_send_without_response(neighbour, new_election_message)
         self.MAIN_SERVER = self.id_to_address(leader_uid)
+        self.is_main = self.id == leader_uid
         return leader_uid
         
     @staticmethod
@@ -435,6 +437,8 @@ class group_member_service_client(group_member_service):
                     # the client class will detect this change and automatically try to reconnect
                     self.CONTACT_SERVER = None
                     self.handle_disconnect()
+            else:
+                self.handle_disconnect()
 
             time.sleep(self.HEARTBEAT_RATE)
     
@@ -443,9 +447,8 @@ class group_member_service_client(group_member_service):
         return super().heartbeat_listen(content)
 
     def handle_disconnect(self) -> None:
-        # self.ORIGIN.join(None, TrueNone, True)
-        # TODO: realize it!
-        pass
+        self.ORIGIN.find_others()
+
 
 def main():
     iD = str(uuid4())
