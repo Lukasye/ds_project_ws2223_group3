@@ -17,7 +17,7 @@ class Client(auction_component):
         self.is_member = False
         self.headless = headless
         self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT, False)
-        self.gms = group_member_service_client(self.MY_IP, self.id, self.UDP_PORT, self)
+        self.gms = group_member_service_client(self, self.MY_IP, self.id, self.UDP_PORT)
         self.report()
         # open multiple thread to do different jobs
         self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue], headless)

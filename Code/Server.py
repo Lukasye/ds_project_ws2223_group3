@@ -20,22 +20,19 @@ class Server(auction_component):
         self.SEQ_PORT = UDP_PORT + 4
         self.is_main = is_main
         self.headless = headless
-        self.sequencer = 0
-        
         # initialize depends on whether this is the main server
-        warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue]
+        warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue, self.sequence_listen]
         if is_main:
             self.is_member = True
             self.MULTICAST_IP = cfg.attr['MULTICAST_IP']
             self.enable_multicast(self.MULTICAST_IP)
             MAIN_SERVER = (self.MY_IP, self.UDP_PORT)
-            warm_up_list.append(self.sequence_listen)
         else:
             self.is_member = False
             MAIN_SERVER = None
         
         # introduce the group member service
-        self.gms = group_member_service_server(self.MY_IP, self.id, self.UDP_PORT, self.is_main, MAIN_SERVER)
+        self.gms = group_member_service_server(self, self.MY_IP, self.id, self.UDP_PORT, self.is_main, MAIN_SERVER)
         self.gms.add_server(self.id, (self.MY_IP, self.UDP_PORT))
         # introduce the global time synchronizer
         self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT, self.is_main)
@@ -49,7 +46,7 @@ class Server(auction_component):
         self.gms.close()
         self.gts.end()
         if self.gms.is_main:
-            self.sequencer = 0
+            self.gms.sequencer = 0
 
     def report(self):
         if self.headless:
@@ -67,7 +64,7 @@ class Server(auction_component):
                                                  self.sequence_counter)
         print("\t" + message + '\n')
         if self.gms.is_main:
-            zusatz = 'Sequencer: \t\t{}'.format(self.sequencer)
+            zusatz = 'Sequencer: \t\t{}'.format(self.gms.sequencer)
             print(zusatz)
         return message
 
@@ -293,11 +290,12 @@ class Server(auction_component):
         """
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         server_socket.bind((self.MY_IP, self.SEQ_PORT))
+        print(f'Sequence listener running on {(self.MY_IP, self.SEQ_PORT)}')
         while not self.TERMINATE:
             data, address = server_socket.recvfrom(self.BUFFER_SIZE)
             if data:
-                self.sequencer += 1
-                message = self.create_message('SEQUENCE', {'SEQ': self.sequencer})
+                self.gms.sequencer += 1
+                message = self.create_message('SEQUENCE', {'SEQ': self.gms.sequencer})
                 self.udp_send_without_response(address, message)
 
     def sequence_send(self) -> int:
@@ -308,6 +306,7 @@ class Server(auction_component):
         """
         assert self.gms.MAIN_SERVER is not None
         message = self.create_message('SEQUENCE', {})
+        print(utils.get_port(tuple(self.gms.MAIN_SERVER), 'SEQ'))
         sequence = self.udp_send(utils.get_port(tuple(self.gms.MAIN_SERVER), 'SEQ'), message)
         return sequence['CONTENT']['SEQ']
 

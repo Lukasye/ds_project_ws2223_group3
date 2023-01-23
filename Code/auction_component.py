@@ -165,6 +165,12 @@ class auction_component:
             t = threading.Thread(target=self.interface)
             t.start()
 
+    # def add_to_warm_up(self, th) -> None:
+    #     t = threading.Thread(target=th, daemon=True)
+    #     t.start()
+    #     # t.join()
+    #     self.threads.append(t)
+
     def create_message(self, METHOD: str, CONTENT: dict, SEQUENCE: int = 0):
         return utils.create_message(iD=self.id,
                                     METHOD=METHOD,
@@ -232,12 +238,12 @@ class auction_component:
                     self.multicast_hist.append(ele.get_info())
                     self.deliver(ele.get_info())
                     self.sequence_counter += 1
-                    self.gms.sequencer += 1
                     time.sleep(0.01)
                 else:
                     # if not, send out the negative acknowledgement
                     cmp = time.time()
                     if cmp - timestamp > self.HEARTBEAT_RATE / frequency:
+                        print(self.hold_back_queue[0].get_info())
                         self.negative_acknowledgement()
                         timestamp = time.time()
 

@@ -81,14 +81,13 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>14.01.2023:</b> Fixed bugs in election and broadcasts. The subnet mask now is functioning on windows, test still need on linux pc.<br>
 <b>15.01.2023:</b> Supplementary coding for gms and gts. Tested reliable ordered  multicast. Various bugs fixed.<br>
 <b>16.01.2023:</b> merge some of the functions. Try to implement byzantine agreement part. Add return value function for the remote method invocation and add new multicast send wit response messages.<br>
+![broadcast](img/failure_in_middle_bid.png) <br>
 <b>18.01.2023:</b> I am soooo stupid. Until today's lecture i realized that the multicast that i've used is group_unicast. So, I corrected it. Now we have the right one. And updated the RMI methode to and add some comments.<br>
-<b>23.01.2023:</b> Refine election code. Move all the MAIN_SERVER part into the gms to seperate the usages. Debugging.<br>
+<b>23.01.2023:</b> Refine election code. Move all the MAIN_SERVER part into the gms to seperate the usages. Debugging. Tested multi failure possibilities and enable some degrees of failure management.<br>
 ### TODO<br>
 1. election failure model
 2. error handling (extremely important). especially udp_send() function
 3. number of clients/servers update function (currently not important)
-4. heartbeat
-5. time synchronize
-6. bugs fix!!!!!!!!
-7. comment!!!!
-8. BIG PROBLEM: I don't know how to add emoji in markdown!!
+4. bugs fix!!!!!!!!
+5. comment!!!!
+6. BIG PROBLEM: I don't know how to add emoji in markdown!!

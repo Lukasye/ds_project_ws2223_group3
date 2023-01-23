@@ -12,7 +12,8 @@ import pandas as pd
 
 
 class group_member_service:
-    def __init__(self, IP_ADDRESS: str,
+    def __init__(self,origin, 
+                IP_ADDRESS: str,
                  iD,
                  UDP_PORT):
         self.id = iD
@@ -22,6 +23,7 @@ class group_member_service:
         self.TIM_PORT = UDP_PORT + 1
         self.ELE_PORT = UDP_PORT + 2
         self.GMS_PORT = UDP_PORT + 3
+        self.ORIGIN = origin
         self.MAIN_SERVER = None
         self.server_list = None
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
@@ -80,8 +82,8 @@ class group_member_service:
 
 
 class group_member_service_server(group_member_service):
-    def __init__(self, IP_ADDRESS: str, iD, UDP_PORT, is_MAIN: bool, MAIN_SERVER: tuple):
-        super().__init__(IP_ADDRESS, iD, UDP_PORT)
+    def __init__(self, origin, IP_ADDRESS: str, iD, UDP_PORT, is_MAIN: bool, MAIN_SERVER: tuple):
+        super().__init__(origin, IP_ADDRESS, iD, UDP_PORT)
         self.TYPE = 'SERVER'
         self.is_main = is_MAIN
         self.MAIN_SERVER = MAIN_SERVER
@@ -92,7 +94,7 @@ class group_member_service_server(group_member_service):
         self.start_thread()
 
     def heartbeat_listen(self):
-        content = {'ID': self.id, 'CLIENTS': self.client_size()}
+        content = {'ID': self.id, 'CLIENTS': self.client_size(), 'MAIN_SERVER':self.MAIN_SERVER}
         return super().heartbeat_listen(content)
         
     def handle_disconnect(self, address) -> None:
@@ -108,6 +110,9 @@ class group_member_service_server(group_member_service):
     def heartbeat_send(self):
         while not self.TERMINATE:
             message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id, 'CLIENTS': self.client_size()})
+            # if the process don't have a main_server, find one
+            if self.MAIN_SERVER is None:
+                self.ORIGIN.find_others()
 
             for address in self.get_server_address('UDP'):
                 try:
@@ -121,6 +126,12 @@ class group_member_service_server(group_member_service):
                         # and at the same time we update the number of clients
                         if self.is_main:
                             self.server_list['number_of_client'] = response['CONTENT']['CLIENTS']
+                            # deal with the problem that there might be two main server at the same time
+                            # if response['CONTENT']['MAIN_SERVER'] != (self.IP_ADDRESS, self.UDP_PORT):
+                            #     print('There are multiple Main servers in the system!')
+                            #     self.is_main = False
+                            #     self.ORIGIN.find_others()
+                            #     return
                     else:
                         print('Warning: Inappropriate message at heartbeat port.')
                 except ConnectionResetError:
@@ -256,6 +267,7 @@ class group_member_service_server(group_member_service):
                 utils.udp_send_without_response(neighbour, new_election_message)
         self.MAIN_SERVER = self.id_to_address(leader_uid)
         self.is_main = self.id == leader_uid
+        self.sequencer = self.ORIGIN.sequence_counter - 1
         return leader_uid
         
     @staticmethod
@@ -408,9 +420,8 @@ class group_member_service_server(group_member_service):
 
 
 class group_member_service_client(group_member_service):
-    def __init__(self, IP_ADDRESS: str, iD, UDP_PORT, origin):
-        super().__init__(IP_ADDRESS, iD, UDP_PORT)
-        self.ORIGIN = origin
+    def __init__(self, origin, IP_ADDRESS: str, iD, UDP_PORT):
+        super().__init__(origin, IP_ADDRESS, iD, UDP_PORT)
         self.TYPE = 'CLIENT'
         self.CONTACT_SERVER = None
         self.start_thread()
