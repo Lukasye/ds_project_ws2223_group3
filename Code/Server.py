@@ -314,6 +314,9 @@ class Server(auction_component):
         if self.in_auction:
             print('Already in an auction!')
             return
+        elif self.gms.empty():
+            print("You can't start the auction alone!")
+            return
         command = 'self.in_auction = True;print("Auction Started!");self.report(); self.result = True'
         result = self.remote_methode_invocation(self.gms.get_client_address(), command)
         if all(result) or self.gms.client_size() == 0:
@@ -321,22 +324,24 @@ class Server(auction_component):
             print('Auction started!')
         else:
             print('Failed!')
-        # t = threading.Thread(target=self.auction_timer, args=duration)
-        # t.start()
         self.report()
+        # time.sleep(duration)
+        # self.end_auction()
 
     def end_auction(self):
         if not self.in_auction:
             print('Already in an auction!')
             return
-        command = f'self.in_auction = False;print("Winner is {self.winner}!");self.report(); self.result = True'
+        command = f'self.in_auction = False;print("Winner is {self.winner}!"); self.result = True'
         result = self.remote_methode_invocation(self.gms.get_client_address(), command)
         if all(result) or self.gms.client_size() == 0:
             self.in_auction = False
+            print('$' * 40)
             print('Auction ended successfully!')
+            print(f'Winner is {self.winner} with the price {self.highest_bid}!')
+            print('$' * 40)
         else:
             print('Failed!')
-        self.report()
 
     def update_interface(self) -> None:
         """

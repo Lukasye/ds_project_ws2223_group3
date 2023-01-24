@@ -145,7 +145,9 @@ class auction_component:
         self.TERMINATE = True
         self.sequence_counter = 1
         self.highest_bid = 0
+        self.is_member = False
         self.winner = None
+        self.in_auction = False
         self.hold_back_queue = []
 
     def warm_up(self, ts: list, headless: bool = False) -> None:

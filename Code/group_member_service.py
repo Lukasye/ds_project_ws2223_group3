@@ -418,6 +418,9 @@ class group_member_service_server(group_member_service):
         for member in self.get_client_address('GMS'):
             utils.udp_send_without_response(member, message)
 
+    def empty(self) -> bool:
+        return self.client_size() == 0 and self.server_size() == 1
+
 
 class group_member_service_client(group_member_service):
     def __init__(self, origin, IP_ADDRESS: str, iD, UDP_PORT):
