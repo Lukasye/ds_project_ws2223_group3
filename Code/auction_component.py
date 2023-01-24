@@ -132,8 +132,9 @@ class auction_component:
         :return:
         """
         print()
-        print('Message sent from {}\n'
-              'ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['SENDER_ADDRESS'], message['ID'],
+        if message['SENDER_ADDRESS'] is not None:
+            print('Message sent from {}\n'.format(message['SENDER_ADDRESS']))
+        print('ID: {} METHOD:{} SEQ:{} CONTENT:{}'.format(message['ID'],
                                                           message['METHOD'], message['SEQUENCE'],
                                                           message['CONTENT']))
 
@@ -439,7 +440,7 @@ class auction_component:
             data, addr = mc_sock.recvfrom(self.BUFFER_SIZE)
             if data:
                 data = pickle.loads(data)
-                data['sender_address'] = addr
+                data['SENDER_ADDRESS'] = addr
                 self.receive(data)
 
     def unicast_group_without_response(self, group: list,

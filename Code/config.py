@@ -16,4 +16,5 @@ window = {'time': (0, 1, 2, 70),
           'input': (22, 73, 2, 20),
           }
 
-type_monitor = ['SET', 'RMI', 'GET', 'BIT']
+type_monitor = ['RMI', 'BIT']
+# type_monitor = []

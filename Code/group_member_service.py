@@ -88,9 +88,9 @@ class group_member_service_server(group_member_service):
         self.is_main = is_MAIN
         self.MAIN_SERVER = MAIN_SERVER
         self.server_list = \
-            pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_of_client']).astype(
-                {'number_of_client': 'int32'}) if self.TYPE == 'SERVER' else None
-        self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT', 'time_stamp']) if self.TYPE == 'SERVER' else None
+            pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_client']).astype(
+                {'number_client': 'int32'}) if self.TYPE == 'SERVER' else None
+        self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT']) if self.TYPE == 'SERVER' else None
         self.start_thread()
 
     def heartbeat_listen(self):
@@ -125,7 +125,7 @@ class group_member_service_server(group_member_service):
                         # we got exactly the response we expected, so we don't need to do anything
                         # and at the same time we update the number of clients
                         if self.is_main:
-                            self.server_list['number_of_client'] = response['CONTENT']['CLIENTS']
+                            self.server_list['number_client'] = response['CONTENT']['CLIENTS']
                             # deal with the problem that there might be two main server at the same time
                             # if response['CONTENT']['MAIN_SERVER'] != (self.IP_ADDRESS, self.UDP_PORT):
                             #     print('There are multiple Main servers in the system!')
@@ -287,7 +287,7 @@ class group_member_service_server(group_member_service):
 
     def add_server(self, iD, addr: tuple, **kwargs):
         self.server_list = self.add_instance(iD, addr[0], addr[1], self.server_list)
-        self.server_list.loc[iD, 'number_of_client'] = 0
+        self.server_list.loc[iD, 'number_client'] = 0
         for ele in kwargs:
             self.server_list.loc[iD, ele] = kwargs[ele]
         self.group_synchronise()
@@ -297,13 +297,15 @@ class group_member_service_server(group_member_service):
         for ele in kwargs:
             self.client_list.loc[iD, ele] = kwargs[ele]
         # increase the number of clients in server
-        self.server_list.loc[self.id, 'number_of_client'] += 1
+        self.server_list.loc[self.id, 'number_client'] += 1
 
     def remove_server(self, iD):
         self.server_list = self.server_list.drop(iD, axis=0)
+        print(f'Server {iD} has been removed from the group!')
 
     def remove_client(self, iD):
         self.client_list = self.client_list.drop(iD, axis=0)
+        print(f'Client {iD} has been removed from the group!')
 
     def print_server(self):
         with pd.option_context('display.max_rows', None, 'display.max_columns',
@@ -382,7 +384,7 @@ class group_member_service_server(group_member_service):
         return the server address with the least number of clients
         :return:
         """
-        num = self.server_list['number_of_client'].argmin()
+        num = self.server_list['number_client'].argmin()
         iD = self.server_list.index[num]
         addr = tuple(self.server_list.loc[iD, ['ADDRESS', 'PORT']])
         return iD, addr
@@ -469,7 +471,7 @@ def main():
     gms = group_member_service_server('192.168.0.200', iD, 123, True, ('192.168.0.200', 1234))
     iD_spe = str(uuid4())
     gms.add_server(iD_spe, ('192.168.0.200', 123), time_stamp='asdf')
-    gms.add_server(str(uuid4()), ('123.123.123.111', 1111), number_of_client=3)
+    gms.add_server(str(uuid4()), ('123.123.123.111', 1111), number_client=3)
     gms.add_server(str(uuid4()), ('123.123.123.222', 2222), time_stamp='a123')
     gms.add_server(str(uuid4()), ('123.123.123.123', 3333))
     gms.add_server(str(uuid4()), ('123.123.123.112', 4444))

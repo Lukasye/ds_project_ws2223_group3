@@ -77,7 +77,7 @@ class Client(auction_component):
         else:
             print(response)
     
-    def pass_on():
+    def pass_on(self, command, sequence: int = 0):
         # foobar function to get rid of bugs
         pass
 

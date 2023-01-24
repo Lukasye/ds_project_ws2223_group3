@@ -97,8 +97,6 @@ class Server(auction_component):
                 self.accept(request)
             if self.gms.is_main:
                 self.assign(request)
-            self.remote_methode_invocation([tuple(request['CONTENT']['UDP_ADDRESS'])],
-                                           'self.negative_acknowledgement()')
         # ************************************************************
         #                        Methode SET
         # ************************************************************
@@ -141,7 +139,7 @@ class Server(auction_component):
                                               {'PRINT': 'Invalid Price, '
                                                         'the highest bid now is {}'.format(self.highest_bid)})
                 command = f'self.highest_bid={self.highest_bid};self.winner="{self.winner}";print("Invalid input! The highest bid now is {self.highest_bid}");'
-                self.remote_methode_invocation([request['SENDER_ADDRESS']], command)
+                self.remote_methode_invocation([request['SENDER_ADDRESS']], command, result=False)
                 # print(result)
             else:
                 sequence = self.sequence_send()
@@ -177,7 +175,6 @@ class Server(auction_component):
             seq = request['CONTENT']['SEQ']
             if seq is not None and len(self.multicast_hist) >= seq > 0:
                 archive = self.multicast_hist[seq - 1]
-                print(archive)
                 self.udp_send_without_response(request['SENDER_ADDRESS'], archive)
             else:
                 # TODO: not tested yet
@@ -214,13 +211,7 @@ class Server(auction_component):
                 return
             self.gms.add_server(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']))
             command = f'self.gms.MAIN_SERVER=("{self.MY_IP}",{self.UDP_PORT}); ' \
-                      f'self.is_member=True; self.enable_multicast("{self.MULTICAST_IP}");self.result = True;'
-            # self.remote_para_set(self.gms.get_server_address(without=[self.id]),
-            #                      MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
-            #                      is_member=True)
-            self.remote_methode_invocation([tuple(request['CONTENT']['UDP_ADDRESS'])], command)
-            # command = 'self.enable_multicast(); self.result = True;'
-            # self.remote_methode_invocation([request['SENDER_ADDRESS']], command)
+                      f'self.is_member=True; self.enable_multicast("{self.MULTICAST_IP}");' 
         else:
             if self.gms.is_member(request['ID'], 'CLIENT'):
                 return
@@ -228,15 +219,14 @@ class Server(auction_component):
             if iD == self.id:
                 self.accept(request)
             command = f'self.gms.MAIN_SERVER=("{self.MY_IP}",{self.UDP_PORT}); ' \
-                      f'self.is_member=True; self.gms.CONTACT_SERVER={addr};self.result = True;'
-            print(command) 
-            self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], command)
-            # self.remote_para_set([request['CONTENT']['UDP_ADDRESS']],
-            #                      MAIN_SERVER=(self.MY_IP, self.UDP_PORT),
-            #                      is_member=True,
-            #                      CONTACT_SERVER=addr)
+                      f'self.is_member=True; self.gms.CONTACT_SERVER={addr};'
             if iD != self.id:
-                self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'self.join_contact();')
+                # self.remote_methode_invocation([request['CONTENT']['UDP_ADDRESS']], 'self.join_contact();', result=False)
+                command += 'self.join_contact();'
+        if bool(self.bid_history):
+            command += 'self.negative_acknowledgement();'
+        command += 'self.result = True;'
+        self.remote_methode_invocation([tuple(request['CONTENT']['UDP_ADDRESS'])], command, result=False)
 
     def notify_all(self, command: str, sequence: int = 0, result: bool = True):
         """
@@ -246,7 +236,8 @@ class Server(auction_component):
         :param sequence: int type sequence number if necessary
         :return:
         """
-        new_command = command + f"self.result = self.pass_on('{command}', {sequence});"
+        # new_command = command + f"self.result = self.pass_on('{command}', {sequence});"
+        new_command = command + f"self.pass_on('{command}', {sequence});self.result = True;"
         result = self.remote_methode_invocation(self.gms.get_server_address(), new_command, SEQUENCE=sequence, result=result)
         return result
 
@@ -350,7 +341,7 @@ class Server(auction_component):
         :return: None
         """
         command = 'self.report()'
-        self.remote_methode_invocation(self.gms.get_client_address(), command)
+        self.remote_methode_invocation(self.gms.get_client_address(), command, result=False)
 
     def auction_timer(self, duration: int):
         # TODO: not tested!
@@ -398,11 +389,11 @@ class Server(auction_component):
                 print('Wake up! You are a Server!!')
             elif user_input == 'start':
                 if self.gms.is_main:
-                    self.remote_methode_invocation(self.gms.get_server_address(), 'self.start_auction()')
+                    self.remote_methode_invocation(self.gms.get_server_address(), 'self.start_auction()', result=False)
                 else:
                     print('You are not main!')
             elif user_input == 'end':
-                self.remote_methode_invocation(self.gms.get_server_address(), 'self.end_auction()')
+                self.remote_methode_invocation(self.gms.get_server_address(), 'self.end_auction()', result=False)
             elif user_input == 'join':
                 self.join(None, True)
             # ************************************************************
