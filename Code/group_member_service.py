@@ -12,8 +12,8 @@ import pandas as pd
 
 
 class group_member_service:
-    def __init__(self,origin, 
-                IP_ADDRESS: str,
+    def __init__(self, origin,
+                 IP_ADDRESS: str,
                  iD,
                  UDP_PORT):
         self.id = iD
@@ -93,13 +93,19 @@ class group_member_service_server(group_member_service):
         self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT']) if self.TYPE == 'SERVER' else None
         self.start_thread()
 
-    def heartbeat_listen(self):
-        content = {'ID': self.id, 'CLIENTS': self.client_size(), 'MAIN_SERVER':self.MAIN_SERVER}
+    def heartbeat_listen(self, content):
+        content = {'ID': self.id, 'CLIENTS': self.client_size(), 'MAIN_SERVER': self.MAIN_SERVER}
         return super().heartbeat_listen(content)
-        
+
     def handle_disconnect(self, address) -> None:
+        """
+        HELPER FUNCTION:
+        If the process leave the system, delete it from the gms list. If it is the main server
+        run the election algorithm to get a new leader
+        :param address: the id of the disconnected server. There maybe a naming error
+        :return: None
+        """
         self.remove_server(self.address_to_id(self.server_list, address))
-        
         print(address, ' Has disconnected with the group!')
         if self.MAIN_SERVER == address:
             self.MAIN_SERVER = None
@@ -135,9 +141,10 @@ class group_member_service_server(group_member_service):
                     else:
                         print('Warning: Inappropriate message at heartbeat port.')
                 except ConnectionResetError:
-                    # our heartbeat request crashed because the socket subsystem realised to server is gone, so we need to remove the server from our list
+                    # our heartbeat request crashed because the socket subsystem realised to server is gone,
+                    # so we need to remove the server from our list
                     self.handle_disconnect(address)
-                    
+
             for address in self.get_client_address('UDP'):
                 try:
                     response = utils.udp_send(utils.get_port(address, 'GMS'), message)
@@ -151,7 +158,8 @@ class group_member_service_server(group_member_service):
                     else:
                         print('Warning: Inappropriate message at heartbeat port.')
                 except ConnectionResetError:
-                    # our heartbeat request crashed because the socket subsystem realised to client is gone, so we need to remove the client from our list
+                    # our heartbeat request crashed because the socket subsystem realised to client is gone,
+                    # so we need to remove the client from our list
                     self.remove_client(self.address_to_id(self.client_list, address))
 
             # is the proccess is main, it will update all the server list in this function
@@ -159,7 +167,7 @@ class group_member_service_server(group_member_service):
                 self.group_synchronise()
 
             time.sleep(self.HEARTBEAT_RATE)
-        
+
     def form_ring(self):
         # server list is a list of tuples (ip, port)
         # add uuid to each server(ip, port, uuid)
@@ -231,7 +239,6 @@ class group_member_service_server(group_member_service):
 
         leader_uid = ""
         participant = False
-        members = [...]
 
         ring_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         ring_socket.bind((MY_IP, ELE_PORT))
@@ -269,7 +276,7 @@ class group_member_service_server(group_member_service):
         self.is_main = self.id == leader_uid
         self.sequencer = self.ORIGIN.sequence_counter - 1
         return leader_uid
-        
+
     @staticmethod
     def address_to_id(node_list, address: tuple):
         for index, row in node_list.iterrows():
@@ -279,7 +286,7 @@ class group_member_service_server(group_member_service):
 
     def id_to_address(self, iD: str):
         if iD in self.server_list.index:
-            return (self.server_list.loc[iD, 'ADDRESS'], self.server_list.loc[iD, 'PORT'])
+            return self.server_list.loc[iD, 'ADDRESS'], self.server_list.loc[iD, 'PORT']
         return None
 
     def set_udp_port(self, address: tuple):
@@ -406,7 +413,7 @@ class group_member_service_server(group_member_service):
         """
         for member in self.get_server_address('GMS'):
             utils.udp_send_without_response(member, self.server_list)
-            
+
     def set_main_server(self, MAIN_SERVER: tuple) -> None:
         """
         HELPER FUNCTION:
@@ -414,7 +421,7 @@ class group_member_service_server(group_member_service):
         :return:
         """
         self.MAIN_SERVER = MAIN_SERVER
-    
+
     def update_state(self):
         message = utils.create_message(self.id, 'UPDATE', {'MAIN_SERVER': self.MAIN_SERVER})
         for member in self.get_client_address('GMS'):
@@ -434,7 +441,7 @@ class group_member_service_client(group_member_service):
     def heartbeat_send(self):
         while not self.TERMINATE:
             message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id})
-            
+
             if self.CONTACT_SERVER is not None:
                 try:
                     response = utils.udp_send(utils.get_port(self.CONTACT_SERVER, 'GMS'), message)
@@ -457,8 +464,8 @@ class group_member_service_client(group_member_service):
                 self.handle_disconnect()
 
             time.sleep(self.HEARTBEAT_RATE)
-    
-    def heartbeat_listen(self):
+
+    def heartbeat_listen(self, content):
         content = {'ID': self.id}
         return super().heartbeat_listen(content)
 
@@ -468,7 +475,7 @@ class group_member_service_client(group_member_service):
 
 def main():
     iD = str(uuid4())
-    gms = group_member_service_server('192.168.0.200', iD, 123, True, ('192.168.0.200', 1234))
+    gms = group_member_service_server(None, '192.168.0.200', iD, 123, True, ('192.168.0.200', 1234))
     iD_spe = str(uuid4())
     gms.add_server(iD_spe, ('192.168.0.200', 123), time_stamp='asdf')
     gms.add_server(str(uuid4()), ('123.123.123.111', 1111), number_client=3)

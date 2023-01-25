@@ -1,5 +1,5 @@
 # ds_project_ws2223
-Group members: Sena Tarpan, Peter Hoesch, Yun Ye <br>
+👋Group members: Sena Tarpan, Peter Hoesch, Yun Ye <br>
 
 ### Introduction
 <img src="img/mems.jpg" width="300" height="300"><br>
@@ -32,10 +32,10 @@ python Server.py --port 10001 --opt 1
 ```
 the parameter `port` identify the port Server connected to. (for UDP) <br>
 with `opt` you can define whether the Server is the entry point of this system. The default setting in this case will be `port 10001` and `opt 1` <br><br>
-<b>For windows Users:</b> In the Code dir you can find a `start_win.bat` file, by clicking on it or using the following command in cmd you'll get 4 terminal windows with 2 servers and 2 clients running. It is useful for do some testing.
+<b>For windows Users:</b> In the Code dir you can find a `start_win.bat` file, by clicking on it or using the following command in cmd you'll get 4 terminal windows with 2 servers and 2 clients running. It is useful for do some testing. It includes some common cases, for example 2-client-2-server situation and so on.
 ```
-cd Code
-start_win.bat
+cd Code/start_up
+2_client_2_server.bat
 ```
 <b>The command supported currently:</b>
 ![terminal](img/broadcast.png) <br>
@@ -58,7 +58,7 @@ Look in the programm for more details!<br>
 
 ### Progressing<br>
 ![broadcast](img/election.png) <br>
-<b>27.11.2022:</b> tune the broadcast function. Gonna watch the Worldcup! `:smiley:`<br>
+<b>27.11.2022:</b> tune the broadcast function. Gonna watch the Worldcup! 😊<br>
 <b>28.11.2022:</b> multithread tested and added so that the system can handle multi-request.<br>
 <b>03.12.2022:</b> realizing the multithread function. Now the model can automatically set up the udp_listen function. Optimize the structure of codes. New abstract function for auction component:`interface()`, `state_update()`
 and some small gadgets. Broadcast logic finished! unused user function deleted! Now we have a fully functioning broadcast system!<br>
@@ -73,7 +73,7 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>15.12.2022:</b> New component group_member_service(gms) to manage all the client/server list and heartbeat for both client and server. Going to Christmas markt tonight!<br>
 <b>16.12.2022:</b> Finally the gms start to functioning! Tones of bugs fixed! New Added `utils.py` and `config.py` to make the code more clean and readable. Removed the code `message.py`, since the function is no longer needed.<br>
 <b>17.12.2022:</b> Bit function online! Totally reliable multicast online! but not tested for message loss yet. And btw, i betrayed colorama, because i found rich more beautiful!<br>
-<b>19.12.2022:</b> Add a batch file for testing. Fixed color issue caused by multi-threading.
+<b>19.12.2022:</b> Add a batch file for testing. Fixed color issue caused by multi-threading.<br>
 <b>21.12.2022:</b> New headless model and function_test.py. For the future experiment and testing. New global_time_sync.py module to synchronize the clock in the best effort (planning phase).
 <b>24.12.2022:</b> New TUI developing... And merry christmas!!!<br>
 <b>12.01.2023:</b> Fixed little bugs for broadcast in complex environment and bit function correction.<br>
@@ -82,13 +82,14 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>15.01.2023:</b> Supplementary coding for gms and gts. Tested reliable ordered  multicast. Various bugs fixed.<br>
 <b>16.01.2023:</b> merge some of the functions. Try to implement byzantine agreement part. Add return value function for the remote method invocation and add new multicast send wit response messages.<br>
 ![broadcast](img/failure_in_middle_bid.png) <br>
-<b>18.01.2023:</b> I am soooo stupid. Until today's lecture i realized that the multicast that i've used is group_unicast. So, I corrected it. Now we have the right one. And updated the RMI methode to and add some comments.<br>
-<b>23.01.2023:</b> Refine election code. Move all the MAIN_SERVER part into the gms to seperate the usages. Debugging. Tested multi failure possibilities and enable some degrees of failure management.<br>
-<b>24.01.2023:</b> first time test on 4-server 4-client(and 4-server 8 client) situation and multiple mashine. Not very good. Deliver a few bugs and did some code optimizations.<br> 
+<b>18.01.2023:</b> I am soooo stupid.😡 Until today's lecture i realized that the multicast that I've used is group_unicast. So, I corrected it. Now we have the right one. And updated the RMI methode to and add some comments.<br>
+<b>23.01.2023:</b> Refine election code. Move all the MAIN_SERVER part into the gms to separate the usages. Debugging. Tested multi failure possibilities and enable some degrees of failure management.<br>
+<b>24.01.2023:</b> first time test on 4-server 4-client(and 4-server 8 client) situation and multiple machine. Not very good. Deliver a few bugs and did some code optimizations.<br> 
+<b>24.01.2023:</b> dealt with the problem that the sequence synchronize problem for later joined processes.<br> 
 ### TODO<br>
 1. election failure model
 2. error handling (extremely important). especially udp_send() function
 3. number of clients/servers update function (currently not important)
 4. bugs fix!!!!!!!!
 5. comment!!!!
-6. BIG PROBLEM: I don't know how to add emoji in markdown!!
+6. ~~BIG PROBLEM: I don't know how to add emoji in markdown!!~~

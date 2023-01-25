@@ -99,7 +99,7 @@ class Client(auction_component):
                 info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
                 print(info)
             user_input = input('Please enter your command:')
-            if self.gms.CONTACT_SERVER == None:
+            if self.gms.CONTACT_SERVER is None:
                 self.leave()
                 self.find_others()
             # ************************************************************
@@ -123,8 +123,7 @@ class Client(auction_component):
             elif user_input == 'leave':
                 self.leave()
                 print('Dis-attached with Main-server!')
-                self.gms.close()
-                self.gms = group_member_service_client(self.MY_IP, self.id, self.UDP_PORT)
+                self.shut_down()
                 self.report()
             elif user_input == 'queue':
                 self.print_hold_back_queue()
