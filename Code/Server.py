@@ -1,5 +1,3 @@
-from typing import List, Any
-
 import click
 import time
 import socket
@@ -95,8 +93,8 @@ class Server(auction_component):
             # if the server is not main, it can only accept
             if not self.gms.is_main and self.is_member and request['CONTENT']['TYPE'] == 'CLIENT':
                 self.accept(request)
-            if self.gms.is_main:
-                self.assign(request)
+            # if self.gms.is_main:
+            #     self.assign(request)
         # ************************************************************
         #                        Methode SET
         # ************************************************************
@@ -216,7 +214,7 @@ class Server(auction_component):
                 return
             self.gms.add_server(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']))
             command = f'self.gms.MAIN_SERVER=("{self.MY_IP}",{self.UDP_PORT}); ' \
-                      f'self.is_member=True; self.enable_multicast("{self.MULTICAST_IP}");' 
+                      f'self.is_member=True; self.enable_multicast("{self.MULTICAST_IP}");self.is_main=False;' 
         else:
             if self.gms.is_member(request['ID'], 'CLIENT'):
                 return

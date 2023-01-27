@@ -85,11 +85,9 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>18.01.2023:</b> I am soooo stupid.😡 Until today's lecture i realized that the multicast that I've used is group_unicast. So, I corrected it. Now we have the right one. And updated the RMI methode to and add some comments.<br>
 <b>23.01.2023:</b> Refine election code. Move all the MAIN_SERVER part into the gms to separate the usages. Debugging. Tested multi failure possibilities and enable some degrees of failure management.<br>
 <b>24.01.2023:</b> first time test on 4-server 4-client(and 4-server 8 client) situation and multiple machine. Not very good. Deliver a few bugs and did some code optimizations.<br> 
-<b>24.01.2023:</b> dealt with the problem that the sequence synchronize problem for later joined processes.<br> 
+<b>25.01.2023:</b> dealt with the problem that the sequence synchronize problem for later joined processes.<br> 
+<b>27.01.2023:</b> multiple bugs fixed! Tested on 12 Process in multiple physical devices and it worked like a charm! <br> 
 ### TODO<br>
 1. election failure model
-2. error handling (extremely important). especially udp_send() function
-3. number of clients/servers update function (currently not important)
-4. bugs fix!!!!!!!!
-5. comment!!!!
-6. ~~BIG PROBLEM: I don't know how to add emoji in markdown!!~~
+2. bugs fix!!!!!!!!
+3. ~~BIG PROBLEM: I don't know how to add emoji in markdown!!~~

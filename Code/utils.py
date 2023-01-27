@@ -51,7 +51,7 @@ def udp_send(address: tuple, message, timeout: int = 5):
             data = pickle.loads(data)
             data['SENDER_ADDRESS'] = addr
             return data
-    except TimeoutError:
+    except socket.timeout:
         return None
 
 def multicast_send(ip: str, message: dict, MULTICAST_PORT) -> None:

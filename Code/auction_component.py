@@ -242,11 +242,14 @@ class auction_component:
                     self.deliver(ele.get_info())
                     self.sequence_counter += 1
                     time.sleep(0.01)
+                    continue
+                elif self.sequence_counter > self.hold_back_queue[0].get_seq():
+                    heapq.heappop(self.hold_back_queue)
+                    continue
                 else:
                     # if not, send out the negative acknowledgement
                     cmp = time.time()
                     if cmp - timestamp > self.HEARTBEAT_RATE / frequency:
-                        print(self.hold_back_queue[0].get_info())
                         self.negative_acknowledgement()
                         timestamp = time.time()
 
