@@ -82,6 +82,10 @@ class group_member_service_server(group_member_service):
         self.TYPE = 'SERVER'
         self.is_main = is_MAIN
         self.MAIN_SERVER = MAIN_SERVER
+        if self.is_main:
+            self.is_member = True
+        else:
+            self.is_member = False
         self.server_list = \
             pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_client']).astype(
                 {'number_client': 'int32'}) if self.TYPE == 'SERVER' else None
@@ -127,11 +131,17 @@ class group_member_service_server(group_member_service):
             print('Remove failed!')
         print(address, ' Has disconnected with the group!')
         if self.MAIN_SERVER == address:
-            self.MAIN_SERVER = None
-            self.group_synchronise()
-            command = 'self.gms.LCR();self.gms.update_state();'
-            self.ORIGIN.remote_methode_invocation(self.get_server_address(), command, result=False)
-            # self.LCR()
+            if len(self.get_server_address()) == 0:
+                # if we only know of a single existing server, ourselves, we need to take over as the main server
+                self.MAIN_SERVER = (self.IP_ADDRESS, self.UDP_PORT)
+                self.is_main = True
+                self.is_member = True
+            else:
+                self.MAIN_SERVER = None
+                self.group_synchronise()
+                command = 'self.gms.LCR();self.gms.update_state();'
+                self.ORIGIN.remote_methode_invocation(self.get_server_address(), command, result=False)
+
 
     def heartbeat_send(self):
         while not self.TERMINATE:
@@ -397,7 +407,7 @@ class group_member_service_server(group_member_service):
     def get_all_address(self, TYPE: str = 'UDP'):
         return self.get_server_address(TYPE) + self.get_client_address(TYPE)
 
-    def is_member(self, iD, TYPE: str = 'SERVER') -> bool:
+    def is_listed(self, iD, TYPE: str = 'SERVER') -> bool:
         """
         HELPER FUNCTION
         determine whether the iD appears in the dataframe

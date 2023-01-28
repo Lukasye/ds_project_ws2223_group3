@@ -8,11 +8,10 @@ import config as cfg
 
 
 class global_time_sync:
-    def __init__(self, TYPE: str, iD, IP_ADDRESS: str, TIM_PORT, is_main):
+    def __init__(self, TYPE: str, iD, IP_ADDRESS: str, TIM_PORT):
         self.id = iD
         self.IP_ADDRESS = IP_ADDRESS
         self.TIM_PORT = TIM_PORT
-        self.is_main = is_main
         self.offset = 0
         self.SYNC_SERVER = None
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
@@ -25,16 +24,8 @@ class global_time_sync:
         for th in self.threads:
             t = threading.Thread(target=th, daemon=True)
             t.start()
-
-    def start(self, duration) -> None:
-        """
-        event that should be done when the auction is started
-        :param duration:
-        :return:
-        """
-        pass
-
-    def end(self) -> None:
+            
+    def close(self) -> None:
         """
         event that should be done when the auction is over
         :return:
