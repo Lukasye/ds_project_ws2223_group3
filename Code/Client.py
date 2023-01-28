@@ -119,7 +119,7 @@ class Client(auction_component):
             if user_input == 'exit':
                 self.TERMINATE = True
                 self.gms.close()
-                self.gts.end()
+                self.gts.close()
                 quit()
             elif user_input == 'report':
                 self.report()
