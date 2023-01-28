@@ -43,31 +43,9 @@ class group_member_service:
     def heartbeat_send(self):
         pass
 
-    def heartbeat_listen(self, content: dict) -> None:
-        """
-        create a socket to listen on the heartbeat port of the process
-        :param content: the reply message that should be sent to the applicants
-        :return: None
-        """
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        server_socket.bind((self.IP_ADDRESS, self.GMS_PORT))
-        while not self.TERMINATE:
-            # if we're disconnected we want the servers to realize that 
-            if self.is_member:
-                data, address = server_socket.recvfrom(self.BUFFER_SIZE)
-                if data:
-                    message = pickle.loads(data)
-                    # don't listen to yourself!
-                    if isinstance(message, pandas.DataFrame):
-                        # if the datatype is pandas df, it will be a synchronized of serverlist
-                        self.server_list = message
-                    else:
-                        method = message['METHOD']
-                        if method == 'HEAREQUEST':
-                            reply = utils.create_message(self.id, 'HEAREPLY', content)
-                            utils.udp_send_without_response(address, reply)
-                        else:
-                            print('Warning: Inappropriate message at heartbeat port.')
+    @abstractmethod
+    def heartbeat_listen(self) -> None:
+        pass
 
     def start_thread(self):
         self.threads = [self.heartbeat_listen, self.heartbeat_send]
@@ -94,7 +72,7 @@ class group_member_service_server(group_member_service):
         self.in_election = False
         self.start_thread()
 
-    def heartbeat_listen(self, content = None):
+    def heartbeat_listen(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         server_socket.bind((self.IP_ADDRESS, self.GMS_PORT))
         while not self.TERMINATE:
@@ -149,12 +127,11 @@ class group_member_service_server(group_member_service):
 
     def heartbeat_send(self):
         while not self.TERMINATE:
-            message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id, 'CLIENTS': self.client_size()})
+            message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id, 'CLIENTS': self.client_size(), 'ADDRESS': (self.IP_ADDRESS, self.UDP_PORT)})
             # if the process don't have a main_server, find one
             if self.MAIN_SERVER is None:
                 self.ORIGIN.find_others()
 
-            # TODO: check if it wor ks properly
             for address in self.get_server_address('UDP', without=[self.id]):
                 try:
                     response = utils.udp_send(utils.get_port(address, 'GMS'), message)
@@ -482,7 +459,6 @@ class group_member_service_client(group_member_service):
         self.start_thread()
 
     def heartbeat_send(self):
-        # TODO: check if it works properly
         while not self.TERMINATE:
             message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id})
 
@@ -511,9 +487,32 @@ class group_member_service_client(group_member_service):
 
             time.sleep(self.HEARTBEAT_RATE)
 
-    def heartbeat_listen(self, content = None):
-        content = {'ID': self.id}
-        return super().heartbeat_listen(content)
+    def heartbeat_listen(self):
+        """
+        create a socket to listen on the heartbeat port of the process
+        :return: None
+        """
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        server_socket.bind((self.IP_ADDRESS, self.GMS_PORT))
+        while not self.TERMINATE:
+            # if we're disconnected we want the servers to realize that 
+            if self.is_member:
+                data, address = server_socket.recvfrom(self.BUFFER_SIZE)
+                if data:
+                    message = pickle.loads(data)
+                    # don't listen to yourself!
+                    if isinstance(message, pandas.DataFrame):
+                        # if the datatype is pandas df, it will be a synchronized of serverlist
+                        self.server_list = message
+                    else:
+                        # we only respond to our contact server
+                        if message['CONTENT']['ADDRESS'] == self.CONTACT_SERVER:
+                            method = message['METHOD']
+                            if method == 'HEAREQUEST':
+                                reply = utils.create_message(self.id, 'HEAREPLY', {'ID': self.id})
+                                utils.udp_send_without_response(address, reply)
+                            else:
+                                print('Warning: Inappropriate message at heartbeat port.')
 
     def handle_disconnect(self) -> None:
         self.ORIGIN.logging.warning('Client lose MAIN/CONTACT server!')
