@@ -3,15 +3,13 @@ import struct
 import pickle
 import os
 import heapq
-from typing import List, Any
+import logging
 
 from tqdm import tqdm
 import time
 from uuid import uuid4
 import threading
 from abc import abstractmethod
-# from rich.console import Console
-# from rich import print
 
 import utils
 import config as cfg
@@ -80,6 +78,8 @@ class auction_component:
         self.in_auction = False
         self.result = False
         self.bid_history = []
+        self.logging = logging
+        self.logging.basicConfig(filename='../log/' + str(self.UDP_PORT) + '_debug.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
 
     @abstractmethod
     def logic(self, request: dict) -> None:
@@ -260,6 +260,7 @@ class auction_component:
         :param message: dict format standard message
         :return:
         """
+        self.logging.info(message)
         t = threading.Thread(target=self.logic, args=(message,))
         t.start()
 

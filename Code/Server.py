@@ -35,7 +35,7 @@ class Server(auction_component):
         # introduce the global time synchronizer
         self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT, self.is_main)
         
-        self.report()
+        self.logging.info(self.report())
         # open multiple thread to do different jobs
         self.warm_up(warm_up_list, self.headless)
 
@@ -347,14 +347,15 @@ class Server(auction_component):
         if not self.in_auction:
             print('Already in an auction!')
             return
-        command = f'self.in_auction = False;print("Winner is {self.winner}!"); self.result = True'
+        # command = f'self.in_auction = False;print("Winner is {self.winner}!"); self.result = True'
+        command = f'self.in_auction = False;self.end_game("{self.winner}"); self.result = True'
         result = self.remote_methode_invocation(self.gms.get_client_address(), command)
         if all(result) or self.gms.client_size() == 0:
             self.in_auction = False
-            print('$' * 40)
-            print('Auction ended successfully!')
-            print(f'Winner is {self.winner} with the price {self.highest_bid}!')
-            print('$' * 40)
+            tmp = '$' * 40 + '\n' + 'Auction ended successfully!\n' + f'Winner is {self.winner} with the price {self.highest_bid}!\n' + '$' * 40
+            print(tmp)
+            self.logging.debug(tmp)
+            self.logging.debug(self.bid_history)
         else:
             print('Failed!')
 
@@ -400,6 +401,10 @@ class Server(auction_component):
                 info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
                 print(info)
             user_input = input('Please enter your command:')
+            if user_input == '':
+                continue
+            else:
+                self.logging.debug('User input: ' + user_input)
             # ************************************************************
             #                        Basic Functions
             # ************************************************************

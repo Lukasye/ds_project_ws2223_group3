@@ -120,6 +120,7 @@ class group_member_service_server(group_member_service):
         :param address: the id of the disconnected server. There maybe a naming error
         :return: None
         """
+        self.ORIGIN.logging.warning(f'Lose connection with {address}')
         try:
             self.remove_server(self.address_to_id(self.server_list, address))
         except:
@@ -499,6 +500,7 @@ class group_member_service_client(group_member_service):
         return super().heartbeat_listen(content)
 
     def handle_disconnect(self) -> None:
+        self.ORIGIN.logging.warning('Client lose MAIN/CONTACT server!')
         self.ORIGIN.find_others()
 
 

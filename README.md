@@ -3,16 +3,12 @@
 
 ### Introduction
 <img src="img/mems.jpg" width="300" height="300"><br>
-Our goal in this project is to build a fully functioning, distributed system for Auction.The system will be implemented as a many servers-many clients design. The servers are the seller who functions as the main server as well as supplemental servers that provide fault tolerance and scalability. The clients on the other hand works like a thin client machine that provide merely an interface with a very restricted logic and data functionality. The supplemental servers exist to take bids, aggregate them and transfer that data to the main server. For this purpose, each server will be connected to a number of clients. The clients only communicate with this server, not directly with the main server or with each other. Bids will be placed by using TCP connections from a client to a server to ensure that the bid will be reliably transported.
-### Requirements<br>
-Following additional package will be needed:
-1. click
-2. uuid
-3. pickle
-4. pandas
-5. heapq
-6. tqdm
-7. threading<br>
+Our goal in this project is to build a fully functioning, distributed system for Auction.The system will be implemented as a many servers-many clients design. The servers are the seller who functions as the main server as well as supplemental servers that provide fault tolerance and scalability. The clients on the other hand works like a thin client machine that provide merely an interface with a very restricted logic and data functionality. The supplemental servers exist to take bids, aggregate them and transfer that data to the main server. For this purpose, each server will be connected to a number of clients. 
+### Requirements & Install<br>
+Some additional packages might be needed in this project. Runn the following command to install the requirements:<br>
+```
+pip install -r requirements.txt
+```
 
 For the Windows user: It may be a problem with `curses` package.
 ```
@@ -56,6 +52,38 @@ cd Code/start_up
 15. exit
 Look in the programm for more details!<br>
 
+Each time you run the code, a loggin file will be created in the log directory with the name of the specified port, like `5700_debug.log`, which help you to do the debugging and further development.
+<details>
+  <summary>
+    logging example
+  </summary>
+INFO:root:SERVER activate on
+ID: 			e2e36f28-0c6a-491f-bfc1-e68c744d928b
+Address: 		192.168.0.200:10000 
+Broadcast: 		192.168.0.255:5972
+Main Server: 		('192.168.0.200', 10000)
+Is_Main: 		True
+Number of Clients: 	0
+Sequence number: 	1
+INFO:root:{'ID': 'af5bc12a-cca3-4856-a050-1f8480382548', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5710)}, 'SENDER_ADDRESS': ('192.168.0.200', 62287)}
+INFO:root:{'ID': '230d743c-4f73-418e-82f9-04bb3d751a84', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5700)}, 'SENDER_ADDRESS': ('192.168.0.200', 62288)}
+INFO:root:{'ID': '875f3820-7d5d-4432-819d-5f813f8e3e5e', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'SERVER', 'UDP_ADDRESS': ('192.168.0.200', 10010)}, 'SENDER_ADDRESS': ('192.168.0.200', 62289)}
+DEBUG:root:User input: report
+DEBUG:root:User input: start
+INFO:root:{'ID': 'e2e36f28-0c6a-491f-bfc1-e68c744d928b', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.start_auction()'}, 'SENDER_ADDRESS': ('192.168.0.200', 62363)}
+INFO:root:{'ID': '230d743c-4f73-418e-82f9-04bb3d751a84', 'METHOD': 'BIT', 'SEQUENCE': 0, 'CONTENT': {'UDP_ADDRESS': ('192.168.0.200', 5700), 'PRICE': '10'}, 'SENDER_ADDRESS': ('192.168.0.200', 62382)}
+INFO:root:{'ID': 'e2e36f28-0c6a-491f-bfc1-e68c744d928b', 'METHOD': 'RMI', 'SEQUENCE': 1, 'CONTENT': {'METHODE': 'self.highest_bid=10;self.winner="230d743c-4f73-418e-82f9-04bb3d751a84";self.bid_history.append(("230d743c-4f73-418e-82f9-04bb3d751a84", 10));self.pass_on(\'self.highest_bid=10;self.winner="230d743c-4f73-418e-82f9-04bb3d751a84";self.bid_history.append(("230d743c-4f73-418e-82f9-04bb3d751a84", 10));\', 1);self.result = True;'}, 'SENDER_ADDRESS': ('192.168.0.200', 62388)}
+INFO:root:{'ID': 'af5bc12a-cca3-4856-a050-1f8480382548', 'METHOD': 'BIT', 'SEQUENCE': 0, 'CONTENT': {'UDP_ADDRESS': ('192.168.0.200', 5710), 'PRICE': '20'}, 'SENDER_ADDRESS': ('192.168.0.200', 62404)}
+INFO:root:{'ID': 'e2e36f28-0c6a-491f-bfc1-e68c744d928b', 'METHOD': 'RMI', 'SEQUENCE': 2, 'CONTENT': {'METHODE': 'self.highest_bid=20;self.winner="af5bc12a-cca3-4856-a050-1f8480382548";self.bid_history.append(("af5bc12a-cca3-4856-a050-1f8480382548", 20));self.pass_on(\'self.highest_bid=20;self.winner="af5bc12a-cca3-4856-a050-1f8480382548";self.bid_history.append(("af5bc12a-cca3-4856-a050-1f8480382548", 20));\', 2);self.result = True;'}, 'SENDER_ADDRESS': ('192.168.0.200', 62408)}
+DEBUG:root:User input: end
+INFO:root:{'ID': 'e2e36f28-0c6a-491f-bfc1-e68c744d928b', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.end_auction()'}, 'SENDER_ADDRESS': ('192.168.0.200', 62429)}
+DEBUG:root:$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+Auction ended successfully!
+Winner is af5bc12a-cca3-4856-a050-1f8480382548 with the price 20!
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+DEBUG:root:[('230d743c-4f73-418e-82f9-04bb3d751a84', 10), ('af5bc12a-cca3-4856-a050-1f8480382548', 20)]
+</details><br>
+
 ### Progressing<br>
 ![broadcast](img/election.png) <br>
 <b>27.11.2022:</b> tune the broadcast function. Gonna watch the Worldcup! 😊<br>
@@ -87,6 +115,7 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>24.01.2023:</b> first time test on 4-server 4-client(and 4-server 8 client) situation and multiple machine. Not very good. Deliver a few bugs and did some code optimizations.<br> 
 <b>25.01.2023:</b> dealt with the problem that the sequence synchronize problem for later joined processes.<br> 
 <b>27.01.2023:</b> multiple bugs fixed! Tested on 12 Process in multiple physical devices and it worked like a charm! <br> 
+<b>28.01.2023:</b> Added logging function and small bugs fixed.<br>
 ### TODO<br>
 1. election failure model
 2. bugs fix!!!!!!!!

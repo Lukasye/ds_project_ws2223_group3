@@ -18,7 +18,7 @@ class Client(auction_component):
         self.headless = headless
         self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT, False)
         self.gms = group_member_service_client(self, self.MY_IP, self.id, self.UDP_PORT)
-        self.report()
+        self.logging.info(self.report())
         # open multiple thread to do different jobs
         self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue], headless)
         # introduce the global time synchronizer
@@ -91,6 +91,13 @@ class Client(auction_component):
         self.sequence_counter = 1
         self.state_update()
 
+    def end_game(self, winner):
+        tmp = '$' * 40 + '\n' + 'Auction ended successfully!\n' + f'Winner is {winner} with the price {self.highest_bid}!\n' + '$' * 40
+        print(tmp)
+        self.logging.debug(tmp)
+        self.logging.debug(self.bid_history)
+
+
     def interface(self) -> None:
         while True:
             if not self.headless:
@@ -99,6 +106,10 @@ class Client(auction_component):
                 info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
                 print(info)
             user_input = input('Please enter your command:')
+            if user_input == '':
+                continue
+            else:
+                self.logging.debug('User input: ' + user_input)
             if self.gms.CONTACT_SERVER is None:
                 self.leave()
                 self.find_others()
