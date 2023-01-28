@@ -16,7 +16,7 @@ class Client(auction_component):
         self.current_bid = 0
         self.is_member = False
         self.headless = headless
-        self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT, False)
+        self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT)
         self.gms = group_member_service_client(self, self.MY_IP, self.id, self.UDP_PORT)
         self.report()
         # open multiple thread to do different jobs
@@ -26,7 +26,7 @@ class Client(auction_component):
     def shut_down(self) -> None:
         super().shut_down()
         self.gms.close()
-        self.gts.end()
+        self.gts.close()
 
     def report(self):
         if self.headless:
