@@ -14,7 +14,6 @@ class Client(auction_component):
                  headless=False):
         super().__init__('CLIENT', UDP_PORT)
         self.current_bid = 0
-        self.is_member = False
         self.headless = headless
         self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT)
         self.gms = group_member_service_client(self, self.MY_IP, self.id, self.UDP_PORT)
@@ -38,7 +37,7 @@ class Client(auction_component):
                   'Main Server: \t\t{}\n' \
                   'Contact Server: \t{}\n' \
                   'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
-                                                 self.is_member, self.gms.MAIN_SERVER, self.gms.CONTACT_SERVER,
+                                                 self.gms.is_member, self.gms.MAIN_SERVER, self.gms.CONTACT_SERVER,
                                                  self.sequence_counter)
         print(message + '\n')
         return message
@@ -50,7 +49,7 @@ class Client(auction_component):
             self.print_message(response)
         # ********************** METHOD DISCOVERY **********************************
         if method == 'DISCOVERY':
-            if not self.is_member:
+            if not self.gms.is_member:
                 self.join(tuple(response['CONTENT']['UDP_ADDRESS']))
             elif self.gms.MAIN_SERVER is not None:
                 self.forward(self.gms.MAIN_SERVER, response)
@@ -85,7 +84,7 @@ class Client(auction_component):
         self.join(tuple(self.gms.CONTACT_SERVER))
         
     def leave(self) -> None:
-        self.is_member = False
+        self.gms.is_member = False
         self.gms.MAIN_SERVER = None
         self.gms.CONTACT_SERVER = None
         self.sequence_counter = 1
