@@ -29,6 +29,7 @@ class group_member_service:
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
         self.HEARTBEAT_RATE = cfg.attr['HEARTBEAT_RATE']
         self.TERMINATE = False
+        self.is_member = False
         self.threads = []
         self.sequencer = 0
 
@@ -84,8 +85,6 @@ class group_member_service_server(group_member_service):
         self.MAIN_SERVER = MAIN_SERVER
         if self.is_main:
             self.is_member = True
-        else:
-            self.is_member = False
         self.server_list = \
             pd.DataFrame(columns=['ADDRESS', 'PORT', 'number_client']).astype(
                 {'number_client': 'int32'}) if self.TYPE == 'SERVER' else None
