@@ -1,4 +1,5 @@
 import click
+import math
 import time
 import socket
 
@@ -15,6 +16,9 @@ class Server(auction_component):
                  is_main: bool = False,
                  headless=False):
         super(Server, self).__init__('SERVER', UDP_PORT)
+        self.majority = 0
+        self.multi = 0
+        self.tiebreaker = 0
         self.SEQ_PORT = UDP_PORT + 4
         self.headless = headless
         # initialize depends on whether this is the main server
@@ -119,14 +123,11 @@ class Server(auction_component):
                     'multicast_send_without_response', {'in_auction': False}
                 ))
                 return
-            if self.gms.server_size() < 4:
-                # there aren't enough servers for byzentain agreement
-                highst_bid = self.highest_bid
-            else:
-                print('Execute BZT agreement')
-                command = 'self.result = self.reach_agreement();'
-                self.remote_methode_invocation(self.gms.get_server_address(), command, multicast=True)
-                highst_bid = self.highest_bid
+            if self.gms.server_size() >= 4:
+                # if the number is satisfied, run the phase king.
+                print('Running phase king algirithm...')
+                self.phase_king_start()
+            highst_bid = self.highest_bid
             price = int(request['CONTENT']['PRICE'])
             if price < highst_bid:
                 # if the bit is smaller than the current highest, nothing should be done.
@@ -380,6 +381,14 @@ class Server(auction_component):
         self.gts.end()
         self.end_auction()
 
+    def check_agreement(self):
+        number_of_server = self.gms.server_size()
+        fault = math.ceil(number_of_server / 4)
+        if self.multi > number_of_server / 2 + fault:
+            self.value = self.majority
+        else:
+            self.value = self.tiebreaker
+
     def reach_agreement(self):
         price = []
         message = self.create_message('PRICE', {'PRICE': self.highest_bid})
@@ -387,8 +396,32 @@ class Server(auction_component):
         for message in result:
             price.append(message['CONTENT']['PRICE'])
         self.highest_bid = utils.most_common(price)
-        print(self.highest_bid)
-        return self.highest_bid
+        self.majority = utils.most_common(price)
+        self.multi = price.count(self.majority)
+        return self.majority
+
+    def phase_king(self, king_list: list):
+        king = king_list.pop(0)
+        if not self.id == king:
+            return
+        self.reach_agreement()
+        command = f'self.reach_agreement();self.tiebreaker = {self.majority};self.check_agreement();'
+        if not bool(king_list):
+            command += 'self.highest_bid = self.value;print("New highest bid: ", self.highest_bid);'
+        else:
+            command += f'self.phase_king({king_list});'
+        self.remote_methode_invocation(self.gms.get_server_address(without=[self.id]), command, multicast=True, result=False)
+
+    def phase_king_start(self):
+        number_of_server = self.gms.server_size()
+        if number_of_server < 4:
+            print('Not enough servers!')
+            return
+        fault = math.ceil(self.gms.server_size() / 4)
+        king_list, _ = self.gms.get_server_id()
+        king_list = king_list[0: fault + 1]
+        self.phase_king(king_list=king_list)
+
 
     def interface(self) -> None:
         while True:
@@ -489,10 +522,7 @@ class Server(auction_component):
                 self.unicast_group_without_response(self.gms.get_server_address(),
                                                     self.create_message(METHOD='TEST', SEQUENCE=10, CONTENT={}))
             elif user_input == 'bzt':
-                # self.send_agreement()
-                # result = self.reach_agreement()
-                command = 'self.result = self.reach_agreement();'
-                self.remote_methode_invocation(self.gms.get_server_address(), command)
+                self.phase_king_start()
             elif user_input.startswith('cheat'):
                 info = user_input.split(' ')
                 self.highest_bid = int(info[1])

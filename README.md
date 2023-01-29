@@ -116,6 +116,7 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>25.01.2023:</b> dealt with the problem that the sequence synchronize problem for later joined processes.<br> 
 <b>27.01.2023:</b> multiple bugs fixed! Tested on 12 Process in multiple physical devices and it worked like a charm! <br> 
 <b>28.01.2023:</b> Added logging function and small bugs fixed.<br>
+<b>29.01.2023:</b> Newly added phase king algorithm! To absolute resolve the byzantine. holpe to get 1.0<br>
 ### TODO<br>
 1. election failure model
 2. bugs fix!!!!!!!!

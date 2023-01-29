@@ -498,10 +498,10 @@ class auction_component:
         elif self.gms.MAIN_SERVER is not None:
             self.udp_send(self.gms.MAIN_SERVER, message, receive=True)
 
-    def negative_konowledgement_send(self,address: tuple, sequence : int) -> None:
-        iD, price = self.bid_history[sequence]
-        command = f'self.highest_bid={price};self.winner="{iD}";self.bid_history.append(("{iD}", {price}));'
-        self.remote_methode_invocation([address], command, SEQUENCE= sequence)
+    # def negative_konowledgement_send(self,address: tuple, sequence : int) -> None:
+    #     iD, price = self.bid_history[sequence]
+    #     command = f'self.highest_bid={price};self.winner="{iD}";self.bid_history.append(("{iD}", {price}));'
+    #     self.remote_methode_invocation([address], command, SEQUENCE= sequence)
 
 
 if __name__ == '__main__':

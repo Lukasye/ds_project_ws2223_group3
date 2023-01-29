@@ -120,9 +120,10 @@ class group_member_service_server(group_member_service):
                 self.is_member = True
             else:
                 self.MAIN_SERVER = None
-                self.group_synchronise()
-                command = 'self.gms.LCR();self.gms.update_state();'
-                self.ORIGIN.remote_methode_invocation(self.get_server_address(), command, result=False)
+                while self.MAIN_SERVER is None:
+                    self.group_synchronise()
+                    command = 'self.gms.LCR();self.gms.update_state();'
+                    self.ORIGIN.remote_methode_invocation(self.get_server_address(), command, result=False)
 
 
     def heartbeat_send(self):
@@ -224,7 +225,7 @@ class group_member_service_server(group_member_service):
         else:
             return None
 
-    def LCR(self):
+    def LCR(self, timeout: int = 5):
         # LCR algorithm
         # ring_uuid is the ring with uuid
         # neighbour is the neighbour of current node
@@ -261,9 +262,13 @@ class group_member_service_server(group_member_service):
         ring_socket.bind((MY_IP, ELE_PORT))
         new_election_message = {"mid": iD, "isLeader": False}
         utils.udp_send_without_response(neighbour, new_election_message)
+        ring_socket.settimeout(timeout)
 
         while not self.TERMINATE:
-            data, _ = ring_socket.recvfrom(self.BUFFER_SIZE)
+            try:
+                data, _ = ring_socket.recvfrom(self.BUFFER_SIZE)
+            except socket.timeout:
+                return None
             election_message = pickle.loads(data)
             # print(election_message)
             if election_message["isLeader"]:
@@ -330,6 +335,7 @@ class group_member_service_server(group_member_service):
 
     def remove_client(self, iD):
         self.client_list = self.client_list.drop(iD, axis=0)
+        self.server_list.loc[self.id, 'number_client'] -= 1
         print(f'Client {iD} has been removed from the group!')
 
     def print_server(self):
