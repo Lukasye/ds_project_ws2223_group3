@@ -89,7 +89,8 @@ class group_member_service_server(group_member_service):
                         method = message['METHOD']
                         if method == 'HEAREQUEST':
                             if self.is_listed(message['ID'], 'UNKNOWN'):
-                                content = {'ID': self.id, 'CLIENTS': self.client_size(), 'MAIN_SERVER': self.MAIN_SERVER}
+                                content = {'ID': self.id, 'CLIENTS': self.client_size(),
+                                           'MAIN_SERVER': self.MAIN_SERVER}
                                 reply = utils.create_message(self.id, 'HEAREPLY', content)
                                 utils.udp_send_without_response(address, reply)
                         elif method == 'UPDATE':
@@ -120,15 +121,16 @@ class group_member_service_server(group_member_service):
                 self.is_member = True
             else:
                 self.MAIN_SERVER = None
+                # if the election fails, runn the election again, until we get the result
                 while self.MAIN_SERVER is None:
                     self.group_synchronise()
                     command = 'self.gms.LCR();self.gms.update_state();'
                     self.ORIGIN.remote_methode_invocation(self.get_server_address(), command, result=False)
 
-
     def heartbeat_send(self):
         while not self.TERMINATE:
-            message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id, 'CLIENTS': self.client_size(), 'ADDRESS': (self.IP_ADDRESS, self.UDP_PORT)})
+            message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id, 'CLIENTS': self.client_size(),
+                                                                   'ADDRESS': (self.IP_ADDRESS, self.UDP_PORT)})
             # if the process don't have a main_server, find one
             if self.MAIN_SERVER is None:
                 self.ORIGIN.find_others()
@@ -273,26 +275,19 @@ class group_member_service_server(group_member_service):
             # print(election_message)
             if election_message["isLeader"]:
                 leader_uid = election_message["mid"]
-                # ring_socket.sendto(pickle.dumps(election_message), neighbour)
                 utils.udp_send_without_response(neighbour, election_message)
                 break
             if election_message["mid"] < iD and not participant:
                 new_election_message = {"mid": iD, "isLeader": False}
                 participant = True
-                # send received election message to left neighbour
-                # ring_socket.sendto(pickle.dumps(new_election_message), neighbour)
                 utils.udp_send_without_response(neighbour, new_election_message)
             elif election_message["mid"] > iD:
-                # send received election message to left neighbouerver
                 participant = True
-                # ring_socket.sendto(pickle.dumps(election_message), neighbour)
                 utils.udp_send_without_response(neighbour, election_message)
             elif election_message["mid"] == iD:
                 leader_uid = iD
                 new_election_message = {"mid": iD, "isLeader": True}
-                # send new election message to left neighbour
                 participant = False
-                # ring_socket.sendto(pickle.dumps(new_election_message), neighbour)
                 utils.udp_send_without_response(neighbour, new_election_message)
         self.MAIN_SERVER = self.id_to_address(leader_uid)
         self.is_main = self.id == leader_uid
@@ -367,7 +362,7 @@ class group_member_service_server(group_member_service):
             tmp.append(utils.get_port(result, TYPE))
         return tmp
 
-    def get_server_address(self, TYPE: str = 'UDP', without: list = []) -> list:
+    def get_server_address(self, TYPE: str = 'UDP', without: list = None) -> list:
         """
         HELPER FUNCTION
         Get all the addresses of servers that store in the gms
@@ -375,6 +370,8 @@ class group_member_service_server(group_member_service):
         :param TYPE: specify the port you want to get
         :return: a list of tuple address
         """
+        if without is None:
+            without = []
         tmp = []
         for iD, row in self.server_list.iterrows():
             if iD in without:
@@ -454,6 +451,10 @@ class group_member_service_server(group_member_service):
             utils.udp_send_without_response(member, message)
 
     def empty(self) -> bool:
+        """
+        HELPER FUNCTION:
+        return: True if the server hasn't connected to any other processes
+        """
         return self.client_size() == 0 and self.server_size() == 1
 
 

@@ -91,11 +91,11 @@ class Client(auction_component):
         self.state_update()
 
     def end_game(self, winner):
-        tmp = '$' * 40 + '\n' + 'Auction ended successfully!\n' + f'Winner is {winner} with the price {self.highest_bid}!\n' + '$' * 40
+        tmp = '$' * 40 + '\n' + 'Auction ended successfully!\n' + \
+              f'Winner is {winner} with the price {self.highest_bid}!\n' + '$' * 40
         print(tmp)
         self.logging.debug(tmp)
         self.logging.debug(self.bid_history)
-
 
     def interface(self) -> None:
         while True:

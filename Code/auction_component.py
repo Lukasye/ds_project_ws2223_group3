@@ -79,7 +79,8 @@ class auction_component:
         self.result = False
         self.bid_history = []
         self.logging = logging
-        self.logging.basicConfig(filename='../log/' + str(self.UDP_PORT) + '_debug.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
+        self.logging.basicConfig(
+            filename='../log/' + str(self.UDP_PORT) + '_debug.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
 
     @abstractmethod
     def logic(self, request: dict) -> None:
@@ -146,7 +147,7 @@ class auction_component:
         self.TERMINATE = True
         self.sequence_counter = 1
         self.highest_bid = 0
-        self.is_member = False
+        self.gms.is_member = False
         self.winner = None
         self.in_auction = False
         self.hold_back_queue = []
@@ -349,7 +350,7 @@ class auction_component:
                                   methode: str,
                                   SEQUENCE: int = 0,
                                   multicast: bool = False,
-                                  result : bool = True):
+                                  result: bool = True):
         """
         HELPER FUNCTION
         Implementation of remote methode invocation. Send out the message in different cases depends on the input
@@ -357,6 +358,7 @@ class auction_component:
         :param methode: str type, the command that you want to execute
         :param SEQUENCE: int type sequence number if necessary
         :param multicast: bool type, whether multicast should be used to propagate the messages
+        :param result: boolean value to indicate whether the reply should be collected
         :return: None
         """
         # if the multicast ip is None that mean the function is not enabled yet. So user uni_group send instead
@@ -377,6 +379,7 @@ class auction_component:
                     reply = self.unicast_group_send(group=group, message=message)
                 else:
                     self.unicast_group_without_response(group=group, message=message)
+                    reply = None
         # for address in group:
         #     reply.append(self.udp_send(tuple(address), message))
         if result:

@@ -19,7 +19,7 @@ class global_time_sync:
         self.TYPE = TYPE
         self.TERMINATE = False
         self.threads = [self.time_synchronize]
-        if(self.TYPE == 'SERVER'):
+        if self.TYPE == 'SERVER':
             self.threads.append(self.time_listen)
         for th in self.threads:
             t = threading.Thread(target=th, daemon=True)
@@ -46,7 +46,8 @@ class global_time_sync:
                 message = pickle.loads(data)
                 method = message['METHOD']
                 if method == 'SYNCREQUEST':
-                    reply = utils.create_message(self.id, 'SYNCREPLY', {'SENDTIME': message['CONTENT']['SENDTIME'], 'RCVTIME': self.get_time()})
+                    reply = utils.create_message(self.id, 'SYNCREPLY', {'SENDTIME': message['CONTENT']['SENDTIME'],
+                                                                        'RCVTIME': self.get_time()})
                     utils.udp_send_without_response(address, reply)
                 else:
                     print('Warning: Inappropriate message at time port.')
@@ -59,16 +60,16 @@ class global_time_sync:
         """
         
         while not self.TERMINATE:
-            if self.SYNC_SERVER != None:
+            if self.SYNC_SERVER is not None:
                 message = utils.create_message(self.id, 'SYNCREQUEST', {'SENDTIME': self.get_time()})
                 
                 try:
                     response = utils.udp_send(utils.get_port(self.SYNC_SERVER, 'TIM'), message)
                 except ConnectionResetError:
-                    # we lost the connection to our sync server - nothing we can do about it except wait until it comes back
-                    pass
-               
-                if response == None:
+                    # we lost the connection to our sync server -
+                    # nothing we can do about it except wait until it comes back
+                    response = None
+                if response is None:
                     pass                # the request timed out - sucks, but not our problem
                 elif response['METHOD'] == 'SYNCREPLY':
                     self.adjust_time(response['CONTENT']['SENDTIME'], response['CONTENT']['RCVTIME'])  
@@ -83,8 +84,11 @@ class global_time_sync:
         the main one
         :return:
         """
-        travel_time = (timestamp1 - self.get_time()) / 2        # we calculate the time it took for the timestamp the server sent us to get to us, which is half of the time it took between our request and the response
-        self.offset = (timestamp2 + travel_time) - time.time()  # the new offset is the difference between server time plus travel time and the current system time
+        # we calculate the time it took for the timestamp the server sent us to get to us, which is half of the time
+        # it took between our request and the response
+        travel_time = (timestamp1 - self.get_time()) / 2
+        # the new offset is the difference between server time plus travel time and the current system time
+        self.offset = (timestamp2 + travel_time) - time.time()
 
     def get_time(self) -> float:
         """
@@ -101,6 +105,7 @@ class global_time_sync:
         :return:
         """
         self.SYNC_SERVER = SYNC_SERVER
+
 
 def test():
     pass

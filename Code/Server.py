@@ -16,6 +16,7 @@ class Server(auction_component):
                  is_main: bool = False,
                  headless=False):
         super(Server, self).__init__('SERVER', UDP_PORT)
+        self.value = 0
         self.majority = 0
         self.multi = 0
         self.tiebreaker = 0
@@ -319,6 +320,7 @@ class Server(auction_component):
         return sequence['CONTENT']['SEQ']
 
     def start_auction(self, duration: int = 5):
+        print(duration)
         if self.in_auction:
             print('Already in an auction!')
             return
@@ -350,7 +352,8 @@ class Server(auction_component):
         result = self.remote_methode_invocation(self.gms.get_client_address(), command)
         if all(result) or self.gms.client_size() == 0:
             self.in_auction = False
-            tmp = '$' * 40 + '\n' + 'Auction ended successfully!\n' + f'Winner is {self.winner} with the price {self.highest_bid}!\n' + '$' * 40
+            tmp = '$' * 40 + '\n' + 'Auction ended successfully!\n' + \
+                  f'Winner is {self.winner} with the price {self.highest_bid}!\n' + '$' * 40
             print(tmp)
             self.logging.debug(tmp)
             self.logging.debug(self.bid_history)
@@ -373,12 +376,12 @@ class Server(auction_component):
         :return:
         """
         start_time = self.gts.get_time()
-        self.gts.start(duration)
+        # self.gts.start(duration)
         while True:
             current = self.gts.get_time()
             if current - start_time > duration:
                 break
-        self.gts.end()
+        self.gts.close()
         self.end_auction()
 
     def check_agreement(self):
@@ -410,7 +413,8 @@ class Server(auction_component):
             command += 'self.highest_bid = self.value;print("New highest bid: ", self.highest_bid);'
         else:
             command += f'self.phase_king({king_list});'
-        self.remote_methode_invocation(self.gms.get_server_address(without=[self.id]), command, multicast=True, result=False)
+        self.remote_methode_invocation(self.gms.get_server_address(without=[self.id]),
+                                       command, multicast=True, result=False)
 
     def phase_king_start(self):
         number_of_server = self.gms.server_size()
@@ -421,7 +425,6 @@ class Server(auction_component):
         king_list, _ = self.gms.get_server_id()
         king_list = king_list[0: fault + 1]
         self.phase_king(king_list=king_list)
-
 
     def interface(self) -> None:
         while True:
@@ -526,10 +529,18 @@ class Server(auction_component):
             elif user_input.startswith('cheat'):
                 info = user_input.split(' ')
                 self.highest_bid = int(info[1])
-            elif user_input == 'yy':
-                print(self.gms.get_server_address(without=[self.id]))
-            elif user_input == 'ml':
-                self.multicast_listen()
+            elif user_input == 'yyreport':
+                command = 'self.report();'
+                self.notify_all(command=command, result=False)
+            elif user_input == 'yyhistory':
+                command = 'utils.show_bid_hist(self.bid_history);'
+                self.notify_all(command=command, result=False)
+            elif user_input == 'yyserver':
+                command = 'self.gms.print_server();'
+                self.remote_methode_invocation(self.gms.get_server_address(), command, multicast=True, result=False)
+            elif user_input == 'yyclient':
+                command = 'self.gms.print_client();'
+                self.remote_methode_invocation(self.gms.get_server_address(), command, multicast=True, result=False)
             elif user_input == 'ms':
                 message = self.create_message('ULTRA', {'FOO': 'BAR'})
                 self.multicast_send(self.MULTICAST_IP, message=message)
