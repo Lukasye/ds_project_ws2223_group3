@@ -3,7 +3,7 @@ attr = {'BROADCAST_PORT': 5972,
         'MULTICAST_IP': '224.1.1.1',
         'BUFFER_SIZE': 4096,
         'DURATION': 100,
-        'HEARTBEAT_RATE': 2,
+        'HEARTBEAT_RATE': 4,
         'SYNC_RATE': 5,
         'NUMBER_PORTS': 4,
         'CLIENT_PORT_START': 5700,
@@ -16,5 +16,5 @@ window = {'time': (0, 1, 2, 70),
           'input': (22, 73, 2, 20),
           }
 
-type_monitor = ['RMI', 'BIT']
-# type_monitor = []
+# type_monitor = ['RMI', 'BIT']
+type_monitor = []

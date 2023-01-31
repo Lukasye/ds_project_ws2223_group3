@@ -1,32 +1,34 @@
 INFO:root:SERVER activate on
-ID: 			8a264350-6a94-4314-bbbb-4b6ba2846edd
+ID: 			ce250e1e-acdf-401d-99c2-7168d0fa1f2f
 Address: 		192.168.0.200:10010 
 Broadcast: 		192.168.0.255:5972
 Main Server: 		None
 Is_Main: 		False
 Number of Clients: 	0
 Sequence number: 	1
-INFO:root:{'ID': '97be866f-b4bb-481e-8026-c73fcbca14b1', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.gms.MAIN_SERVER=("192.168.0.200",10000); self.gms.is_member=True; self.enable_multicast("224.1.1.1");self.gms.is_main=False;self.result = True;'}, 'SENDER_ADDRESS': ('192.168.0.200', 59694)}
-INFO:root:{'ID': '6473f431-32f6-4ee3-9641-47cb4ba96f27', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5700)}, 'SENDER_ADDRESS': ('192.168.0.200', 50066)}
-INFO:root:{'ID': '7df1bd30-4405-4e8c-b910-ce6beac09eec', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5710)}, 'SENDER_ADDRESS': ('192.168.0.200', 50070)}
-INFO:root:{'ID': '7df1bd30-4405-4e8c-b910-ce6beac09eec', 'METHOD': 'JOIN', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5710)}, 'SENDER_ADDRESS': ('192.168.0.200', 50076)}
-INFO:root:{'ID': '7df1bd30-4405-4e8c-b910-ce6beac09eec', 'METHOD': 'JOIN', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5710)}, 'SENDER_ADDRESS': ('192.168.0.200', 50077)}
-INFO:root:{'ID': '6473f431-32f6-4ee3-9641-47cb4ba96f27', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5700)}, 'SENDER_ADDRESS': ('192.168.0.200', 50084)}
-INFO:root:{'ID': '6473f431-32f6-4ee3-9641-47cb4ba96f27', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5700)}, 'SENDER_ADDRESS': ('192.168.0.200', 50096)}
-INFO:root:{'ID': '6473f431-32f6-4ee3-9641-47cb4ba96f27', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5700)}, 'SENDER_ADDRESS': ('192.168.0.200', 50109)}
-INFO:root:{'ID': '97be866f-b4bb-481e-8026-c73fcbca14b1', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.start_auction()'}, 'SENDER_ADDRESS': ('192.168.0.200', 50131)}
-INFO:root:{'ID': '97be866f-b4bb-481e-8026-c73fcbca14b1', 'METHOD': 'RMI', 'SEQUENCE': 1, 'CONTENT': {'METHODE': 'self.highest_bid=10;self.winner="6473f431-32f6-4ee3-9641-47cb4ba96f27";self.bid_history.append(("6473f431-32f6-4ee3-9641-47cb4ba96f27", 10));self.pass_on(\'self.highest_bid=10;self.winner="6473f431-32f6-4ee3-9641-47cb4ba96f27";self.bid_history.append(("6473f431-32f6-4ee3-9641-47cb4ba96f27", 10));\', 1);self.result = True;'}, 'SENDER_ADDRESS': ('192.168.0.200', 50170)}
-INFO:root:{'ID': '7df1bd30-4405-4e8c-b910-ce6beac09eec', 'METHOD': 'BIT', 'SEQUENCE': 0, 'CONTENT': {'UDP_ADDRESS': ('192.168.0.200', 5710), 'PRICE': '20'}, 'SENDER_ADDRESS': ('192.168.0.200', 50198)}
-INFO:root:{'ID': '8a264350-6a94-4314-bbbb-4b6ba2846edd', 'METHOD': 'RMI', 'SEQUENCE': 2, 'CONTENT': {'METHODE': 'self.highest_bid=20;self.winner="7df1bd30-4405-4e8c-b910-ce6beac09eec";self.bid_history.append(("7df1bd30-4405-4e8c-b910-ce6beac09eec", 20));self.pass_on(\'self.highest_bid=20;self.winner="7df1bd30-4405-4e8c-b910-ce6beac09eec";self.bid_history.append(("7df1bd30-4405-4e8c-b910-ce6beac09eec", 20));\', 2);self.result = True;'}, 'SENDER_ADDRESS': ('192.168.0.200', 50212)}
-INFO:root:{'ID': '97be866f-b4bb-481e-8026-c73fcbca14b1', 'METHOD': 'RMI', 'SEQUENCE': 3, 'CONTENT': {'METHODE': 'self.highest_bid=30;self.winner="6473f431-32f6-4ee3-9641-47cb4ba96f27";self.bid_history.append(("6473f431-32f6-4ee3-9641-47cb4ba96f27", 30));self.pass_on(\'self.highest_bid=30;self.winner="6473f431-32f6-4ee3-9641-47cb4ba96f27";self.bid_history.append(("6473f431-32f6-4ee3-9641-47cb4ba96f27", 30));\', 3);self.result = True;'}, 'SENDER_ADDRESS': ('192.168.0.200', 53041)}
-INFO:root:{'ID': '97be866f-b4bb-481e-8026-c73fcbca14b1', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': "utils.show_bid_hist(self.bid_history);print();self.pass_on('utils.show_bid_hist(self.bid_history);print();', 0);self.result = True;"}, 'SENDER_ADDRESS': ('192.168.0.200', 54721)}
-INFO:root:{'ID': '7df1bd30-4405-4e8c-b910-ce6beac09eec', 'METHOD': 'BIT', 'SEQUENCE': 0, 'CONTENT': {'UDP_ADDRESS': ('192.168.0.200', 5710), 'PRICE': '25'}, 'SENDER_ADDRESS': ('192.168.0.200', 54854)}
-INFO:root:{'ID': '7df1bd30-4405-4e8c-b910-ce6beac09eec', 'METHOD': 'BIT', 'SEQUENCE': 0, 'CONTENT': {'UDP_ADDRESS': ('192.168.0.200', 5710), 'PRICE': '40'}, 'SENDER_ADDRESS': ('192.168.0.200', 54945)}
-INFO:root:{'ID': '8a264350-6a94-4314-bbbb-4b6ba2846edd', 'METHOD': 'RMI', 'SEQUENCE': 4, 'CONTENT': {'METHODE': 'self.highest_bid=40;self.winner="7df1bd30-4405-4e8c-b910-ce6beac09eec";self.bid_history.append(("7df1bd30-4405-4e8c-b910-ce6beac09eec", 40));self.pass_on(\'self.highest_bid=40;self.winner="7df1bd30-4405-4e8c-b910-ce6beac09eec";self.bid_history.append(("7df1bd30-4405-4e8c-b910-ce6beac09eec", 40));\', 4);self.result = True;'}, 'SENDER_ADDRESS': ('192.168.0.200', 54956)}
-INFO:root:{'ID': '97be866f-b4bb-481e-8026-c73fcbca14b1', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': "utils.show_bid_hist(self.bid_history);print();self.pass_on('utils.show_bid_hist(self.bid_history);print();', 0);self.result = True;"}, 'SENDER_ADDRESS': ('192.168.0.200', 55003)}
-INFO:root:{'ID': '97be866f-b4bb-481e-8026-c73fcbca14b1', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.end_auction()'}, 'SENDER_ADDRESS': ('192.168.0.200', 49885)}
+INFO:root:{'ID': 'ce250e1e-acdf-401d-99c2-7168d0fa1f2f', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'SERVER', 'UDP_ADDRESS': ('192.168.0.200', 10010)}, 'SENDER_ADDRESS': ('192.168.0.200', 55933)}
+INFO:root:{'ID': 'ca8517eb-d6e1-4847-8582-9e111882a331', 'METHOD': 'JOIN', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5710)}, 'SENDER_ADDRESS': ('192.168.0.200', 55936)}
+INFO:root:{'ID': 'ca8517eb-d6e1-4847-8582-9e111882a331', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5710)}, 'SENDER_ADDRESS': ('192.168.0.200', 55935)}
+INFO:root:{'ID': 'd59778bf-a162-4bf8-8eee-12862f703479', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5700)}, 'SENDER_ADDRESS': ('192.168.0.200', 55937)}
+INFO:root:{'ID': '51e49cc0-2a95-48fc-9cc1-60733081d562', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.gms.MAIN_SERVER=("192.168.0.200",10000); self.gms.is_member=True; self.enable_multicast("224.1.1.1");self.gms.is_main=False;self.result = True;'}, 'SENDER_ADDRESS': ('192.168.0.200', 55940)}
+INFO:root:{'ID': 'ce250e1e-acdf-401d-99c2-7168d0fa1f2f', 'METHOD': 'JOIN', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'SERVER', 'UDP_ADDRESS': ('192.168.0.200', 10010)}, 'SENDER_ADDRESS': ('192.168.0.200', 55941)}
+INFO:root:{'ID': 'd59778bf-a162-4bf8-8eee-12862f703479', 'METHOD': 'JOIN', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5700)}, 'SENDER_ADDRESS': ('192.168.0.200', 55942)}
+INFO:root:{'ID': 'ca8517eb-d6e1-4847-8582-9e111882a331', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5710)}, 'SENDER_ADDRESS': ('192.168.0.200', 55991)}
+INFO:root:{'ID': 'd59778bf-a162-4bf8-8eee-12862f703479', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5700)}, 'SENDER_ADDRESS': ('192.168.0.200', 55993)}
+INFO:root:{'ID': '51e49cc0-2a95-48fc-9cc1-60733081d562', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.gms.print_server();print();'}, 'SENDER_ADDRESS': ('192.168.56.1', 55997)}
+INFO:root:{'ID': 'ca8517eb-d6e1-4847-8582-9e111882a331', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5710)}, 'SENDER_ADDRESS': ('192.168.0.200', 56003)}
+INFO:root:{'ID': 'd59778bf-a162-4bf8-8eee-12862f703479', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5700)}, 'SENDER_ADDRESS': ('192.168.0.200', 56006)}
+INFO:root:{'ID': 'd59778bf-a162-4bf8-8eee-12862f703479', 'METHOD': 'JOIN', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5700)}, 'SENDER_ADDRESS': ('192.168.0.200', 56012)}
+INFO:root:{'ID': 'd59778bf-a162-4bf8-8eee-12862f703479', 'METHOD': 'JOIN', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5700)}, 'SENDER_ADDRESS': ('192.168.0.200', 56016)}
+INFO:root:{'ID': '51e49cc0-2a95-48fc-9cc1-60733081d562', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.start_auction()'}, 'SENDER_ADDRESS': ('192.168.0.200', 56021)}
+INFO:root:{'ID': 'ca8517eb-d6e1-4847-8582-9e111882a331', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5710)}, 'SENDER_ADDRESS': ('192.168.0.200', 56030)}
+INFO:root:{'ID': 'd59778bf-a162-4bf8-8eee-12862f703479', 'METHOD': 'BIT', 'SEQUENCE': 0, 'CONTENT': {'UDP_ADDRESS': ('192.168.0.200', 5700), 'PRICE': '10'}, 'SENDER_ADDRESS': ('192.168.0.200', 56095)}
+INFO:root:{'ID': 'ce250e1e-acdf-401d-99c2-7168d0fa1f2f', 'METHOD': 'RMI', 'SEQUENCE': 1, 'CONTENT': {'METHODE': 'self.highest_bid=10;self.winner="d59778bf-a162-4bf8-8eee-12862f703479";self.bid_history.append(("d59778bf-a162-4bf8-8eee-12862f703479", 10));self.pass_on(\'self.highest_bid=10;self.winner="d59778bf-a162-4bf8-8eee-12862f703479";self.bid_history.append(("d59778bf-a162-4bf8-8eee-12862f703479", 10));\', 1);self.result = True;'}, 'SENDER_ADDRESS': ('192.168.0.200', 56102)}
+INFO:root:{'ID': '51e49cc0-2a95-48fc-9cc1-60733081d562', 'METHOD': 'RMI', 'SEQUENCE': 2, 'CONTENT': {'METHODE': 'self.highest_bid=30;self.winner="ca8517eb-d6e1-4847-8582-9e111882a331";self.bid_history.append(("ca8517eb-d6e1-4847-8582-9e111882a331", 30));self.pass_on(\'self.highest_bid=30;self.winner="ca8517eb-d6e1-4847-8582-9e111882a331";self.bid_history.append(("ca8517eb-d6e1-4847-8582-9e111882a331", 30));\', 2);self.result = True;'}, 'SENDER_ADDRESS': ('192.168.0.200', 56169)}
+INFO:root:{'ID': '51e49cc0-2a95-48fc-9cc1-60733081d562', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': "utils.show_bid_hist(self.bid_history);print();self.pass_on('utils.show_bid_hist(self.bid_history);print();', 0);self.result = True;"}, 'SENDER_ADDRESS': ('192.168.0.200', 56192)}
+INFO:root:{'ID': '51e49cc0-2a95-48fc-9cc1-60733081d562', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.end_auction()'}, 'SENDER_ADDRESS': ('192.168.0.200', 56340)}
 DEBUG:root:$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 Auction ended successfully!
-Winner is 7df1bd30-4405-4e8c-b910-ce6beac09eec with the price 40!
+Winner is ca8517eb-d6e1-4847-8582-9e111882a331 with the price 30!
 $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-DEBUG:root:[('6473f431-32f6-4ee3-9641-47cb4ba96f27', 10), ('7df1bd30-4405-4e8c-b910-ce6beac09eec', 20), ('6473f431-32f6-4ee3-9641-47cb4ba96f27', 30), ('7df1bd30-4405-4e8c-b910-ce6beac09eec', 40)]
+DEBUG:root:[('d59778bf-a162-4bf8-8eee-12862f703479', 10), ('ca8517eb-d6e1-4847-8582-9e111882a331', 30)]

@@ -1,3 +1,4 @@
+import pickle
 import click
 import math
 import time
@@ -140,18 +141,18 @@ class Server(auction_component):
                 self.remote_methode_invocation([request['SENDER_ADDRESS']], command, result=False)
                 # print(result)
             else:
-                sequence = self.sequence_send()
+                sequence = self.sequence_send(price)
+                if sequence == 0:
+                    # the bit is invalid
+                    command = 'print("You are Overbid!");'
+                    self.remote_methode_invocation(command, result=False)
+                else:
                 # message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price})
-                tmp = request['ID']
-                self.winner = tmp
-                self.highest_bid = price
-                command = f'self.highest_bid={price};self.winner="{tmp}";self.bid_history.append(("{tmp}", {price}));'
-                self.notify_all(command=command, sequence=sequence, result=False)
-                # result = self.notify_all(command=command, sequence=sequence)
-                # result = utils.check_list(result)
-                # if not result:
-                #     print('Something went Wrong!!!!!!!!!!!')
-                # foobar
+                    tmp = request['ID']
+                    self.winner = tmp
+                    self.highest_bid = price
+                    command = f'self.highest_bid={price};self.winner="{tmp}";self.bid_history.append(("{tmp}", {price}));'
+                    self.notify_all(command=command, sequence=sequence, result=False)
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
         # ************************************************************
         #                        Methode PRINT
@@ -304,18 +305,24 @@ class Server(auction_component):
         while not self.TERMINATE:
             data, address = server_socket.recvfrom(self.BUFFER_SIZE)
             if data:
-                self.gms.sequencer += 1
-                message = self.create_message('SEQUENCE', {'SEQ': self.gms.sequencer})
+                data = pickle.loads(data)
+                price = data['CONTENT']['PRICE']
+                if price < self.highest_bid:
+                    sequence = 0
+                else:
+                    self.gms.sequencer += 1
+                    sequence = self.gms.sequencer
+                message = self.create_message('SEQUENCE', {'SEQ': sequence})
                 self.udp_send_without_response(address, message)
 
-    def sequence_send(self) -> int:
+    def sequence_send(self, price: int) -> int:
         """
         HELPER FUNCTION:
         send out request for a new sequence number
         :return: int type sequence number
         """
         assert self.gms.MAIN_SERVER is not None
-        message = self.create_message('SEQUENCE', {})
+        message = self.create_message('SEQUENCE', {'PRICE': price})
         print(utils.get_port(tuple(self.gms.MAIN_SERVER), 'SEQ'))
         sequence = self.udp_send(utils.get_port(tuple(self.gms.MAIN_SERVER), 'SEQ'), message)
         return sequence['CONTENT']['SEQ']
