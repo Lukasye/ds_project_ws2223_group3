@@ -199,7 +199,8 @@ class Server(auction_component):
             # ignore test signals
             pass
         else:
-            print(request)
+            print('Unauthorized Message received! Please see log for more details.')
+            self.logging.warning('Unauthorized message:', request)
 
     def assign(self, request: dict) -> None:
         """
@@ -533,13 +534,13 @@ class Server(auction_component):
                 command = 'self.report();'
                 self.notify_all(command=command, result=False)
             elif user_input == 'yyhistory':
-                command = 'utils.show_bid_hist(self.bid_history);'
+                command = 'utils.show_bid_hist(self.bid_history);print();'
                 self.notify_all(command=command, result=False)
             elif user_input == 'yyserver':
-                command = 'self.gms.print_server();'
+                command = 'self.gms.print_server();print();'
                 self.remote_methode_invocation(self.gms.get_server_address(), command, multicast=True, result=False)
             elif user_input == 'yyclient':
-                command = 'self.gms.print_client();'
+                command = 'self.gms.print_client();print();'
                 self.remote_methode_invocation(self.gms.get_server_address(), command, multicast=True, result=False)
             elif user_input == 'ms':
                 message = self.create_message('ULTRA', {'FOO': 'BAR'})

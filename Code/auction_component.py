@@ -367,7 +367,11 @@ class auction_component:
         message = self.create_message('RMI', SEQUENCE=SEQUENCE, CONTENT={'METHODE': methode})
         if len(group) == 1:
             # print('RMI with Unicast!')
-            return self.udp_send(group[0], message)
+            if result:
+                return self.udp_send(group[0], message)
+            else:
+                self.udp_send_without_response(group[0], message=message)
+                return None
         else:
             if multicast:
                 # print('RMI with Multicast!')

@@ -47,20 +47,32 @@ class Client(auction_component):
         method = response['METHOD']
         if not self.headless and method in type_monitor:
             self.print_message(response)
-        # ********************** METHOD DISCOVERY **********************************
+        # ************************************************************
+        #               Method Discovery
+        # ************************************************************
         if method == 'DISCOVERY':
             if not self.gms.is_member:
                 self.join(tuple(response['CONTENT']['UDP_ADDRESS']))
             elif self.gms.MAIN_SERVER is not None:
                 self.forward(self.gms.MAIN_SERVER, response)
-        # **********************    METHOD SET     **********************************
+        # ************************************************************
+        #                 Method Join
+        # ************************************************************
+        elif method == 'JOIN':
+            # don't deal with the join request
+            pass
+        # ************************************************************
+        #                  Method Set
+        # ************************************************************
         elif method == 'SET':
             tmp = response['CONTENT']
             for key in tmp:
                 # print('self.{} = {}'.format(key, tmp[key]))
                 exec('self.{} = {}'.format(key, tmp[key]))
             self.state_update()
-        # ********************** METHOD PRINT **********************************
+        # ************************************************************
+        #                  Method Print
+        # ************************************************************
         elif method == 'PRINT':
             print(response['CONTENT']['PRINT'])
         # ****************  METHOD REMOTE METHOD INVOCATION **************************
@@ -74,7 +86,8 @@ class Client(auction_component):
             # ignore test signals
             pass
         else:
-            print(response)
+            print('Unauthorized Message received! Please see log for more details.')
+            self.logging.warning('Unauthorized message:', response)
     
     def pass_on(self, command, sequence: int = 0):
         # foobar function to get rid of bugs
