@@ -475,7 +475,8 @@ class auction_component:
         assert test < len(group)
         assert skip < len(group)
         count = 0
-        for member in tqdm(group):
+        # for member in tqdm(group):
+        for member in group:
             if count == test:
                 time.sleep(10)
             if count == skip:
@@ -491,7 +492,8 @@ class auction_component:
         assert skip < len(group)
         replies = []
         count = 0
-        for member in tqdm(group):
+        # for member in tqdm(group):
+        for member in group:
             if count == test:
                 time.sleep(10)
             if count == skip:

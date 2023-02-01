@@ -95,6 +95,7 @@ class Server(auction_component):
         #                        Methode JOIN --opt 0
         # ************************************************************
         elif method == 'JOIN':
+            self.gms.isolated = False
             # see if the join request come from itself
             if request['CONTENT']['UDP_ADDRESS'] == (self.MY_IP, self.UDP_PORT):
                 return
@@ -557,7 +558,7 @@ class Server(auction_component):
                 command = 'self.report();'
                 self.notify_all(command=command, result=False)
             elif user_input == 'yyhistory':
-                command = 'utils.show_bid_hist(self.bid_history);print();'
+                command = 'print("");utils.show_bid_hist(self.bid_history);print();'
                 self.notify_all(command=command, result=False)
             elif user_input == 'yyserver':
                 command = 'self.gms.print_server();print('');'

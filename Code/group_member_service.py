@@ -71,6 +71,7 @@ class group_member_service_server(group_member_service):
         self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT']) if self.TYPE == 'SERVER' else None
         self.in_election = False
         self.hungury = 0
+        self.isolated = False
         self.start_thread()
 
     def heartbeat_listen(self):
@@ -115,35 +116,49 @@ class group_member_service_server(group_member_service):
         except:
             print('Remove failed!')
         print(address, ' Has disconnected with the group!')
+        # self.isolation_check()
         if self.MAIN_SERVER == address:
-            if len(self.get_server_address()) == 1:
+            if self.server_size() == 1 and self.client_size() > 0:
                 # if we only know of a single existing server, ourselves, we need to take over as the main server
-                if len(self.get_client_address()) == 0:
-                    # if there is also no clients in the server, there is a great chance that the server is isolated
-                    # So it needs to find a new group again.
-                    self.MAIN_SERVER = None
-                    self.is_main = False
-                    self.is_member = False
-                else:
-                    self.MAIN_SERVER = (self.IP_ADDRESS, self.UDP_PORT)
-                    self.is_main = True
-                    self.is_member = True
+                self.MAIN_SERVER = (self.IP_ADDRESS, self.UDP_PORT)
+                self.is_main = True
+                self.is_member = True
+                self.update_state()
             else:
                 self.MAIN_SERVER = None
                 # if the election fails, runn the election again, until we get the result
-                while self.MAIN_SERVER is None:
+                while self.MAIN_SERVER is None and not self.in_election:
                     self.election()
 
+    def isolation_check(self) -> bool:
+        # if there is also no clients in the server, there is a great chance that the server is isolated
+        # So it needs to find a new group again.
+        flag = self.server_size() == 1 and self.client_size() == 0
+        if flag:
+            self.leave_main()
+        return flag
+
     def election(self):
+        if self.isolated:
+            print('Isolation checked! Election cannot be invoked!')
+            return
         self.group_synchronise()
         command = 'self.gms.LCR();self.gms.update_state();'
-        self.ORIGIN.remote_methode_invocation(self.get_server_address(), command, result=False)
+        self.ORIGIN.remote_methode_invocation(self.get_server_address(), command, multicast=True, result=False)
+        print('Election started!')
 
+    def leave_main(self):
+        self.MAIN_SERVER = None
+        self.is_member = False
+        self.is_main = False
 
     def heartbeat_send(self):
         while not self.TERMINATE:
             message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id, 'CLIENTS': self.client_size(),
                                                                    'ADDRESS': (self.IP_ADDRESS, self.UDP_PORT)})
+            if self.isolated:
+                self.leave_main()
+
             # if the process don't have a main_server, find one
             if self.MAIN_SERVER is None:
                 self.ORIGIN.find_others()
@@ -154,10 +169,13 @@ class group_member_service_server(group_member_service):
                     self.election()
             else:
                 self.hungury = 0
+            
+            inverse_trigger = True
 
             for address in self.get_server_address('UDP', without=[self.id]):
                 try:
                     response = utils.udp_send(utils.get_port(address, 'GMS'), message)
+                    inverse_trigger = False
 
                     if response is None:
                         # our heartbeat request timed out, so we need to remove the server from our list
@@ -168,13 +186,6 @@ class group_member_service_server(group_member_service):
                         if self.is_main:
                             iD = self.address_to_id(self.server_list, address=address)
                             self.server_list.loc[iD, 'number_client'] = response['CONTENT']['CLIENTS']
-                            # self.server_list['number_client'] = response['CONTENT']['CLIENTS']
-                            # deal with the problem that there might be two main server at the same time
-                            # if response['CONTENT']['MAIN_SERVER'] != (self.IP_ADDRESS, self.UDP_PORT):
-                            #     print('There are multiple Main servers in the system!')
-                            #     self.is_main = False
-                            #     self.ORIGIN.find_others()
-                            #     return
                     else:
                         print('Warning: Inappropriate message at heartbeat port.')
                 except ConnectionResetError:
@@ -185,6 +196,7 @@ class group_member_service_server(group_member_service):
             for address in self.get_client_address('UDP'):
                 try:
                     response = utils.udp_send(utils.get_port(address, 'GMS'), message)
+                    inverse_trigger = False
 
                     if response is None:
                         # our heartbeat request timed out, so we need to remove the client from our list
@@ -198,6 +210,9 @@ class group_member_service_server(group_member_service):
                     # our heartbeat request crashed because the socket subsystem realised to client is gone,
                     # so we need to remove the client from our list
                     self.remove_client(self.address_to_id(self.client_list, address))
+
+            self.isolated = inverse_trigger
+            # print(self.isolated)
 
             # is the proccess is main, it will update all the server list in this function
             if self.is_main:
@@ -314,6 +329,7 @@ class group_member_service_server(group_member_service):
         self.is_member = True
         self.sequencer = self.ORIGIN.sequence_counter - 1
         self.in_election = False
+        print('Election result: ', leader_uid)
         return leader_uid
 
     @staticmethod
@@ -473,9 +489,10 @@ class group_member_service_server(group_member_service):
         self.MAIN_SERVER = MAIN_SERVER
 
     def update_state(self):
-        message = utils.create_message(self.id, 'UPDATE', {'MAIN_SERVER': self.MAIN_SERVER})
-        for member in self.get_client_address('GMS'):
-            utils.udp_send_without_response(member, message)
+        if self.MAIN_SERVER is not None:
+            message = utils.create_message(self.id, 'UPDATE', {'MAIN_SERVER': self.MAIN_SERVER})
+            for member in self.get_client_address('GMS'):
+                utils.udp_send_without_response(member, message)
 
     def empty(self) -> bool:
         """
@@ -539,16 +556,22 @@ class group_member_service_client(group_member_service):
                         # if the datatype is pandas df, it will be a synchronized of serverlist
                         self.server_list = message
                     else:
-                        # we only respond to our contact server
-                        if message['CONTENT']['ADDRESS'] == self.CONTACT_SERVER:
-                            method = message['METHOD']
-                            if method == 'HEAREQUEST':
-                                reply = utils.create_message(self.id, 'HEAREPLY', {'ID': self.id})
-                                utils.udp_send_without_response(address, reply)
-                            else:
-                                print('Warning: Inappropriate message at heartbeat port.')
+                        method = message['METHOD']
+                        if method == 'HEAREQUEST':
+                            # we only respond to our contact server
+                            if message['CONTENT']['ADDRESS'] == self.CONTACT_SERVER:
+                                method = message['METHOD']
+                                if method == 'HEAREQUEST':
+                                    reply = utils.create_message(self.id, 'HEAREPLY', {'ID': self.id})
+                                    utils.udp_send_without_response(address, reply)
+                                else:
+                                    print('Warning: Inappropriate message at heartbeat port.')
+                        elif method == 'UPDATE':
+                            # now id the only for clients feature, to update the MAIN_SERVER
+                            self.MAIN_SERVER = message['CONTENT']['MAIN_SERVER']
 
     def handle_disconnect(self) -> None:
+        self.is_member = False
         self.ORIGIN.logging.warning('Client lose MAIN/CONTACT server!')
         self.ORIGIN.find_others()
 

@@ -55,7 +55,8 @@ def udp_send(address: tuple, message, timeout: int = 5):
             data = pickle.loads(data)
             data['SENDER_ADDRESS'] = addr
             return data
-    except socket.timeout:
+    except:
+    # except socket.timeout:
         return None
 
 
