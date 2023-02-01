@@ -113,6 +113,7 @@ class Client(auction_component):
     def interface(self) -> None:
         while True:
             if not self.headless:
+                print()
                 print('*' * 60)
                 print(f'Time: {time.gmtime(self.gts.get_time())}')
                 info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)

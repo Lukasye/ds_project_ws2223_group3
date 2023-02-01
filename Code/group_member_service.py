@@ -70,6 +70,7 @@ class group_member_service_server(group_member_service):
                 {'number_client': 'int32'}) if self.TYPE == 'SERVER' else None
         self.client_list = pd.DataFrame(columns=['ADDRESS', 'PORT']) if self.TYPE == 'SERVER' else None
         self.in_election = False
+        self.hungury = 0
         self.start_thread()
 
     def heartbeat_listen(self):
@@ -77,7 +78,8 @@ class group_member_service_server(group_member_service):
         server_socket.bind((self.IP_ADDRESS, self.GMS_PORT))
         while not self.TERMINATE:
             # if we're disconnected we want the servers to realize that 
-            if self.is_member:
+            # if self.is_member:
+            if True:
                 data, address = server_socket.recvfrom(self.BUFFER_SIZE)
                 if data:
                     message = pickle.loads(data)
@@ -114,18 +116,29 @@ class group_member_service_server(group_member_service):
             print('Remove failed!')
         print(address, ' Has disconnected with the group!')
         if self.MAIN_SERVER == address:
-            if len(self.get_server_address()) == 0:
+            if len(self.get_server_address()) == 1:
                 # if we only know of a single existing server, ourselves, we need to take over as the main server
-                self.MAIN_SERVER = (self.IP_ADDRESS, self.UDP_PORT)
-                self.is_main = True
-                self.is_member = True
+                if len(self.get_client_address()) == 0:
+                    # if there is also no clients in the server, there is a great chance that the server is isolated
+                    # So it needs to find a new group again.
+                    self.MAIN_SERVER = None
+                    self.is_main = False
+                    self.is_member = False
+                else:
+                    self.MAIN_SERVER = (self.IP_ADDRESS, self.UDP_PORT)
+                    self.is_main = True
+                    self.is_member = True
             else:
                 self.MAIN_SERVER = None
                 # if the election fails, runn the election again, until we get the result
                 while self.MAIN_SERVER is None:
-                    self.group_synchronise()
-                    command = 'self.gms.LCR();self.gms.update_state();'
-                    self.ORIGIN.remote_methode_invocation(self.get_server_address(), command, result=False)
+                    self.election()
+
+    def election(self):
+        self.group_synchronise()
+        command = 'self.gms.LCR();self.gms.update_state();'
+        self.ORIGIN.remote_methode_invocation(self.get_server_address(), command, result=False)
+
 
     def heartbeat_send(self):
         while not self.TERMINATE:
@@ -134,6 +147,13 @@ class group_member_service_server(group_member_service):
             # if the process don't have a main_server, find one
             if self.MAIN_SERVER is None:
                 self.ORIGIN.find_others()
+                if self.hungury == 0:
+                    self.hungury = time.time()
+                elif time.time() - self.hungury > 3 * self.HEARTBEAT_RATE:
+                    # we assumed that there is no main server in the group
+                    self.election()
+            else:
+                self.hungury = 0
 
             for address in self.get_server_address('UDP', without=[self.id]):
                 try:
@@ -291,6 +311,7 @@ class group_member_service_server(group_member_service):
                 utils.udp_send_without_response(neighbour, new_election_message)
         self.MAIN_SERVER = self.id_to_address(leader_uid)
         self.is_main = self.id == leader_uid
+        self.is_member = True
         self.sequencer = self.ORIGIN.sequence_counter - 1
         self.in_election = False
         return leader_uid
@@ -310,14 +331,20 @@ class group_member_service_server(group_member_service):
     def set_udp_port(self, address: tuple):
         self.UDP_PORT = address
 
-    def add_server(self, iD, addr: tuple, **kwargs):
+    def add_server(self, iD, addr: tuple, synch = True, **kwargs):
+        # if the server already exists, ignore it
+        if self.is_listed(iD, TYPE='SERVER'):
+            return
         self.server_list = self.add_instance(iD, addr[0], addr[1], self.server_list)
         self.server_list.loc[iD, 'number_client'] = 0
         for ele in kwargs:
             self.server_list.loc[iD, ele] = kwargs[ele]
-        self.group_synchronise()
+        if synch:
+            self.group_synchronise()
 
     def add_client(self, iD, addr: tuple, **kwargs):
+        if self.is_listed(iD, TYPE='CLIENT'):
+            return
         self.client_list = self.add_instance(iD, addr[0], addr[1], self.client_list)
         for ele in kwargs:
             self.client_list.loc[iD, ele] = kwargs[ele]

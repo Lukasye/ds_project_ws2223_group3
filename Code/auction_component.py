@@ -278,8 +278,12 @@ class auction_component:
         message_byte = pickle.dumps(message)
         if len(message_byte) > self.BUFFER_SIZE:
             raise ValueError('Message too large')
-        broadcast_socket.sendto(message_byte,
-                                (self.BROADCAST_IP, self.BROADCAST_PORT))
+        try:
+            broadcast_socket.sendto(message_byte,
+                                    (self.BROADCAST_IP, self.BROADCAST_PORT))
+        except:
+            print('UDP send failed!')
+            print(message, '\n', '!'*30)
 
     def broadcast_listen(self) -> None:
         """
@@ -407,14 +411,15 @@ class auction_component:
             message = self.create_message('SET', SEQUENCE=SEQUENCE, CONTENT=kwargs)
             self.udp_send_without_response(tuple(address), message)
 
-    def enable_multicast(self, ip) -> None:
+    def enable_multicast(self, ip = None) -> None:
         """
         HELPER FUNCTION
         To start the multicast thread after the server find a Main server
         :param ip: The agreed ip of the multicast occurred
         :return: None
         """
-        self.MULTICAST_IP = ip
+        if ip is not None:
+            self.MULTICAST_IP = ip
         t = threading.Thread(target=self.multicast_listen, daemon=True)
         t.start()
         self.threads.append(t)

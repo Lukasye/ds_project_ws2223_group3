@@ -24,10 +24,10 @@ class Server(auction_component):
         self.SEQ_PORT = UDP_PORT + 4
         self.headless = headless
         # initialize depends on whether this is the main server
-        warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue, self.sequence_listen]
+        warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue, self.sequence_listen, self.multicast_listen]
+        self.MULTICAST_IP = cfg.attr['MULTICAST_IP']
         if is_main:
-            self.MULTICAST_IP = cfg.attr['MULTICAST_IP']
-            self.enable_multicast(self.MULTICAST_IP)
+            # self.enable_multicast(self.MULTICAST_IP)
             MAIN_SERVER = (self.MY_IP, self.UDP_PORT)
         else:
             MAIN_SERVER = None
@@ -58,10 +58,11 @@ class Server(auction_component):
                   'Broadcast: \t\t{}:{}\n' \
                   'Main Server: \t\t{}\n' \
                   'Is_Main: \t\t{}\n' \
+                  'Is_Member: \t\t{}\n' \
                   'Number of Clients: \t{}\n' \
                   'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
                                                  self.BROADCAST_IP, self.BROADCAST_PORT,
-                                                 self.gms.MAIN_SERVER, self.gms.is_main, self.gms.client_size(),
+                                                 self.gms.MAIN_SERVER, self.gms.is_main, self.gms.is_member, self.gms.client_size(),
                                                  self.sequence_counter)
         print("\t" + message + '\n')
         if self.gms.is_main:
@@ -78,6 +79,7 @@ class Server(auction_component):
         #                        Methode DISCOVERY
         # ************************************************************
         if method == 'DISCOVERY':
+            process_type = request['CONTENT']['TYPE']
             # if the server is still not a member or a main server
             if not self.gms.is_member and not self.gms.is_main:
                 self.join(tuple(request['CONTENT']['UDP_ADDRESS']))
@@ -86,8 +88,11 @@ class Server(auction_component):
                     self.assign(request)
                 elif self.gms.MAIN_SERVER is not None:
                     self.forward(self.gms.MAIN_SERVER, request)
+            # it will do no harm as we append the server list every time
+            if process_type == 'SERVER':
+                self.gms.add_server(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']), synch=False)
         # ************************************************************
-        #                        Methode JOIN
+        #                        Methode JOIN --opt 0
         # ************************************************************
         elif method == 'JOIN':
             # see if the join request come from itself
@@ -214,8 +219,10 @@ class Server(auction_component):
             if self.gms.is_listed(request['ID'], 'SERVER'):
                 return
             self.gms.add_server(request['ID'], tuple(request['CONTENT']['UDP_ADDRESS']))
+            # command = f'self.gms.MAIN_SERVER=("{self.MY_IP}",{self.UDP_PORT}); ' \
+            #           f'self.gms.is_member=True; self.enable_multicast("{self.MULTICAST_IP}");self.gms.election();' 
             command = f'self.gms.MAIN_SERVER=("{self.MY_IP}",{self.UDP_PORT}); ' \
-                      f'self.gms.is_member=True; self.enable_multicast("{self.MULTICAST_IP}");self.gms.is_main=False;' 
+                      f'self.gms.is_member=True;self.gms.election();' 
         else:
             if self.gms.is_listed(request['ID'], 'CLIENT'):
                 return
@@ -235,6 +242,14 @@ class Server(auction_component):
         if bool(self.bid_history):
             self.send_latest_message(self.sequence_counter - 1, tuple(request['CONTENT']['UDP_ADDRESS']))
 
+    # def form_group(self) -> None:
+    #     """
+    #     HELPER FUNCTION:
+    #     when the server is neither member of the group, nor a main, it will try to join the group
+    #     :return: None
+    #     """
+
+        
     def send_latest_message(self, seq: int, address: tuple) -> None:
         """
         HELPER FUNCTION:
@@ -437,6 +452,7 @@ class Server(auction_component):
     def interface(self) -> None:
         while True:
             if not self.headless:
+                print()
                 print('*' * 60)
                 print(f'Time: {time.gmtime(self.gts.get_time())}')
                 info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
@@ -544,10 +560,10 @@ class Server(auction_component):
                 command = 'utils.show_bid_hist(self.bid_history);print();'
                 self.notify_all(command=command, result=False)
             elif user_input == 'yyserver':
-                command = 'self.gms.print_server();print();'
+                command = 'self.gms.print_server();print('');'
                 self.remote_methode_invocation(self.gms.get_server_address(), command, multicast=True, result=False)
             elif user_input == 'yyclient':
-                command = 'self.gms.print_client();print();'
+                command = 'self.gms.print_client();print('');'
                 self.remote_methode_invocation(self.gms.get_server_address(), command, multicast=True, result=False)
             elif user_input == 'ms':
                 message = self.create_message('ULTRA', {'FOO': 'BAR'})

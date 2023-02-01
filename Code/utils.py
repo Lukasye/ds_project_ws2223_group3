@@ -11,7 +11,11 @@ import config as cfg
 
 def udp_send_without_response(address: tuple, message):
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udp_socket.sendto(pickle.dumps(message), address)
+    try:
+        udp_socket.sendto(pickle.dumps(message), address)
+    except:
+        print('UDP send failed!')
+        print(message, '\n', '!'*30)
 
 
 def create_message(iD, METHOD: str, CONTENT: dict, SEQUENCE: int = 0):
@@ -97,9 +101,9 @@ def get_broadcast_address():
     ip = ip.split('.')
     netmask = netmask.split('.')
     broadcast = []
-    for i in range(3):
+    for i in range(4):
         broadcast.append(str(int(ip[i]) | (255 - int(netmask[i]))))
-    broadcast.append("255")
+    # broadcast.append("255")
     return '.'.join(broadcast)
 
 

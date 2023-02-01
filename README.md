@@ -27,7 +27,7 @@ cd Code
 python Server.py --port 10001 --opt 1
 ```
 the parameter `port` identify the port Server connected to. (for UDP) <br>
-with `opt` you can define whether the Server is the entry point of this system. The default setting in this case will be `port 10001` and `opt 1` <br><br>
+with `opt` you can define whether the Server is the entry point of this system. (in the latest update 01.02, the system can run also without specify the main server, the `opt` might be removed in the next version)The default setting in this case will be `port 10001` and `opt 1` <br><br>
 <b>For windows Users:</b> In the Code dir you can find a `start_win.bat` file, by clicking on it or using the following command in cmd you'll get 4 terminal windows with 2 servers and 2 clients running. It is useful for do some testing. It includes some common cases, for example 2-client-2-server situation and so on.
 ```
 cd Code/start_up
@@ -118,6 +118,7 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>28.01.2023:</b> Added logging function and small bugs fixed.<br>
 <b>29.01.2023:</b> Newly added phase king algorithm! To absolute resolve the byzantine. holpe to get 1.0<br>
 <b>30.01.2023:</b> Project summary.<br>
+<b>01.02.2023:</b> Get rid of the problem of hotspot disconnection simulation and fixed the netmask function(which matbe the reason why the tests failed in eduraum), recontructed some major function. Hope that is the last big movement for this project. ps: now the system can run without specify a mein server.
 ### TODO<br>
 1. bugs fix!!!!!!!!
 2. ~~BIG PROBLEM: I don't know how to add emoji in markdown!!~~

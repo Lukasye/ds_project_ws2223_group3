@@ -1,23 +1,42 @@
 WARNING:root:Client lose MAIN/CONTACT server!
 INFO:root:CLIENT activate on
-ID: 			10f65773-1d40-40f1-ac22-b55dafcbd314
-Address: 		141.58.43.127:5720 
+ID: 			ea2af89e-80f5-4f16-bc79-43c93d7bff7c
+Address: 		172.20.10.2:5720 
 Is member: 		False
 Main Server: 		None
 Contact Server: 	None
 Sequence number: 	1
-INFO:root:{'ID': '560854e9-35f3-41f9-bad2-9f076bc50dfa', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.gms.MAIN_SERVER=("141.58.43.127",10000); self.gms.is_member=True; self.gms.CONTACT_SERVER=(\'141.58.43.127\', 10005);self.join_contact();self.result = True;'}, 'SENDER_ADDRESS': ('141.58.43.127', 56934)}
-INFO:root:{'ID': '560854e9-35f3-41f9-bad2-9f076bc50dfa', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.gms.MAIN_SERVER=("141.58.43.127",10000); self.gms.is_member=True; self.gms.CONTACT_SERVER=(\'141.58.43.127\', 10010);self.join_contact();self.result = True;'}, 'SENDER_ADDRESS': ('141.58.43.127', 56985)}
-INFO:root:{'ID': '560854e9-35f3-41f9-bad2-9f076bc50dfa', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.gms.MAIN_SERVER=("141.58.43.127",10000); self.gms.is_member=True; self.gms.CONTACT_SERVER=(\'141.58.43.127\', 10010);self.join_contact();self.result = True;'}, 'SENDER_ADDRESS': ('141.58.43.127', 56984)}
-INFO:root:{'ID': '560854e9-35f3-41f9-bad2-9f076bc50dfa', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.gms.MAIN_SERVER=("141.58.43.127",10000); self.gms.is_member=True; self.gms.CONTACT_SERVER=(\'141.58.43.127\', 10010);self.join_contact();self.result = True;'}, 'SENDER_ADDRESS': ('141.58.43.127', 56986)}
-INFO:root:{'ID': '560854e9-35f3-41f9-bad2-9f076bc50dfa', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.gms.MAIN_SERVER=("141.58.43.127",10000); self.gms.is_member=True; self.gms.CONTACT_SERVER=(\'141.58.43.127\', 10010);self.join_contact();self.result = True;'}, 'SENDER_ADDRESS': ('141.58.43.127', 56993)}
-INFO:root:{'ID': '58b22d99-1805-43ff-b37e-224d1c366096', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'utils.show_bid_hist(self.bid_history);self.result = True;'}, 'SENDER_ADDRESS': ('141.58.43.127', 53024)}
-INFO:root:{'ID': '58b22d99-1805-43ff-b37e-224d1c366096', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.in_auction = True;print("Auction Started!");self.report(); self.result = True'}, 'SENDER_ADDRESS': ('141.58.43.127', 53077)}
-INFO:root:{'ID': '58b22d99-1805-43ff-b37e-224d1c366096', 'METHOD': 'RMI', 'SEQUENCE': 1, 'CONTENT': {'METHODE': 'self.highest_bid=10;self.winner="3a0bc747-98b0-4481-829c-cae987ea5046";self.bid_history.append(("3a0bc747-98b0-4481-829c-cae987ea5046", 10));self.result = True;'}, 'SENDER_ADDRESS': ('141.58.43.127', 56289)}
-INFO:root:{'ID': '58b22d99-1805-43ff-b37e-224d1c366096', 'METHOD': 'RMI', 'SEQUENCE': 2, 'CONTENT': {'METHODE': 'self.highest_bid=20;self.winner="a50c0e74-f2c8-4f24-b6f6-9a45912bfbb1";self.bid_history.append(("a50c0e74-f2c8-4f24-b6f6-9a45912bfbb1", 20));self.result = True;'}, 'SENDER_ADDRESS': ('141.58.43.127', 56410)}
-INFO:root:{'ID': '58b22d99-1805-43ff-b37e-224d1c366096', 'METHOD': 'RMI', 'SEQUENCE': 3, 'CONTENT': {'METHODE': 'self.highest_bid=30;self.winner="b42e35a2-a1e7-40bc-bcc0-a79b08722f28";self.bid_history.append(("b42e35a2-a1e7-40bc-bcc0-a79b08722f28", 30));self.result = True;'}, 'SENDER_ADDRESS': ('141.58.43.127', 56455)}
-DEBUG:root:User input: bit 40
-INFO:root:{'ID': '58b22d99-1805-43ff-b37e-224d1c366096', 'METHOD': 'RMI', 'SEQUENCE': 4, 'CONTENT': {'METHODE': 'self.highest_bid=40;self.winner="10f65773-1d40-40f1-ac22-b55dafcbd314";self.bid_history.append(("10f65773-1d40-40f1-ac22-b55dafcbd314", 40));self.result = True;'}, 'SENDER_ADDRESS': ('141.58.43.127', 56493)}
-INFO:root:{'ID': '58b22d99-1805-43ff-b37e-224d1c366096', 'METHOD': 'WINNER', 'SEQUENCE': 0, 'CONTENT': {}, 'SENDER_ADDRESS': ('141.58.43.127', 56490)}
-INFO:root:{'ID': '58b22d99-1805-43ff-b37e-224d1c366096', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'utils.show_bid_hist(self.bid_history);self.result = True;'}, 'SENDER_ADDRESS': ('141.58.43.127', 56554)}
-INFO:root:{'ID': '58b22d99-1805-43ff-b37e-224d1c366096', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'utils.show_bid_hist(self.bid_history);self.result = True;'}, 'SENDER_ADDRESS': ('141.58.43.127', 56687)}
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
+WARNING:root:Client lose MAIN/CONTACT server!
