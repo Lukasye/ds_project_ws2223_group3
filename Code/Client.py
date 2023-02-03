@@ -85,6 +85,9 @@ class Client(auction_component):
         elif method == 'TEST':
             # ignore test signals
             pass
+        elif method == 'WINNER':
+            # foobar message
+            pass
         else:
             print('Unauthorized Message received! Please see log for more details.')
             self.logging.warning('Unauthorized message:', response)

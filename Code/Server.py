@@ -23,6 +23,7 @@ class Server(auction_component):
         self.tiebreaker = 0
         self.SEQ_PORT = UDP_PORT + 4
         self.headless = headless
+        self.agree = True
         # initialize depends on whether this is the main server
         warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue, self.sequence_listen, self.multicast_listen]
         self.MULTICAST_IP = cfg.attr['MULTICAST_IP']
@@ -134,7 +135,10 @@ class Server(auction_component):
             if self.gms.server_size() >= 4:
                 # if the number is satisfied, run the phase king.
                 print('Running phase king algirithm...')
+                self.agree = False
                 self.phase_king_start()
+                # while not self.agree:
+                #     pass
             highst_bid = self.highest_bid
             price = int(request['CONTENT']['PRICE'])
             if price < highst_bid:
@@ -430,25 +434,33 @@ class Server(auction_component):
     def phase_king(self, king_list: list):
         king = king_list.pop(0)
         if not self.id == king:
-            return
+            return False
+        print('Im the king!')
         self.reach_agreement()
         command = f'self.reach_agreement();self.tiebreaker = {self.majority};self.check_agreement();'
         if not bool(king_list):
             command += 'self.highest_bid = self.value;print("New highest bid: ", self.highest_bid);'
         else:
             command += f'self.phase_king({king_list});'
-        self.remote_methode_invocation(self.gms.get_server_address(without=[self.id]),
-                                       command, multicast=True, result=False)
+        self.remote_methode_invocation(self.gms.get_server_address(),
+                                       command, multicast=False, result=True)
+        return True
 
     def phase_king_start(self):
         number_of_server = self.gms.server_size()
         if number_of_server < 4:
             print('Not enough servers!')
             return
+        print('Number of Servers: ', number_of_server)
         fault = math.ceil(self.gms.server_size() / 4)
         king_list, _ = self.gms.get_server_id()
         king_list = king_list[0: fault + 1]
-        self.phase_king(king_list=king_list)
+        print('King list: ', king_list)
+        # self.phase_king(king_list=king_list)
+        command = f'self.phase_king({king_list});'
+        self.remote_methode_invocation(self.gms.get_server_address(),
+                                       command, multicast=False, result=True)
+        self.agree = True
 
     def interface(self) -> None:
         while True:
@@ -551,6 +563,7 @@ class Server(auction_component):
                                                     self.create_message(METHOD='TEST', SEQUENCE=10, CONTENT={}))
             elif user_input == 'bzt':
                 self.phase_king_start()
+                print('Aha')
             elif user_input.startswith('cheat'):
                 info = user_input.split(' ')
                 self.highest_bid = int(info[1])

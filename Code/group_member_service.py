@@ -141,7 +141,7 @@ class group_member_service_server(group_member_service):
     def election(self):
         if self.isolated:
             print('Isolation checked! Election cannot be invoked!')
-            return
+            return False
         self.group_synchronise()
         command = 'self.gms.LCR();self.gms.update_state();'
         self.ORIGIN.remote_methode_invocation(self.get_server_address(), command, multicast=True, result=False)
@@ -152,12 +152,20 @@ class group_member_service_server(group_member_service):
         self.is_member = False
         self.is_main = False
 
+    def declare_main(self):
+        command = f'self.is_main=False;self.MAIN_SERVER={tuple(self.MAIN_SERVER)};'
+        self.ORIGIN.remote_methode_invocation(self.get_server_address(),
+                                       command, multicast=True, result=False)
+
     def heartbeat_send(self):
         while not self.TERMINATE:
             message = utils.create_message(self.id, 'HEAREQUEST', {'ID': self.id, 'CLIENTS': self.client_size(),
                                                                    'ADDRESS': (self.IP_ADDRESS, self.UDP_PORT)})
-            if self.isolated:
-                self.leave_main()
+            # If the process is isolated, just send out the dynamic discovery
+            # if self.isolated:
+            #     self.leave_main()
+            #     self.ORIGIN.find_others()
+            #     return
 
             # if the process don't have a main_server, find one
             if self.MAIN_SERVER is None:
@@ -167,6 +175,8 @@ class group_member_service_server(group_member_service):
                 elif time.time() - self.hungury > 3 * self.HEARTBEAT_RATE:
                     # we assumed that there is no main server in the group
                     self.election()
+                    if self.MAIN_SERVER is not None:
+                        self.declare_main()
             else:
                 self.hungury = 0
             
@@ -380,6 +390,7 @@ class group_member_service_server(group_member_service):
         with pd.option_context('display.max_rows', None, 'display.max_columns',
                                None):
             print(self.server_list)
+        print('')
 
     def print_client(self):
         with pd.option_context('display.max_rows', None, 'display.max_columns',
