@@ -412,13 +412,17 @@ class Server(auction_component):
         self.gts.close()
         self.end_auction()
 
-    def check_agreement(self):
+    def check_agreement(self, end=False):
         number_of_server = self.gms.server_size()
         fault = math.ceil(number_of_server / 4)
         if self.multi > number_of_server / 2 + fault:
             self.value = self.majority
         else:
             self.value = self.tiebreaker
+        if end and self.agree:
+            self.highest_bid = self.value
+            print('Agreed highest bit', self.highest_bid)
+            self.agree = False
 
     def reach_agreement(self):
         price = []
@@ -435,12 +439,16 @@ class Server(auction_component):
         king = king_list.pop(0)
         if not self.id == king:
             return False
-        print('Im the king!')
+        # print('Im the king!')
+        # print(king_list)
+        flag = bool(king_list)
         self.reach_agreement()
-        command = f'self.reach_agreement();self.tiebreaker = {self.majority};self.check_agreement();'
-        if not bool(king_list):
-            command += 'self.highest_bid = self.value;print("New highest bid: ", self.highest_bid);'
-        else:
+        command = f'self.reach_agreement();self.tiebreaker = {self.majority};self.check_agreement({flag});'
+        # if not bool(king_list):
+        #     command += 'self.highest_bid = self.value;print("New highest bid: ", self.highest_bid);'
+        # else:
+        #     command += f'self.phase_king({king_list});'
+        if flag:
             command += f'self.phase_king({king_list});'
         self.remote_methode_invocation(self.gms.get_server_address(),
                                        command, multicast=False, result=True)
@@ -457,10 +465,9 @@ class Server(auction_component):
         king_list = king_list[0: fault + 1]
         print('King list: ', king_list)
         # self.phase_king(king_list=king_list)
-        command = f'self.phase_king({king_list});'
+        command = f'self.agree=True;self.phase_king({king_list});'
         self.remote_methode_invocation(self.gms.get_server_address(),
                                        command, multicast=False, result=True)
-        self.agree = True
 
     def interface(self) -> None:
         while True:
