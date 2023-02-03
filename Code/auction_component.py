@@ -283,7 +283,7 @@ class auction_component:
                                     (self.BROADCAST_IP, self.BROADCAST_PORT))
         except:
             print('UDP send failed!')
-            print(message, '\n', '!'*30)
+            print(message, '\n', '!' * 30)
 
     def broadcast_listen(self) -> None:
         """
@@ -411,7 +411,7 @@ class auction_component:
             message = self.create_message('SET', SEQUENCE=SEQUENCE, CONTENT=kwargs)
             self.udp_send_without_response(tuple(address), message)
 
-    def enable_multicast(self, ip = None) -> None:
+    def enable_multicast(self, ip=None) -> None:
         """
         HELPER FUNCTION
         To start the multicast thread after the server find a Main server

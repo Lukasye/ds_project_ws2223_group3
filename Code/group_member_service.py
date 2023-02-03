@@ -91,7 +91,7 @@ class group_member_service_server(group_member_service):
                     else:
                         method = message['METHOD']
                         if method == 'HEAREQUEST':
-                            if self.is_listed(message['ID'], 'UNKNOWN'):
+                            if self.is_listed(message['ID'], 'UNKNOWN') or not self.is_member:
                                 content = {'ID': self.id, 'CLIENTS': self.client_size(),
                                            'MAIN_SERVER': self.MAIN_SERVER}
                                 reply = utils.create_message(self.id, 'HEAREPLY', content)
@@ -154,8 +154,7 @@ class group_member_service_server(group_member_service):
 
     def declare_main(self):
         command = f'self.is_main=False;self.MAIN_SERVER={tuple(self.MAIN_SERVER)};'
-        self.ORIGIN.remote_methode_invocation(self.get_server_address(),
-                                       command, multicast=True, result=False)
+        self.ORIGIN.remote_methode_invocation(self.get_server_address(), command, multicast=True, result=False)
 
     def heartbeat_send(self):
         while not self.TERMINATE:
@@ -357,7 +356,7 @@ class group_member_service_server(group_member_service):
     def set_udp_port(self, address: tuple):
         self.UDP_PORT = address
 
-    def add_server(self, iD, addr: tuple, synch = True, **kwargs):
+    def add_server(self, iD, addr: tuple, synch=True, **kwargs):
         # if the server already exists, ignore it
         if self.is_listed(iD, TYPE='SERVER'):
             return

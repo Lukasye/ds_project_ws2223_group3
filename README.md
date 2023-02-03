@@ -35,6 +35,10 @@ cd Code/start_up
 ```
 <b>The command supported currently:</b>
 ![terminal](img/broadcast.png) <br>
+| Nr. | Command | Description |
+| ------------- | ------------- | ------------- |
+| 1 | report    | get the info of server |
+| 2 | find      | ------------- |
 1. report: get the info of server
 2. find: broadcasting and turn on udp listening after that
 3. server: (server only feature) print the servers group list
@@ -119,6 +123,7 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>29.01.2023:</b> Newly added phase king algorithm! To absolute resolve the byzantine. holpe to get 1.0<br>
 <b>30.01.2023:</b> Project summary.<br>
 <b>01.02.2023:</b> Get rid of the problem of hotspot disconnection simulation and fixed the netmask function(which matbe the reason why the tests failed in eduraum), recontructed some major function. Hope that is the last big movement for this project. ps: now the system can run without specify a mein server.
+<b>03.02.2023:</b> Various bugs fixed. <br>
 ### TODO<br>
 1. bugs fix!!!!!!!!
 2. ~~BIG PROBLEM: I don't know how to add emoji in markdown!!~~

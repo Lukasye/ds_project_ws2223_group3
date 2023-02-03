@@ -25,7 +25,8 @@ class Server(auction_component):
         self.headless = headless
         self.agree = True
         # initialize depends on whether this is the main server
-        warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue, self.sequence_listen, self.multicast_listen]
+        warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue,
+                        self.sequence_listen, self.multicast_listen]
         self.MULTICAST_IP = cfg.attr['MULTICAST_IP']
         if is_main:
             # self.enable_multicast(self.MULTICAST_IP)
@@ -63,8 +64,8 @@ class Server(auction_component):
                   'Number of Clients: \t{}\n' \
                   'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
                                                  self.BROADCAST_IP, self.BROADCAST_PORT,
-                                                 self.gms.MAIN_SERVER, self.gms.is_main, self.gms.is_member, self.gms.client_size(),
-                                                 self.sequence_counter)
+                                                 self.gms.MAIN_SERVER, self.gms.is_main, self.gms.is_member,
+                                                 self.gms.client_size(), self.sequence_counter)
         print("\t" + message + '\n')
         if self.gms.is_main:
             zusatz = 'Sequencer: \t\t{}'.format(self.gms.sequencer)
@@ -141,7 +142,7 @@ class Server(auction_component):
                 #     pass
             highst_bid = self.highest_bid
             price = int(request['CONTENT']['PRICE'])
-            if price < highst_bid:
+            if price <= highst_bid:
                 # if the bit is smaller than the current highest, nothing should be done.
                 # message = self.create_message('PRINT',
                 #                               {'PRINT': 'Invalid Price, '
@@ -154,14 +155,17 @@ class Server(auction_component):
                 sequence = self.sequence_send(price)
                 if sequence == 0:
                     # the bit is invalid
-                    command = 'print("You are Overbid!");'
-                    self.remote_methode_invocation(command, result=False)
+                    # command = 'print("You are Overbid!");'
+                    # self.remote_methode_invocation(methode=command, result=False)
+                    pass
                 else:
-                # message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price})
+                    # message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price})
                     tmp = request['ID']
                     self.winner = tmp
                     self.highest_bid = price
-                    command = f'self.highest_bid={price};self.winner="{tmp}";self.bid_history.append(("{tmp}", {price}));'
+                    command = f'self.highest_bid={price};' \
+                              f'self.winner="{tmp}";' \
+                              f'self.bid_history.append(("{tmp}", {price}));'
                     self.notify_all(command=command, sequence=sequence, result=False)
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
         # ************************************************************
@@ -254,7 +258,6 @@ class Server(auction_component):
     #     :return: None
     #     """
 
-        
     def send_latest_message(self, seq: int, address: tuple) -> None:
         """
         HELPER FUNCTION:
@@ -513,8 +516,6 @@ class Server(auction_component):
                 self.gms.print_server()
             elif user_input == 'client':
                 self.gms.print_client()
-            elif user_input == 'seq':
-                print(self.sequence_send())
             elif user_input == 'queue':
                 self.print_hold_back_queue()
             elif user_input == 'seq_hist':

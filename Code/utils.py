@@ -56,7 +56,7 @@ def udp_send(address: tuple, message, timeout: int = 5):
             data['SENDER_ADDRESS'] = addr
             return data
     except:
-    # except socket.timeout:
+        # except socket.timeout:
         return None
 
 
