@@ -38,54 +38,44 @@ cd Code/start_up
 | Nr. | Command | Description |
 | ------------- | ------------- | ------------- |
 | 1 | report    | get the info of server |
-| 2 | find      | ------------- |
-1. report: get the info of server
-2. find: broadcasting and turn on udp listening after that
-3. server: (server only feature) print the servers group list
-4. client: (server only feature) print the clients group list
-5. leave: clear the memory, ps: for main server is to cancel the priority.
-6. clear: clear screen to make the terminal more clean.
-7. queue: To show the elements in the hold-back-queue.
-8. multi1 & multi2: for the multicast testing. <b>multi1</b> will send out 4 messages with sequence number 1 to 4 with 10 seconds latency before the second message. <b>multi2</b> will send out a single udp message with sequence number 5. In the test, the multi1 should be executed on one server and right after that multi2 on another.
-9. history: To check the bit history.
-10. intercept: Blocking the next incoming request with sequence number greater than 0.
-11. bit: (client only feature) to raise the bit in format `bit <Price>`.
-12. ~~join: send request to the main server to join the group~~
-13. ~~udp_listen: accept request at the udp port~~
-14. ~~rmi: use the format `rmi <port> <methode>` to do remote methode invocation!~~
-15. exit
+| 2 | find      | broadcasting and turn on udp listening after that (Now will be done automatically) |
+| 3 | server    | (server only feature) print the servers group list |
+| 4 | client    | (server only feature) print the clients group list |
+| 5 | leave     | clear the memory, ps: for main server is to cancel the priority |
+| 6 | clear     | clear screen to make the terminal more clean. |
+| 7 | queue     | To show the elements in the hold-back-queue. |
+| 8 | multi1(or 2)| for the multicast testing. <b>multi1</b> will send out 4 messages with sequence number 1 to 4 with 10 seconds latency before the second message. <b>multi2</b> will send out a single udp message with sequence number 5. In the test, the multi1 should be executed on one server and right after that multi2 on another. |
+| 9 | intercept   | Blocking the next incoming request with sequence number greater than 0 |
+| 10 | history    | To check the bit history |
+| 11 | bit        | (client only feature) to raise the bit in format `bit <Price>` |
+| 12 | yy-        | the command start with yy(yyserver, yy client, yyreport and yyhistory) to execute command in the whole group |
+| 13 | exit       | exit the programm |
 Look in the programm for more details!<br>
 
-Each time you run the code, a loggin file will be created in the log directory with the name of the specified port, like `5700_debug.log`, which help you to do the debugging and further development.
+Each time you run the code, a login file will be created in the log directory with the name of the specified port, like `5700_debug.log`, which help you to do the debugging and further development.
 <details>
   <summary>
     logging example
   </summary>
-INFO:root:SERVER activate on
-ID: 			e2e36f28-0c6a-491f-bfc1-e68c744d928b
-Address: 		192.168.0.200:10000 
-Broadcast: 		192.168.0.255:5972
-Main Server: 		('192.168.0.200', 10000)
-Is_Main: 		True
-Number of Clients: 	0
-Sequence number: 	1
-INFO:root:{'ID': 'af5bc12a-cca3-4856-a050-1f8480382548', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5710)}, 'SENDER_ADDRESS': ('192.168.0.200', 62287)}
-INFO:root:{'ID': '230d743c-4f73-418e-82f9-04bb3d751a84', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5700)}, 'SENDER_ADDRESS': ('192.168.0.200', 62288)}
-INFO:root:{'ID': '875f3820-7d5d-4432-819d-5f813f8e3e5e', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'SERVER', 'UDP_ADDRESS': ('192.168.0.200', 10010)}, 'SENDER_ADDRESS': ('192.168.0.200', 62289)}
-DEBUG:root:User input: report
-DEBUG:root:User input: start
-INFO:root:{'ID': 'e2e36f28-0c6a-491f-bfc1-e68c744d928b', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.start_auction()'}, 'SENDER_ADDRESS': ('192.168.0.200', 62363)}
-INFO:root:{'ID': '230d743c-4f73-418e-82f9-04bb3d751a84', 'METHOD': 'BIT', 'SEQUENCE': 0, 'CONTENT': {'UDP_ADDRESS': ('192.168.0.200', 5700), 'PRICE': '10'}, 'SENDER_ADDRESS': ('192.168.0.200', 62382)}
-INFO:root:{'ID': 'e2e36f28-0c6a-491f-bfc1-e68c744d928b', 'METHOD': 'RMI', 'SEQUENCE': 1, 'CONTENT': {'METHODE': 'self.highest_bid=10;self.winner="230d743c-4f73-418e-82f9-04bb3d751a84";self.bid_history.append(("230d743c-4f73-418e-82f9-04bb3d751a84", 10));self.pass_on(\'self.highest_bid=10;self.winner="230d743c-4f73-418e-82f9-04bb3d751a84";self.bid_history.append(("230d743c-4f73-418e-82f9-04bb3d751a84", 10));\', 1);self.result = True;'}, 'SENDER_ADDRESS': ('192.168.0.200', 62388)}
-INFO:root:{'ID': 'af5bc12a-cca3-4856-a050-1f8480382548', 'METHOD': 'BIT', 'SEQUENCE': 0, 'CONTENT': {'UDP_ADDRESS': ('192.168.0.200', 5710), 'PRICE': '20'}, 'SENDER_ADDRESS': ('192.168.0.200', 62404)}
-INFO:root:{'ID': 'e2e36f28-0c6a-491f-bfc1-e68c744d928b', 'METHOD': 'RMI', 'SEQUENCE': 2, 'CONTENT': {'METHODE': 'self.highest_bid=20;self.winner="af5bc12a-cca3-4856-a050-1f8480382548";self.bid_history.append(("af5bc12a-cca3-4856-a050-1f8480382548", 20));self.pass_on(\'self.highest_bid=20;self.winner="af5bc12a-cca3-4856-a050-1f8480382548";self.bid_history.append(("af5bc12a-cca3-4856-a050-1f8480382548", 20));\', 2);self.result = True;'}, 'SENDER_ADDRESS': ('192.168.0.200', 62408)}
-DEBUG:root:User input: end
-INFO:root:{'ID': 'e2e36f28-0c6a-491f-bfc1-e68c744d928b', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.end_auction()'}, 'SENDER_ADDRESS': ('192.168.0.200', 62429)}
-DEBUG:root:$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-Auction ended successfully!
-Winner is af5bc12a-cca3-4856-a050-1f8480382548 with the price 20!
-$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-DEBUG:root:[('230d743c-4f73-418e-82f9-04bb3d751a84', 10), ('af5bc12a-cca3-4856-a050-1f8480382548', 20)]
+INFO:root:SERVER activate on<br>
+ID: 			e2e36f28-0c6a-491f-bfc1-e68c744d928b<br>
+Address: 		192.168.0.200:10000 <br>
+Broadcast: 		192.168.0.255:5972<br>
+Main Server: 		('192.168.0.200', 10000)<br>
+Is_Main: 		True<br>
+Number of Clients: 	0<br>
+Sequence number: 	1<br>
+INFO:root:{'ID': 'af5bc12a-cca3-4856-a050-1f8480382548', 'METHOD': 'DISCOVERY', 'SEQUENCE': 0, 'CONTENT': {'TYPE': 'CLIENT', 'UDP_ADDRESS': ('192.168.0.200', 5710)}, 'SENDER_ADDRESS': ('192.168.0.200', 62287)}<br>
+DEBUG:root:User input: report<br>
+DEBUG:root:User input: start<br>
+INFO:root:{'ID': 'af5bc12a-cca3-4856-a050-1f8480382548', 'METHOD': 'BIT', 'SEQUENCE': 0, 'CONTENT': {'UDP_ADDRESS': ('192.168.0.200', 5710), 'PRICE': '20'}, 'SENDER_ADDRESS': ('192.168.0.200', 62404)}<br>
+DEBUG:root:User input: end<br>
+INFO:root:{'ID': 'e2e36f28-0c6a-491f-bfc1-e68c744d928b', 'METHOD': 'RMI', 'SEQUENCE': 0, 'CONTENT': {'METHODE': 'self.end_auction()'}, 'SENDER_ADDRESS': ('192.168.0.200', 62429)}<br>
+DEBUG:root:$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$<br>
+Auction ended successfully!<br>
+Winner is af5bc12a-cca3-4856-a050-1f8480382548 with the price 20!<br>
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$<br>
+DEBUG:root:[('230d743c-4f73-418e-82f9-04bb3d751a84', 10), ('af5bc12a-cca3-4856-a050-1f8480382548', 20)]<br>
 </details><br>
 
 ### Progressing<br>
