@@ -36,7 +36,7 @@ cd Code/start_up
 <b>The command supported currently:</b>
 ![terminal](img/broadcast.png) <br>
 | Nr. | Command | Description |
-| ------------- | ------------- | ------------- |
+| --- | --------------- | ----------------------------------------- |
 | 1 | report    | get the info of server |
 | 2 | find      | broadcasting and turn on udp listening after that (Now will be done automatically) |
 | 3 | server    | (server only feature) print the servers group list |
@@ -50,6 +50,8 @@ cd Code/start_up
 | 11 | bit        | (client only feature) to raise the bit in format `bit <Price>` |
 | 12 | yy-        | the command start with yy(yyserver, yy client, yyreport and yyhistory) to execute command in the whole group |
 | 13 | exit       | exit the programm |
+
+<br>
 Look in the programm for more details!<br>
 
 Each time you run the code, a login file will be created in the log directory with the name of the specified port, like `5700_debug.log`, which help you to do the debugging and further development.
