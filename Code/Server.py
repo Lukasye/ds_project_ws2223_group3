@@ -126,12 +126,16 @@ class Server(auction_component):
         elif method == 'BIT':
             # if the auction is started or already ended:
             if not self.in_auction:
-                self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message(
-                    'PRINT', {'PRINT': 'Not in an auction!'}
-                ))
-                self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message(
-                    'multicast_send_without_response', {'in_auction': False}
-                ))
+                # self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message(
+                #     'PRINT', {'PRINT': 'Not in an auction!'}
+                # ))
+                # self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message(
+                #     'multicast_send_without_response', {'in_auction': False}
+                # ))
+                command = 'print("Not in an auction!");in_auction=False;'
+                if self.winner is not None:
+                    command += f'self.end_game("{self.winner}");'
+                self.remote_methode_invocation([request['SENDER_ADDRESS']], command, result=False)
                 return
             if self.gms.server_size() >= 4:
                 # if the number is satisfied, run the phase king.
@@ -376,12 +380,13 @@ class Server(auction_component):
         :return: None
         """
         if not self.in_auction:
-            print('Already in an auction!')
+            print('No auction can be ended!')
             return
         # command = f'self.in_auction = False;print("Winner is {self.winner}!"); self.result = True'
         command = f'self.in_auction = False;self.end_game("{self.winner}"); self.result = True'
+        # group = self.gms.get_all_address() if self.gms.is_main else self.gms.get_client_address()
         result = self.remote_methode_invocation(self.gms.get_client_address(), command)
-        if all(result) or self.gms.client_size() == 0:
+        if all(result) or self.gms.client_size() == 0 and result is not None:
             self.in_auction = False
             tmp = '$' * 40 + '\n' + 'Auction ended successfully!\n' + \
                   f'Winner is {self.winner} with the price {self.highest_bid}!\n' + '$' * 40
@@ -507,6 +512,7 @@ class Server(auction_component):
                     print('You are not main!')
             elif user_input == 'end':
                 self.remote_methode_invocation(self.gms.get_server_address(), 'self.end_auction()', result=False)
+                # self.end_auction()
             elif user_input == 'join':
                 self.join(None, True)
             # ************************************************************

@@ -300,8 +300,10 @@ class group_member_service_server(group_member_service):
             return None
         self.in_election = True
         ring_uuid, ring = self.form_ring()
+        print(ring_uuid)
         neighbour = self.get_neighbour(ring)
         neighbour = utils.get_port(neighbour, PORT='ELE')
+        print('Neighbour', neighbour)
         time.sleep(0.1)
         MY_IP = self.IP_ADDRESS
         ELE_PORT = self.ELE_PORT
@@ -496,6 +498,8 @@ class group_member_service_server(group_member_service):
         synchronize with all the servers
         :return:
         """
+        if self.in_election:
+            return
         for member in self.get_server_address('GMS'):
             utils.udp_send_without_response(member, self.server_list)
 
