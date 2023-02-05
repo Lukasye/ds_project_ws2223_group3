@@ -84,23 +84,29 @@ class group_member_service_server(group_member_service):
                 data, address = server_socket.recvfrom(self.BUFFER_SIZE)
                 if data:
                     message = pickle.loads(data)
-                    # don't listen to yourself!
-                    if isinstance(message, pandas.DataFrame):
-                        # if the datatype is pandas df, it will be a synchronized of serverlist
-                        self.server_list = message
-                    else:
-                        method = message['METHOD']
-                        if method == 'HEAREQUEST':
-                            if self.is_listed(message['ID'], 'UNKNOWN') or not self.is_member:
-                                content = {'ID': self.id, 'CLIENTS': self.client_size(),
-                                           'MAIN_SERVER': self.MAIN_SERVER}
-                                reply = utils.create_message(self.id, 'HEAREPLY', content)
-                                utils.udp_send_without_response(address, reply)
-                        elif method == 'UPDATE':
-                            # now id the only for clients feature, to update the MAIN_SERVER
-                            self.MAIN_SERVER = message['CONTENT']['MAIN_SERVER']
-                        else:
-                            print('Warning: Inappropriate message at heartbeat port.')
+                    t = threading.Thread(target=self.heartbeat_listen_logic, args=(message, address), daemon=True)
+                    t.start()
+                    # self.heartbeat_listen_logic(message=message, address=address)
+
+    def heartbeat_listen_logic(self, message: dict, address):
+        # don't listen to yourself!
+        if isinstance(message, pandas.DataFrame):
+            # if the datatype is pandas df, it will be a synchronized of serverlist
+            self.server_list = message
+        else:
+            method = message['METHOD']
+            if method == 'HEAREQUEST':
+                if self.is_listed(message['ID'], 'UNKNOWN') or not self.is_member:
+                    content = {'ID': self.id, 'CLIENTS': self.client_size(),
+                                'MAIN_SERVER': self.MAIN_SERVER}
+                    reply = utils.create_message(self.id, 'HEAREPLY', content)
+                    utils.udp_send_without_response(address, reply)
+            elif method == 'UPDATE':
+                # now id the only for clients feature, to update the MAIN_SERVER
+                self.MAIN_SERVER = message['CONTENT']['MAIN_SERVER']
+            else:
+                print('Warning: Inappropriate message at heartbeat port.')
+
 
     def handle_disconnect(self, address) -> None:
         """
@@ -314,9 +320,11 @@ class group_member_service_server(group_member_service):
             try:
                 data, _ = ring_socket.recvfrom(self.BUFFER_SIZE)
             except socket.timeout:
+                print('Elction timeout!')
+                self.in_election = False
                 return None
             election_message = pickle.loads(data)
-            # print(election_message)
+            print(election_message)
             if election_message["isLeader"]:
                 leader_uid = election_message["mid"]
                 utils.udp_send_without_response(neighbour, election_message)
@@ -563,23 +571,25 @@ class group_member_service_client(group_member_service):
                 if data:
                     message = pickle.loads(data)
                     # don't listen to yourself!
-                    if isinstance(message, pandas.DataFrame):
-                        # if the datatype is pandas df, it will be a synchronized of serverlist
-                        self.server_list = message
-                    else:
-                        method = message['METHOD']
-                        if method == 'HEAREQUEST':
-                            print(message)
-                            # we only respond to our contact server
-                            if message['CONTENT']['ADDRESS'] == self.CONTACT_SERVER:
-                                print('Will Reply')
-                                reply = utils.create_message(self.id, 'HEAREPLY', {'ID': self.id})
-                                utils.udp_send_without_response(address, reply)
-                        elif method == 'UPDATE':
-                            # now id the only for clients feature, to update the MAIN_SERVER
-                            self.MAIN_SERVER = message['CONTENT']['MAIN_SERVER']
-                        else:
-                            print('Warning: Inappropriate message at heartbeat port.')
+                    self.heartbeat_listen_logic(message=message, address=address)
+
+    def heartbeat_listen_logic(self, message: dict, address):
+        if isinstance(message, pandas.DataFrame):
+            # if the datatype is pandas df, it will be a synchronized of serverlist
+            self.server_list = message
+        else:
+            method = message['METHOD']
+            if method == 'HEAREQUEST':
+                # we only respond to our contact server
+                if message['CONTENT']['ADDRESS'] == self.CONTACT_SERVER:
+                    reply = utils.create_message(self.id, 'HEAREPLY', {'ID': self.id})
+                    utils.udp_send_without_response(address, reply)
+            elif method == 'UPDATE':
+                # now id the only for clients feature, to update the MAIN_SERVER
+                self.MAIN_SERVER = message['CONTENT']['MAIN_SERVER']
+            else:
+                print('Warning: Inappropriate message at heartbeat port.')
+
 
     def handle_disconnect(self) -> None:
         self.is_member = False
