@@ -572,6 +572,9 @@ class Server(auction_component):
             elif user_input == 'bzt':
                 self.phase_king_start()
                 print('Aha')
+            elif user_input == 'ele':
+                self.gms.election()
+                print('Aha!')
             elif user_input.startswith('cheat'):
                 info = user_input.split(' ')
                 self.highest_bid = int(info[1])

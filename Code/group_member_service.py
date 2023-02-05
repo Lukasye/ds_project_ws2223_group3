@@ -145,7 +145,6 @@ class group_member_service_server(group_member_service):
         self.group_synchronise()
         command = 'self.gms.LCR();self.gms.update_state();'
         self.ORIGIN.remote_methode_invocation(self.get_server_address(), command, multicast=True, result=False)
-        print('Election started!')
 
     def leave_main(self):
         self.MAIN_SERVER = None
@@ -290,6 +289,7 @@ class group_member_service_server(group_member_service):
         # my_ip = "183.38.223.1"
         # id = "aed937ea-33f3-11eb-adc1-0242ac120002"  (my_id)
         # ring_port = 10001
+        print('Election started!')
         if self.in_election:
             return None
         self.in_election = True
@@ -339,6 +339,7 @@ class group_member_service_server(group_member_service):
         self.sequencer = self.ORIGIN.sequence_counter - 1
         self.in_election = False
         print('Election result: ', leader_uid)
+        ring_socket.close()
         return leader_uid
 
     @staticmethod
@@ -568,17 +569,17 @@ class group_member_service_client(group_member_service):
                     else:
                         method = message['METHOD']
                         if method == 'HEAREQUEST':
+                            print(message)
                             # we only respond to our contact server
                             if message['CONTENT']['ADDRESS'] == self.CONTACT_SERVER:
-                                method = message['METHOD']
-                                if method == 'HEAREQUEST':
-                                    reply = utils.create_message(self.id, 'HEAREPLY', {'ID': self.id})
-                                    utils.udp_send_without_response(address, reply)
-                                else:
-                                    print('Warning: Inappropriate message at heartbeat port.')
+                                print('Will Reply')
+                                reply = utils.create_message(self.id, 'HEAREPLY', {'ID': self.id})
+                                utils.udp_send_without_response(address, reply)
                         elif method == 'UPDATE':
                             # now id the only for clients feature, to update the MAIN_SERVER
                             self.MAIN_SERVER = message['CONTENT']['MAIN_SERVER']
+                        else:
+                            print('Warning: Inappropriate message at heartbeat port.')
 
     def handle_disconnect(self) -> None:
         self.is_member = False
