@@ -330,7 +330,7 @@ class Server(auction_component):
             if data:
                 data = pickle.loads(data)
                 price = data['CONTENT']['PRICE']
-                if price < self.highest_bid:
+                if price <= self.highest_bid:
                     sequence = 0
                 else:
                     self.gms.sequencer += 1
