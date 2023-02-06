@@ -601,7 +601,7 @@ class group_member_service_client(group_member_service):
         self.ORIGIN.find_others()
 
 
-def main():
+def test():
     iD = str(uuid4())
     gms = group_member_service_server(None, '192.168.0.200', iD, 123, True, ('192.168.0.200', 1234))
     iD_spe = str(uuid4())
@@ -620,4 +620,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test()

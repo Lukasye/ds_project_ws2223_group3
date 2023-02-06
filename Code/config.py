@@ -7,7 +7,12 @@ attr = {'BROADCAST_PORT': 5972,
         'SYNC_RATE': 5,
         'NUMBER_PORTS': 4,
         'CLIENT_PORT_START': 5700,
-        'SERVER_PORT_START': 10000}
+        'SERVER_PORT_START': 10000, 
+        'TIM_OFFSET': 1,
+        'ELE_OFFSET': 2,
+        'GMS_OFFSET': 3,
+        'ENCODING': 'utf-8'
+        }
 
 window = {'time': (0, 1, 2, 70),
           'info': (3, 1, 10, 70),

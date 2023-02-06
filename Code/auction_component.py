@@ -42,42 +42,46 @@ class element:
 
 class auction_component:
     def __init__(self, TYPE, UDP_PORT):
-        # init()
+        assert TYPE == 'SERVER' or TYPE == 'CLIENT'
+
+        # basic setup and load configurations
         self.BROADCAST_PORT = cfg.attr['BROADCAST_PORT']
         self.MULTICAST_PORT = cfg.attr['MULTICAST_PORT']
         self.MY_HOST = socket.gethostname()
         self.MY_IP = utils.get_ip_address()
         self.BROADCAST_IP = utils.get_broadcast_address()
         self.BUFFER_SIZE = cfg.attr['BUFFER_SIZE']
-        self.ENCODING = 'utf-8'
+        self.ENCODING = cfg.attr['ENCODING']
         self.UDP_PORT = UDP_PORT
         self.HEARTBEAT_RATE = cfg.attr['HEARTBEAT_RATE']
-        self.TIM_PORT = UDP_PORT + 1
-        self.ELE_PORT = UDP_PORT + 2
-        self.GMS_PORT = UDP_PORT + 3
+        self.TIM_PORT = UDP_PORT + cfg.attr['TIM_OFFSET']
+        self.ELE_PORT = UDP_PORT + cfg.attr['ELE_OFFSET']
+        self.GMS_PORT = UDP_PORT + cfg.attr['GMS_OFFSET']
         self.TYPE = TYPE
         self.SYS = os.name
-        # self.MAIN_SERVER = None
         self.gms = None
         self.TERMINATE = False
         self.MULTICAST_IP = None
         if TYPE == 'CLIENT':
             self.CONTACT_SERVER = None
+
+        # Process specified setup
         self.hold_back_queue = []
-        self.id = str(uuid4())
-        self.threads = []
-        self.multicast_hist = []
+        self.id = str(uuid4())  # The unique identifier of the process
+        self.threads = []  # The threads that we've already lauched, use to kill unneccesary threads
+        self.multicast_hist = []  # the sequence of reliabel nulticast messages
         self.sequence_counter = 1  # the initial sequence number for all the participants
         self.highest_bid = 0  # The highest bid that everyone agreed on
         self.winner = None  # winner of this round
-        self.intercept = 0
+        self.intercept = 0  # Prameter to block incomming messages
         self.update = False
-        # self.console = Console()
         self.TERMINATE = False
         self.headless = False
         self.in_auction = False
         self.result = False
         self.bid_history = []
+
+        # debug log file
         self.logging = logging
         self.logging.basicConfig(
             filename='../log/' + str(self.UDP_PORT) + '_debug.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
@@ -259,7 +263,7 @@ class auction_component:
         Once a function is in the delivery queue, create a new thread to deal with it.
         ATTENTION: the delivery queue is only for the message from the udp_port!!
         :param message: dict format standard message
-        :return:
+        :return: None
         """
         self.logging.info(message)
         t = threading.Thread(target=self.logic, args=(message,))
@@ -363,7 +367,7 @@ class auction_component:
         :param SEQUENCE: int type sequence number if necessary
         :param multicast: bool type, whether multicast should be used to propagate the messages
         :param result: boolean value to indicate whether the reply should be collected
-        :return: None
+        :return: depends on whether the result parameter is set or not
         """
         # if the multicast ip is None that mean the function is not enabled yet. So user uni_group send instead
         # multicast = self.MULTICAST_IP is None
@@ -380,7 +384,7 @@ class auction_component:
             if multicast:
                 # print('RMI with Multicast!')
                 self.multicast_send(self.MULTICAST_IP, message=message)
-                return
+                return None
             else:
                 # print('RMI with Group-Unicast!')
                 if result:
@@ -519,5 +523,4 @@ class auction_component:
 
 
 if __name__ == '__main__':
-    ac = auction_component('SERVER', 12345)
-    ac.shut_down()
+    ac = auction_component('YY', 12345)

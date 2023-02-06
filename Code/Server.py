@@ -52,6 +52,7 @@ class Server(auction_component):
             self.gms.sequencer = 0
 
     def report(self):
+        # if run in headless mode, nothing can be printed
         if self.headless:
             return
         message = '{} activate on\n' \
@@ -142,8 +143,6 @@ class Server(auction_component):
                 print('Running phase king algirithm...')
                 self.agree = False
                 self.phase_king_start()
-                # while not self.agree:
-                #     pass
             highst_bid = self.highest_bid
             price = int(request['CONTENT']['PRICE'])
             if price <= highst_bid:
@@ -159,11 +158,8 @@ class Server(auction_component):
                 sequence = self.sequence_send(price)
                 if sequence == 0:
                     # the bit is invalid
-                    # command = 'print("You are Overbid!");'
-                    # self.remote_methode_invocation(methode=command, result=False)
                     pass
                 else:
-                    # message = self.create_message('SET', SEQUENCE=sequence, CONTENT={'highest_bid': price})
                     tmp = request['ID']
                     self.winner = tmp
                     self.highest_bid = price
@@ -187,15 +183,15 @@ class Server(auction_component):
             self.udp_send_without_response(request['SENDER_ADDRESS'], message)
         # ************************************************************
         #                        Methode GET
+        # function to support the negative acknowledgement. reply with
+        # the sequence message that the client wants.
         # ************************************************************
         elif method == 'GET':
             seq = request['CONTENT']['SEQ']
             if seq is not None and len(self.multicast_hist) >= seq > 0:
                 self.send_latest_message(seq, request['SENDER_ADDRESS'])
-                # archive = self.multicast_hist[seq - 1]
-                # self.udp_send_without_response(request['SENDER_ADDRESS'], archive)
             else:
-                # TODO: not tested yet
+                # This part of the method is not needed in the function!!
                 content = {}
                 for key in request['CONTENT']:
                     content[key] = request['CONTENT'][key]
@@ -203,14 +199,12 @@ class Server(auction_component):
                 self.udp_send_without_response(request['SENDER_ADDRESS'], message)
         # ************************************************************
         #                        Methode Price
+        # function to reach byzsantine agreement. Rply wit the current
+        # highest bid of the function.
         # ************************************************************
         elif method == 'PRICE':
             message = self.create_message('PRICE', {'PRICE': self.highest_bid})
             self.udp_send_without_response(request['SENDER_ADDRESS'], message=message)
-            # self.agreement[request['ID']] = request['CONTENT']['PRICE']
-            # self.send_agreement()
-            # if len(self.agreement) == self.gms.server_size():
-            #     self.agreement = {}
         # ************************************************************
         #                        Methode Test
         # ************************************************************
@@ -593,6 +587,9 @@ class Server(auction_component):
             elif user_input == 'yyserver':
                 command = 'self.gms.print_server();print('');'
                 self.remote_methode_invocation(self.gms.get_server_address(), command, multicast=True, result=False)
+            elif user_input == 'yyclear':
+                command = 'self.clear_screen();'
+                self.notify_all(command=command, result=False)
             elif user_input == 'yyclient':
                 command = 'self.gms.print_client();print('');'
                 self.remote_methode_invocation(self.gms.get_server_address(), command, multicast=True, result=False)
