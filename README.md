@@ -117,6 +117,7 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>01.02.2023:</b> Get rid of the problem of hotspot disconnection simulation and fixed the netmask function(which matbe the reason why the tests failed in eduraum), recontructed some major function. Hope that is the last big movement for this project. ps: now the system can run without specify a mein server.
 <b>03.02.2023:</b> Various bugs fixed. <br>
 <b>05.02.2023:</b> Election method and grooup member service fixed. <br>
+<b>06.02.2023:</b> Added a little new feature to make the election part more robust under failure. A little bit nervous before the presentation. <br>
 ### TODO<br>
 1. bugs fix!!!!!!!!
 2. ~~BIG PROBLEM: I don't know how to add emoji in markdown!!~~

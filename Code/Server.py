@@ -575,6 +575,9 @@ class Server(auction_component):
             elif user_input == 'ele':
                 self.gms.election()
                 print('Aha!')
+            elif user_input == 'block':
+                print('Blocking the election ring!')
+                self.gms.test_intercept = True
             elif user_input.startswith('cheat'):
                 info = user_input.split(' ')
                 self.highest_bid = int(info[1])

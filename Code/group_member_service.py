@@ -1,3 +1,4 @@
+import random
 import socket
 import threading
 from abc import abstractmethod
@@ -72,6 +73,7 @@ class group_member_service_server(group_member_service):
         self.in_election = False
         self.hungury = 0
         self.isolated = False
+        self.test_intercept = False
         self.start_thread()
 
     def heartbeat_listen(self):
@@ -124,6 +126,7 @@ class group_member_service_server(group_member_service):
         print(address, ' Has disconnected with the group!')
         # self.isolation_check()
         if self.MAIN_SERVER == address:
+            print('Main server lose!')
             if self.server_size() == 1 and self.client_size() > 0:
                 # if we only know of a single existing server, ourselves, we need to take over as the main server
                 self.MAIN_SERVER = (self.IP_ADDRESS, self.UDP_PORT)
@@ -133,8 +136,16 @@ class group_member_service_server(group_member_service):
             else:
                 self.MAIN_SERVER = None
                 # if the election fails, runn the election again, until we get the result
-                while self.MAIN_SERVER is None and not self.in_election:
+                counter = 0
+                while self.MAIN_SERVER is None:
+                # while self.MAIN_SERVER is None and not self.in_election:
                     self.election()
+                    time.sleep(random.random())
+                    counter += 1
+                    if counter >= 6:
+                        print('System failure! Leave the system!')
+                        self.leave_main()
+                        return
 
     def isolation_check(self) -> bool:
         # if there is also no clients in the server, there is a great chance that the server is isolated
@@ -147,6 +158,7 @@ class group_member_service_server(group_member_service):
     def election(self):
         if self.isolated:
             print('Isolation checked! Election cannot be invoked!')
+            # self.leave_main()
             return False
         self.group_synchronise()
         command = 'self.gms.LCR();self.gms.update_state();'
@@ -300,10 +312,10 @@ class group_member_service_server(group_member_service):
             return None
         self.in_election = True
         ring_uuid, ring = self.form_ring()
-        print(ring_uuid)
+        # print(ring_uuid)
         neighbour = self.get_neighbour(ring)
         neighbour = utils.get_port(neighbour, PORT='ELE')
-        print('Neighbour', neighbour)
+        # print('Neighbour', neighbour)
         time.sleep(0.1)
         MY_IP = self.IP_ADDRESS
         ELE_PORT = self.ELE_PORT
@@ -325,8 +337,12 @@ class group_member_service_server(group_member_service):
                 print('Elction timeout!')
                 self.in_election = False
                 return None
+            # used for testing, block the whole ring
+            if self.test_intercept:
+                self.test_intercept = False
+                continue
             election_message = pickle.loads(data)
-            print(election_message)
+            # print(election_message)
             if election_message["isLeader"]:
                 leader_uid = election_message["mid"]
                 utils.udp_send_without_response(neighbour, election_message)
