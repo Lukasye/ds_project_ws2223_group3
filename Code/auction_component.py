@@ -89,6 +89,7 @@ class auction_component:
     @abstractmethod
     def logic(self, request: dict) -> None:
         """
+        LOGIC FUNCTION:
         handle the request that has been DELIVERED to the object
         :param request: dictionary includes the request
         :return: whether the function get a positive result
@@ -98,6 +99,7 @@ class auction_component:
     @abstractmethod
     def report(self):
         """
+        LOGIC FUNCTION:
         print the informant information of the class
         :return: None
         """
@@ -106,6 +108,7 @@ class auction_component:
     @abstractmethod
     def interface(self) -> None:
         """
+        LOGIC FUNCTION:
         provide an interface to interact with the user
         :return: None
         """
@@ -114,7 +117,7 @@ class auction_component:
     @abstractmethod
     def state_update(self) -> None:
         """
-        HELPER FUNCTION:
+        LOGIC FUNCTION:
         part of SET request to regularly update states
         :return: None
         """
@@ -200,6 +203,7 @@ class auction_component:
 
     def receive(self, message: dict) -> None:
         """
+        LOGIC FUNCTION:
         categorize all the information and distribute them to the right request dealers
         :param message: standard dict format request
         :return: None
@@ -229,7 +233,7 @@ class auction_component:
 
     def check_hold_back_queue(self, frequency: int = 5) -> None:
         """
-        HELPER FUNCTION:
+        LOGIC FUNCTION:
         regularly check the hold back queue and deliver or send out negative acknowledgement
         :param frequency: int type, the frequency th check the hold back queue compare with
         the heartbeat rate in the configuration.
@@ -260,6 +264,7 @@ class auction_component:
 
     def deliver(self, message: dict) -> None:
         """
+        LOGIC FUNCTION:
         Once a function is in the delivery queue, create a new thread to deal with it.
         ATTENTION: the delivery queue is only for the message from the udp_port!!
         :param message: dict format standard message
@@ -271,6 +276,7 @@ class auction_component:
 
     def broadcast_send(self, message: dict) -> None:
         """
+        HELPER FUNCTION:
         broadcast the message with the predefined broadcast port.
         Better use with multi_process
         :param message: dictionary of request
@@ -291,6 +297,7 @@ class auction_component:
 
     def broadcast_listen(self) -> None:
         """
+        HELPER FUNCTION:
         use the predefined broadcast port to listen the reply and handle it to the receipt section
         :return: None
         """
@@ -321,7 +328,7 @@ class auction_component:
 
     def find_others(self) -> None:
         """
-        HELPER FUNCTION:
+        LOGIC FUNCTION:
         send the broadcast message to the  other object
         :return: None
         """
@@ -330,7 +337,7 @@ class auction_component:
 
     def join(self, address, inform_all: bool = False) -> None:
         """
-        HELPER FUNCTION:
+        LOGIC FUNCTION:
         ask to join a server group
         :param inform_all: boolean variable whether broadcast is used
         :param address: the address of the main server
@@ -344,6 +351,7 @@ class auction_component:
 
     def forward(self, address, request) -> None:
         """
+        LOGIC FUNCTION:
         redirect the message to new address. The information will contain
         the address and content of the original sender
         :param address: original sender
@@ -353,6 +361,16 @@ class auction_component:
         message = self.create_message('REDIRECT', {'TARGET': request['SENDER_ADDRESS'],
                                                    'MESSAGE': request})
         self.udp_send_without_response(address, message)
+    
+    def clear_history(self):
+        """
+        LOGIC FUNCTION:
+        clear the history wo start a new round
+        :return: None
+        """
+        self.bid_history = []
+        self.sequence_counter = 1
+        self.multicast_hist = []
 
     def remote_methode_invocation(self, group: list,
                                   methode: str,
@@ -466,7 +484,7 @@ class auction_component:
     def unicast_group_without_response(self, group: list,
                                        message: dict,
                                        test: int = -1,
-                                       skip: int = -1):
+                                       skip: int = -1) -> None:
         """
         HELPER FUNCTION
         send out unicast to a group
@@ -474,7 +492,7 @@ class auction_component:
         :param message: standard dict message format
         :param test: the chosen index of process will be blocked for 10 seconds (only for testing)
         :param skip: the chosen index of process will be skipped (only for testing)
-        :return:
+        :return: None
         """
         assert test < len(group)
         assert skip < len(group)
@@ -492,6 +510,15 @@ class auction_component:
                            message: dict,
                            test: int = -1,
                            skip: int = -1):
+        """
+        HELPER FUNCTION
+        send out unicast to a group and listen for all the reply
+        :param group: list of tuple address of a group
+        :param message: standard dict message format
+        :param test: the chosen index of process will be blocked for 10 seconds (only for testing)
+        :param skip: the chosen index of process will be skipped (only for testing)
+        :return: list type request
+        """
         assert test < len(group)
         assert skip < len(group)
         replies = []
@@ -506,7 +533,12 @@ class auction_component:
             count += 1
         return replies
 
-    def negative_acknowledgement(self):
+    def negative_acknowledgement(self) -> None:
+        """
+        HELPER FUNCTION
+        send out negative acknowledgement to ask for the next message that process needs
+        :return: None
+        """
         # if the sequence number is already actuel ???
         message = self.create_message('GET', {'SEQ': self.sequence_counter})
         if self.TYPE == 'CLIENT' and self.CONTACT_SERVER is not None:

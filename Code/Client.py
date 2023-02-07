@@ -39,7 +39,7 @@ class Client(auction_component):
                   'Sequence number: \t{}'.format(self.TYPE, self.id, self.MY_IP, self.UDP_PORT,
                                                  self.gms.is_member, self.gms.MAIN_SERVER, self.gms.CONTACT_SERVER,
                                                  self.sequence_counter)
-        print(message + '\n')
+        utils.colorful_print(message + '\n', 'WARNING')
         return message
 
     def logic(self, response: dict):
@@ -111,16 +111,17 @@ class Client(auction_component):
               f'Winner is {winner} with the price {self.highest_bid}!\n' + '$' * 40
         print(tmp)
         self.logging.debug(tmp)
-        self.logging.debug(self.bid_history)
+        # self.logging.debug(self.bid_history
 
     def interface(self) -> None:
         while True:
             if not self.headless:
                 print()
-                print('*' * 60)
-                print(f'Time: {time.gmtime(self.gts.get_time())}')
+                utils.colorful_print('*' * 60, 'OKBLUE')
+                utils.colorful_print(f'Time: {time.gmtime(self.gts.get_time())}', 'OKBLUE')
                 info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
-                print(info)
+                utils.colorful_print(info, 'OKBLUE')
+            print('')
             user_input = input('Please enter your command:')
             if user_input == '':
                 continue

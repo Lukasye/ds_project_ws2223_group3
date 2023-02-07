@@ -118,6 +118,7 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>03.02.2023:</b> Various bugs fixed. <br>
 <b>05.02.2023:</b> Election method and grooup member service fixed. <br>
 <b>06.02.2023:</b> Added a little new feature to make the election part more robust under failure. A little bit nervous before the presentation. <br>
+<b>07.02.2023:</b> At last i decided that the screen still need some colors, so i implemented a method to make it look good. Hop everthing be fine in the demo!<br>
 ### TODO<br>
 1. bugs fix!!!!!!!!
 2. ~~BIG PROBLEM: I don't know how to add emoji in markdown!!~~

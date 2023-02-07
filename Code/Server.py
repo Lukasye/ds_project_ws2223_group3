@@ -67,10 +67,11 @@ class Server(auction_component):
                                                  self.BROADCAST_IP, self.BROADCAST_PORT,
                                                  self.gms.MAIN_SERVER, self.gms.is_main, self.gms.is_member,
                                                  self.gms.client_size(), self.sequence_counter)
-        print("\t" + message + '\n')
+        # print(message + '\n')
+        utils.colorful_print(message + '\n', 'WARNING')
         if self.gms.is_main:
             zusatz = 'Sequencer: \t\t{}'.format(self.gms.sequencer)
-            print(zusatz)
+            utils.colorful_print(zusatz, 'WARNING')
         return message
 
     def logic(self, request: dict):
@@ -127,19 +128,13 @@ class Server(auction_component):
         elif method == 'BIT':
             # if the auction is started or already ended:
             if not self.in_auction:
-                # self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message(
-                #     'PRINT', {'PRINT': 'Not in an auction!'}
-                # ))
-                # self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message(
-                #     'multicast_send_without_response', {'in_auction': False}
-                # ))
                 command = 'print("Not in an auction!");in_auction=False;'
                 if self.winner is not None:
                     command += f'self.end_game("{self.winner}");'
                 self.remote_methode_invocation([request['SENDER_ADDRESS']], command, result=False)
                 return
             if self.gms.server_size() >= 4:
-                # if the number is satisfied, run the phase king.
+                # if the number condition is satisfied, run the phase king.
                 print('Running phase king algirithm...')
                 self.agree = False
                 self.phase_king_start()
@@ -151,7 +146,7 @@ class Server(auction_component):
                 #                               {'PRINT': 'Invalid Price, '
                 #                                         'the highest bid now is {}'.format(self.highest_bid)})
                 command = f'self.highest_bid={self.highest_bid};self.winner="{self.winner}";print("Invalid input! The '\
-                          f'highest bid now is {self.highest_bid}"); '
+                        f'highest bid now is {self.highest_bid}"); '
                 self.remote_methode_invocation([request['SENDER_ADDRESS']], command, result=False)
                 # print(result)
             else:
@@ -164,8 +159,8 @@ class Server(auction_component):
                     self.winner = tmp
                     self.highest_bid = price
                     command = f'self.highest_bid={price};' \
-                              f'self.winner="{tmp}";' \
-                              f'self.bid_history.append(("{tmp}", {price}));'
+                            f'self.winner="{tmp}";' \
+                            f'self.bid_history.append(("{tmp}", {price}));'
                     self.notify_all(command=command, sequence=sequence, result=False)
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
         # ************************************************************
@@ -349,17 +344,18 @@ class Server(auction_component):
         return sequence['CONTENT']['SEQ']
 
     def start_auction(self, duration: int = 5):
-        print(duration)
+        print('Auction duration: ', duration, ' min')
         if self.in_auction:
             print('Already in an auction!')
             return
         elif self.gms.empty():
             print("You can't start the auction alone!")
             return
-        command = 'self.in_auction = True;print("Auction Started!");self.report(); self.result = True'
+        command = 'self.in_auction = True;print("Auction Started!");self.clear_history();self.report(); self.result = True'
         result = self.remote_methode_invocation(self.gms.get_client_address(), command)
         if all(result) or self.gms.client_size() == 0:
             self.in_auction = True
+            self.clear_history()
             print('Auction started!')
         else:
             print('Failed!')
@@ -475,10 +471,12 @@ class Server(auction_component):
         while True:
             if not self.headless:
                 print()
-                print('*' * 60)
-                print(f'Time: {time.gmtime(self.gts.get_time())}')
+                utils.colorful_print('*' * 60, 'OKBLUE')
+                utils.colorful_print(f'Time: {time.gmtime(self.gts.get_time())}', 'OKBLUE')
                 info = 'Highest_bid: {}\t Winner: {}'.format(self.highest_bid, self.winner)
-                print(info)
+                utils.colorful_print(info, 'OKBLUE')
+                # ))
+            print('')
             user_input = input('Please enter your command:')
             if user_input == '':
                 continue
@@ -501,11 +499,11 @@ class Server(auction_component):
                 print('Wake up! You are a Server!!')
             elif user_input == 'start':
                 if self.gms.is_main:
-                    self.remote_methode_invocation(self.gms.get_server_address(), 'self.start_auction()', result=False)
+                    self.remote_methode_invocation(self.gms.get_server_address(), 'self.start_auction();', result=False)
                 else:
                     print('You are not main!')
             elif user_input == 'end':
-                self.remote_methode_invocation(self.gms.get_server_address(), 'self.end_auction()', result=False)
+                self.remote_methode_invocation(self.gms.get_server_address(), 'self.end_auction();', result=False)
                 # self.end_auction()
             elif user_input == 'join':
                 self.join(None, True)

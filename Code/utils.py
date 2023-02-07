@@ -155,6 +155,10 @@ def show_bid_hist(bid_hist: list) -> None:
         content = f'{num}: \t {iD} \t {price}'
         print(content)
 
+def colorful_print(message: str, type: str = 'OKGREEN'):
+    print(cfg.color[type], message, cfg.color['ENDC'])
+
 
 if __name__ == '__main__':
     print(get_broadcast_address())
+    colorful_print('asdfasdf')

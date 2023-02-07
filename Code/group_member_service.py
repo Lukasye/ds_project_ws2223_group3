@@ -107,7 +107,8 @@ class group_member_service_server(group_member_service):
                 # now id the only for clients feature, to update the MAIN_SERVER
                 self.MAIN_SERVER = message['CONTENT']['MAIN_SERVER']
             else:
-                print('Warning: Inappropriate message at heartbeat port.')
+                # print('Warning: Inappropriate message at heartbeat port.')
+                utils.colorful_print('Warning: Inappropriate message at heartbeat port.', 'FAIL')
 
 
     def handle_disconnect(self, address) -> None:
@@ -143,7 +144,7 @@ class group_member_service_server(group_member_service):
                     time.sleep(random.random())
                     counter += 1
                     if counter >= 6:
-                        print('System failure! Leave the system!')
+                        utils.colorful_print('System failure! Leave the system!', 'FAIL')
                         self.leave_main()
                         return
 
@@ -157,7 +158,8 @@ class group_member_service_server(group_member_service):
 
     def election(self):
         if self.isolated:
-            print('Isolation checked! Election cannot be invoked!')
+            utils.colorful_print('Isolation checked! Election cannot be invoked!', 'FAIL')
+            # print('Isolation checked! Election cannot be invoked!')
             # self.leave_main()
             return False
         self.group_synchronise()
@@ -213,7 +215,8 @@ class group_member_service_server(group_member_service):
                             iD = self.address_to_id(self.server_list, address=address)
                             self.server_list.loc[iD, 'number_client'] = response['CONTENT']['CLIENTS']
                     else:
-                        print('Warning: Inappropriate message at heartbeat port.')
+                        # print('Warning: Inappropriate message at heartbeat port.')
+                        utils.colorful_print('Warning: Inappropriate message at heartbeat port.', 'FAIL')
                 except ConnectionResetError:
                     # our heartbeat request crashed because the socket subsystem realised to server is gone,
                     # so we need to remove the server from our list
@@ -231,7 +234,8 @@ class group_member_service_server(group_member_service):
                         # we got exactly the response we expected, so we don't need to do anything
                         pass
                     else:
-                        print('Warning: Inappropriate message at heartbeat port.')
+                        # print('Warning: Inappropriate message at heartbeat port.')
+                        utils.colorful_print('Warning: Inappropriate message at heartbeat port.', 'FAIL')
                 except ConnectionResetError:
                     # our heartbeat request crashed because the socket subsystem realised to client is gone,
                     # so we need to remove the client from our list
@@ -307,7 +311,8 @@ class group_member_service_server(group_member_service):
         # my_ip = "183.38.223.1"
         # id = "aed937ea-33f3-11eb-adc1-0242ac120002"  (my_id)
         # ring_port = 10001
-        print('Election started!')
+        # print('Election started!')
+        utils.colorful_print('Election started!', 'FAIL')
         if self.in_election:
             return None
         self.in_election = True
@@ -334,7 +339,8 @@ class group_member_service_server(group_member_service):
             try:
                 data, _ = ring_socket.recvfrom(self.BUFFER_SIZE)
             except socket.timeout:
-                print('Elction timeout!')
+                # print('Elction timeout!')
+                utils.colorful_print('Elction timeout!', 'FAIL')
                 self.in_election = False
                 return None
             # used for testing, block the whole ring
@@ -566,7 +572,8 @@ class group_member_service_client(group_member_service):
                         # we got exactly the response we expected, so we don't need to do anything
                         pass
                     else:
-                        print('Warning: Inappropriate message at heartbeat port.')
+                        # print('Warning: Inappropriate message at heartbeat port.')
+                        utils.colorful_print('Warning: Inappropriate message at heartbeat port.', 'FAIL')
                 except ConnectionResetError:
                     # our heartbeat request timed out, so we need to reset the contact server
                     # the client class will detect this change and automatically try to reconnect
@@ -608,7 +615,8 @@ class group_member_service_client(group_member_service):
                 # now id the only for clients feature, to update the MAIN_SERVER
                 self.MAIN_SERVER = message['CONTENT']['MAIN_SERVER']
             else:
-                print('Warning: Inappropriate message at heartbeat port.')
+                # print('Warning: Inappropriate message at heartbeat port.')
+                utils.colorful_print('Warning: Inappropriate message at heartbeat port.', 'FAIL')
 
 
     def handle_disconnect(self) -> None:
