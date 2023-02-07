@@ -30,8 +30,7 @@ color = {
         'FAIL' : '\033[91m',
         'ENDC' : '\033[0m',
         'BOLD' : '\033[1m',
-        'UNDERLINE' : '\033[4m'
         }
 
-# type_monitor = ['RMI', 'BIT']
+# type_monitor = ['RMI', 'BIT', 'JOIN', 'DISCOVERY']
 type_monitor = []

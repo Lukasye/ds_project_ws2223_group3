@@ -14,9 +14,6 @@ class interface:
         self.box = None
         self.TERMINATE = False
         print("Preparing to initialize screen...")
-        self.screen = curses.initscr()
-        self.windows = {}
-        # initialize elements
         self.update_screen()
         print("Screen initialized.")
         self.logic()
