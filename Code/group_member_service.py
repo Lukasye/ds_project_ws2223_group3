@@ -243,6 +243,7 @@ class group_member_service_server(group_member_service):
 
             self.isolated = inverse_trigger
             # print(self.isolated)
+            self.ORIGIN.check_semaphore()
 
             # is the proccess is main, it will update all the server list in this function
             if self.is_main:

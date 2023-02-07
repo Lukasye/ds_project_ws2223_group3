@@ -39,6 +39,28 @@ class element:
     def __str__(self):
         return str(self.info)
 
+class semaphore:
+    def __init__(self) -> None:
+        self.flag = False
+        self.info = []
+
+    def lock(self):
+        self.flag = True
+
+    def unlock(self):
+        self.flag = False
+    
+    def check(self):
+        return bool(self.info)
+
+    def pop(self):
+        if self.check():
+            return self.info.pop()
+        else:
+            return None
+    
+    def append(self, data):
+        self.info.append(data)
 
 class auction_component:
     def __init__(self, TYPE, UDP_PORT):
@@ -80,6 +102,7 @@ class auction_component:
         self.in_auction = False
         self.result = False
         self.bid_history = []
+        self.semaphore = semaphore()
 
         # debug log file
         self.logging = logging
@@ -552,6 +575,8 @@ class auction_component:
     #     iD, price = self.bid_history[sequence]
     #     command = f'self.highest_bid={price};self.winner="{iD}";self.bid_history.append(("{iD}", {price}));'
     #     self.remote_methode_invocation([address], command, SEQUENCE= sequence)
+    def check_semaphore(self):
+        pass
 
 
 if __name__ == '__main__':

@@ -142,13 +142,9 @@ class Server(auction_component):
             price = int(request['CONTENT']['PRICE'])
             if price <= highst_bid:
                 # if the bit is smaller than the current highest, nothing should be done.
-                # message = self.create_message('PRINT',
-                #                               {'PRINT': 'Invalid Price, '
-                #                                         'the highest bid now is {}'.format(self.highest_bid)})
                 command = f'self.highest_bid={self.highest_bid};self.winner="{self.winner}";print("Invalid input! The '\
-                        f'highest bid now is {self.highest_bid}"); '
+                        f'highest bid now is {self.highest_bid}");'
                 self.remote_methode_invocation([request['SENDER_ADDRESS']], command, result=False)
-                # print(result)
             else:
                 sequence = self.sequence_send(price)
                 if sequence == 0:
@@ -160,7 +156,7 @@ class Server(auction_component):
                     self.highest_bid = price
                     command = f'self.highest_bid={price};' \
                             f'self.winner="{tmp}";' \
-                            f'self.bid_history.append(("{tmp}", {price}));'
+                            f'self.bid_history.append(("{tmp}", {price}));self.semaphore.unlock();self.check_semaphore();'
                     self.notify_all(command=command, sequence=sequence, result=False)
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
         # ************************************************************
@@ -322,14 +318,36 @@ class Server(auction_component):
             data, address = server_socket.recvfrom(self.BUFFER_SIZE)
             if data:
                 data = pickle.loads(data)
-                price = data['CONTENT']['PRICE']
-                if price <= self.highest_bid:
-                    sequence = 0
-                else:
-                    self.gms.sequencer += 1
-                    sequence = self.gms.sequencer
-                message = self.create_message('SEQUENCE', {'SEQ': sequence})
-                self.udp_send_without_response(address, message)
+                if self.semaphore.check():
+                    print('System busy, put into waiting list...')
+                    utils.colorful_print('System busy, put into waiting list...', 'FAIL')
+                    data['ADDRESS'] = address
+                    self.semaphore.append(data)
+                    continue
+                # self.busy = True
+                self.semaphore.lock()
+                self.sequence_logic(data=data, address=address)
+        
+    def sequence_logic(self, data, address):
+        price = data['CONTENT']['PRICE']
+        if price <= self.highest_bid:
+            sequence = 0
+        else:
+            self.gms.sequencer += 1
+            sequence = self.gms.sequencer
+        message = self.create_message('SEQUENCE', {'SEQ': sequence})
+        self.udp_send_without_response(address, message)
+
+        
+    def check_semaphore(self):
+        if self.semaphore.check():
+            print('Pop out of waiting list...')
+            data = self.semaphore.pop()
+        else:
+            return
+        address = data['ADDRESS']
+        self.sequence_logic(data, address)
+
 
     def sequence_send(self, price: int) -> int:
         """
@@ -339,9 +357,18 @@ class Server(auction_component):
         """
         assert self.gms.MAIN_SERVER is not None
         message = self.create_message('SEQUENCE', {'PRICE': price})
-        print(utils.get_port(tuple(self.gms.MAIN_SERVER), 'SEQ'))
+        # print(utils.get_port(tuple(self.gms.MAIN_SERVER), 'SEQ'))
         sequence = self.udp_send(utils.get_port(tuple(self.gms.MAIN_SERVER), 'SEQ'), message)
         return sequence['CONTENT']['SEQ']
+
+    def sequence_reset(self, price: int) -> None:
+        """
+        HELPER FUNCTION:
+        :return: None
+        """
+        assert self.gms.MAIN_SERVER is not None
+        command = 'self.busy = False;'
+        self.remote_methode_invocation([tuple(self.gms.MAIN_SERVER)], command, multicast=False, result=False)
 
     def start_auction(self, duration: int = 5):
         print('Auction duration: ', duration, ' min')
