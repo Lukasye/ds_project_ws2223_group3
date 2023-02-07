@@ -51,7 +51,8 @@ class semaphore:
         self.flag = False
     
     def check(self):
-        return bool(self.info)
+        resault = bool(self.info)
+        return resault 
 
     def pop(self):
         if self.check():

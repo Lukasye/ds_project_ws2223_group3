@@ -3,6 +3,7 @@ import click
 import math
 import time
 import socket
+from threading import Lock
 
 from auction_component import auction_component
 from group_member_service import group_member_service_server
@@ -24,6 +25,7 @@ class Server(auction_component):
         self.SEQ_PORT = UDP_PORT + 4
         self.headless = headless
         self.agree = True
+        self.lock = Lock()
         # initialize depends on whether this is the main server
         warm_up_list = [self.udp_listen, self.broadcast_listen, self.check_hold_back_queue,
                         self.sequence_listen, self.multicast_listen]
@@ -146,9 +148,9 @@ class Server(auction_component):
                         f'highest bid now is {self.highest_bid}");'
                 self.remote_methode_invocation([request['SENDER_ADDRESS']], command, result=False)
             else:
-                sequence = self.sequence_send(price)
+                sequence = self.sequence_send(price) 
                 if sequence == 0:
-                    # the bit is invalid
+                 # the bit is invalid
                     pass
                 else:
                     tmp = request['ID']
@@ -156,7 +158,11 @@ class Server(auction_component):
                     self.highest_bid = price
                     command = f'self.highest_bid={price};' \
                             f'self.winner="{tmp}";' \
-                            f'self.bid_history.append(("{tmp}", {price}));self.semaphore.unlock();self.check_semaphore();'
+                            f'self.bid_history.append(("{tmp}", {price}));' \
+                            f'self.lock.acquire();' \
+                            f'self.semaphore.unlock();' \
+                            f'self.lock.release();' \
+                            f'self.check_semaphore();'
                     self.notify_all(command=command, sequence=sequence, result=False)
                 self.udp_send_without_response(tuple(request['SENDER_ADDRESS']), self.create_message('WINNER', {}))
         # ************************************************************
@@ -318,14 +324,18 @@ class Server(auction_component):
             data, address = server_socket.recvfrom(self.BUFFER_SIZE)
             if data:
                 data = pickle.loads(data)
-                if self.semaphore.check():
-                    print('System busy, put into waiting list...')
+                self.logging.warning(data)
+                with self.lock:
+                    flag = self.semaphore.check()
+                if flag:
+                    # print('System busy, put into waiting list...')
                     utils.colorful_print('System busy, put into waiting list...', 'FAIL')
                     data['ADDRESS'] = address
                     self.semaphore.append(data)
                     continue
                 # self.busy = True
-                self.semaphore.lock()
+                with self.lock:
+                    self.semaphore.lock()
                 self.sequence_logic(data=data, address=address)
         
     def sequence_logic(self, data, address):
@@ -340,7 +350,9 @@ class Server(auction_component):
 
         
     def check_semaphore(self):
-        if self.semaphore.check():
+        with self.lock:
+            flag = self.semaphore.check()
+        if flag:
             print('Pop out of waiting list...')
             data = self.semaphore.pop()
         else:
@@ -359,6 +371,8 @@ class Server(auction_component):
         message = self.create_message('SEQUENCE', {'PRICE': price})
         # print(utils.get_port(tuple(self.gms.MAIN_SERVER), 'SEQ'))
         sequence = self.udp_send(utils.get_port(tuple(self.gms.MAIN_SERVER), 'SEQ'), message)
+        if sequence is None:
+            sequence = 0
         return sequence['CONTENT']['SEQ']
 
     def sequence_reset(self, price: int) -> None:

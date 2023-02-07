@@ -1,5 +1,7 @@
 import click
+import random
 import time
+from threading import Lock
 
 from auction_component import auction_component
 from global_time_sync import global_time_sync
@@ -17,6 +19,7 @@ class Client(auction_component):
         self.headless = headless
         self.gts = global_time_sync(self.TYPE, self.id, self.MY_IP, self.TIM_PORT)
         self.gms = group_member_service_client(self, self.MY_IP, self.id, self.UDP_PORT)
+        self.lock = Lock()
         self.logging.info(self.report())
         # open multiple thread to do different jobs
         self.warm_up([self.broadcast_listen, self.udp_listen, self.check_hold_back_queue], headless)
@@ -143,6 +146,7 @@ class Client(auction_component):
             elif user_input == 'find':
                 self.find_others()
             elif user_input.startswith('bit'):
+                time.sleep(random.random()/ 5)
                 info = user_input.split(' ')
                 message = self.create_message('BIT', {'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT),
                                                       'PRICE': info[1]})
