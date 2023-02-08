@@ -46,7 +46,7 @@ cd Code/start_up
 | 7 | queue     | To show the elements in the hold-back-queue. |
 | 8 | multi1(or 2)| for the multicast testing. <b>multi1</b> will send out 4 messages with sequence number 1 to 4 with 10 seconds latency before the second message. <b>multi2</b> will send out a single udp message with sequence number 5. In the test, the multi1 should be executed on one server and right after that multi2 on another. |
 | 9 | intercept   | Blocking the next incoming request with sequence number greater than 0 |
-| 10 | Block      | Block the election to perform ring failure test |
+| 10 | block      | Block the election to perform ring failure test |
 | 11 | history    | To check the bit history |
 | 12 | bit        | (client only feature) to raise the bit in format `bit <Price>` |
 | 13 | yy-        | the command start with yy(yyserver, yy client, yyreport and yyhistory) to execute command in the whole group |
@@ -120,6 +120,7 @@ and some small gadgets. Broadcast logic finished! unused user function deleted! 
 <b>05.02.2023:</b> Election method and grooup member service fixed. <br>
 <b>06.02.2023:</b> Added a little new feature to make the election part more robust under failure. A little bit nervous before the presentation. <br>
 <b>07.02.2023:</b> At last i decided that the screen still need some colors, so i implemented a method to make it look good. Hope everthing be fine in the demo!<br>
+<b>07.02.2023:</b> Final push. Good luck everyone!<br>
 ### TODO<br>
 1. ~~bugs fix!!!!!!!!~~
 2. ~~BIG PROBLEM: I don't know how to add emoji in markdown!!~~

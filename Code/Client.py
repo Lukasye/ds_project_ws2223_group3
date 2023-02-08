@@ -146,7 +146,7 @@ class Client(auction_component):
             elif user_input == 'find':
                 self.find_others()
             elif user_input.startswith('bit'):
-                time.sleep(random.random()/ 5)
+                print('Bit request sent out!')
                 info = user_input.split(' ')
                 message = self.create_message('BIT', {'UDP_ADDRESS': (self.MY_IP, self.UDP_PORT),
                                                       'PRICE': info[1]})
